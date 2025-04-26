@@ -10,77 +10,59 @@ const driver = neo4j.driver(
 const session = driver.session();
 
 
-const getPersonMatches = async (name, lastName, fatherName = "", grandfatherName = "") => {
-  console.log("NAME AND LAST NAME:", name, lastName);
-  let returnStatement = `RETURN id(p) AS personID, p.name AS personName, p.lastName AS familyName`;
-  let query = `
-    MATCH (p:Person)
-    WHERE p.name = $name AND p.lastName = $lastName
-  `;
-
-  console.log('Running query to check for unique name and last name:', query + returnStatement);
-
-  let result = await session.run(query + returnStatement, { name, lastName });
-
-  console.log('First query result:', result.records);
-
-  if (result.records.length === 1) {
-    console.log('Unique person found:', result.records[0].get('personID').toNumber());
-    return result.records.map(record => ({
-      id: record.get('personID').toNumber(),
-      name: record.get('personName'),
-      lastName: record.get('familyName'),
-    }));
-  }
-
-  if (fatherName) {
-    query += ` 
-      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(p)
-    `;
-    returnStatement += `, father.name AS fatherName`;
-    console.log('Added father check to query:', query);
-  }
+const getPersonMatches = async (name, fatherName = "", grandfatherName = "", lastName) => {
+  let query = "";
 
   if (grandfatherName) {
-    query += `
-      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
-      
+    query = `
+      MATCH (grandfather:Person {name: $grandfatherName})-[:FATHER_OF]->(father:Person {name: $fatherName})-[:FATHER_OF]->(p:Person {name: $name, lastName: $lastName})
+      RETURN id(p) AS personID, p.name AS personName, p.lastName AS familyName, father.name AS fatherName, grandfather.name AS grandfatherName
     `;
-    returnStatement += `, grandfather.name AS grandfatherName`;
-    console.log('Added grandfather check to query:', query);
+  } 
+  else if (fatherName) {
+    query = `
+      MATCH (father:Person {name: $fatherName})-[:FATHER_OF]->(p:Person {name: $name, lastName: $lastName})
+      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+      RETURN id(p) AS personID, p.name AS personName, p.lastName AS familyName, father.name AS fatherName, grandfather.name AS grandfatherName
+    `;
+  } 
+  else {
+    query = `
+      MATCH (p:Person {name: $name, lastName: $lastName})
+      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(p)
+      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+      RETURN id(p) AS personID, p.name AS personName, p.lastName AS familyName, father.name AS fatherName, grandfather.name AS grandfatherName
+    `;
   }
 
-  query += returnStatement;
-  console.log('Final query to check for father and grandfather:', query);
-
-  result = await session.run(query, { name, lastName, fatherName, grandfatherName });
-
-  console.log('Second query result:', result.records);
+  const params = { name, lastName, fatherName, grandfatherName };
+  const result = await session.run(query, params);
 
   return result.records.map(record => ({
     id: record.get('personID').toNumber(),
     name: record.get('personName'),
-    lastName: record.get('familyName'),
     father: record.get('fatherName') || "Unknown",
-    grandfather: record.get('grandfatherName') || "Unknown"
+    grandfather: record.get('grandfatherName') || "Unknown",
+    lastName: record.get('familyName')
   }));
 };
 
-function splitName(fullName) {
-  const parts = fullName.split(' ');  // Assuming space-separated parts, adjust for 'ben' if needed
 
+// Function that split english translated name that may contain ben to full name only parts.
+function splitName(fullName) {
+  const parts = fullName.replace(/ ben /gi, ' ').split(/\s+/);
   if (parts.length === 2) {
     return {
       personName: parts[0],
-      fatherName: "Unknown",
-      grandfatherName: "Unknown",
+      fatherName: "",
+      grandfatherName: "",
       familyName: parts[1]
     };
   } else if (parts.length === 3) {
     return {
       personName: parts[0],
       fatherName: parts[1],
-      grandfatherName: "Unknown",
+      grandfatherName: "",
       familyName: parts[2]
     };
   } else if (parts.length === 4) {
@@ -92,16 +74,31 @@ function splitName(fullName) {
     };
   }
   // Default case if structure doesn't match
-  return { personName: parts[0], fatherName: "Unknown", grandfatherName: "Unknown", familyName: parts[1] };
+  return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] };
 }
 
 const getRelationship = async (person1FullName, person2FullName) => {
-  console.log("FIRST NAME ", person1FullName, person2FullName);
-  const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(person1FullName);
-  const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(person2FullName);
+  const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
+  // const isEnglish = (text) => /^[A-Za-z\s]+$/.test(text);
+  let translatedName1, translatedName2;
 
-  const person1Matches = await getPersonMatches(person1Name, person1LastName, person1FatherName, person1GrandfatherName);
-  const person2Matches = await getPersonMatches(person2Name, person2LastName, person2FatherName, person2GrandfatherName);
+  if (isArabic(person1FullName)){
+    translatedName1 = translateName(person1FullName, false);
+  }
+  else{
+    translatedName1 = person1FullName;
+  }
+  if (isArabic(person2FullName)){
+    translatedName2 = translateName(person2FullName, false);
+  }
+  else{
+    translatedName2 = person2FullName;
+  }
+  
+  const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(translatedName1);
+  const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(translatedName2);
+  const person1Matches = await getPersonMatches(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
+  const person2Matches = await getPersonMatches(person2Name, person2FatherName, person2GrandfatherName, person2LastName);
 
   console.log("P1 matches : ", person1Matches);
   console.log("P2 matches : ", person2Matches);
@@ -123,10 +120,10 @@ const getRelationship = async (person1FullName, person2FullName) => {
   }
 
   const gender1 = await getGender(person1ID);
-  const gender2 = await getGender(person1ID);
+  const gender2 = await getGender(person2ID);
   try {
-    console.log(`Looking up relationship between: ${person1FullName} and ${person2FullName}`);
 
+    // Function that return the ancestors of a given person starting with the person itself and going up to the root.
     const getAncestors = async (personID) => {
       const result = await session.run(`
         MATCH path = (ancestor:Person)-[:FATHER_OF|MOTHER_OF*]->(child:Person)
@@ -134,40 +131,52 @@ const getRelationship = async (person1FullName, person2FullName) => {
         WITH ancestor, id(ancestor) AS ID, length(path) AS level
         RETURN DISTINCT ID, ancestor.name AS name, ancestor.lastName AS lastName, level
         ORDER BY level ASC
-      `, {
-        personID
-      });
+      `, { personID });
     
-      return result.records.map(record => ({
-        id: record.get('ID').toNumber(),
-        name: record.get('name'),
-        lastName: record.get('lastName'),
-        level: record.get('level').toNumber()
-      }));
+      const personResult = await session.run(`
+        MATCH (p:Person)
+        WHERE id(p) = $personID
+        RETURN id(p) AS ID, p.name AS name, p.lastName AS lastName
+      `, { personID });
+    
+      const person = personResult.records[0];
+    
+      return [
+        {
+          id: person.get('ID').toNumber(),
+          name: person.get('name'),
+          lastName: person.get('lastName'),
+          level: 0
+        },
+        ...result.records.map(record => ({
+          id: record.get('ID').toNumber(),
+          name: record.get('name'),
+          lastName: record.get('lastName'),
+          level: record.get('level').toNumber()
+        }))
+      ];
     };
 
     // Get the ancestors for both persons
-    const maxLevels = 4; 
+    // const maxLevels = 4; 
     let person1Ancestors = await getAncestors(person1ID);
     let person2Ancestors = await getAncestors(person2ID);
     
     console.log(`Person 1 Ancestors: ${person1Ancestors.map(a => a.name).join(' ben ')}`);
     console.log(`Person 2 Ancestors: ${person2Ancestors.map(a => a.name).join(' ben ')}`);
 
-    const person1Ids = person1Ancestors.map(a => a.id);
-    const person2Ids = person2Ancestors.map(a => a.id);
-
-    const sharedAncestors = person1Ancestors.filter(a => person2Ids.includes(a.id));
-
+    const person1AncestorsIds = person1Ancestors.map(a => a.id);
+    const person2AncestorsIds = person2Ancestors.map(a => a.id);
     const translatedName1 = translateName(person1FullName);
     const translatedName2 = translateName(person2FullName);
+
 
     // Check for common ancestors between the two persons
     for (let i = 0; i < person1Ancestors.length; i++) {
       for (let j = 0; j < person2Ancestors.length; j++) {
         if (person1Ancestors[i].id === person2Ancestors[j].id) {
-          var p1Level = person1Ancestors[i].level-1;
-          var p2Level = person2Ancestors[j].level-1;
+          var p1Level = person1Ancestors[i].level;
+          var p2Level = person2Ancestors[j].level;
           
           console.log(`Level: (${p1Level}, ${p2Level})`);
 
@@ -381,10 +390,10 @@ const getRelationship = async (person1FullName, person2FullName) => {
           
           else if (p1Level === 3 && p2Level === 2) {          
             const p1AncestorFullName = getAncestorFullName(person1Ancestors, 1);
-            const p1AncestorGender = await getGender(p1AncestorFullName);
+            const p1AncestorGender = await getGender(person1AncestorsIds[1]);
 
             const p2AncestorFullName = getAncestorFullName(person2Ancestors, 1);
-            const p2AncestorGender = await getGender(p2AncestorFullName);
+            const p2AncestorGender = await getGender(person2AncestorsIds[1]);
 
             if (p1AncestorGender === 'Male') {  // father's side
               if (p2AncestorGender === 'Male') {  // father's brother's son
@@ -409,17 +418,13 @@ const getRelationship = async (person1FullName, person2FullName) => {
           }
           else if (p1Level === 3 && p2Level === 3) {          
             
-            const p1AncestorFullName = getAncestorFullName(person1Ancestors, 1);
-            const p1AncestorGender = await getGender(p1AncestorFullName);
+            const p1AncestorGender = await getGender(person1AncestorsIds[1]);
 
-            const p1GreatAncestorFullName = getAncestorFullName(person1Ancestors, 2);
-            const p1GreatAncestorGender = await getGender(p1GreatAncestorFullName);
+            const p1GreatAncestorGender = await getGender(person1AncestorsIds[2]);
 
-            const p2AncestorFullName = getAncestorFullName(person2Ancestors, 1);
-            const p2AncestorGender = await getGender(p2AncestorFullName);
+            const p2AncestorGender = await getGender(person2AncestorsIds[1]);
 
-            const p2GreatAncestorFullName = getAncestorFullName(person2Ancestors, 2);
-            const p2GreatAncestorGender = await getGender(p2GreatAncestorFullName);
+            const p2GreatAncestorGender = await getGender(person2AncestorsIds[2]);
             // Ancestor changes paternal/maternal
             // Great Ancestor changes grandfather/grandmother
             if (p1AncestorGender === 'Male') { 
