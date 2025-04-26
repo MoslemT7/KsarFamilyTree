@@ -1,0 +1,99 @@
+/* General Styles for Search Page */
+.search-page {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: 'Cairo', sans-serif;
+  direction: rtl; /* Right-to-left text direction */
+  text-align: right; /* Align text to the right */
+  background-color: #fefefe;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column; /* Ensure content stacks vertically */
+  gap: 20px; /* Space between elements */
+}
+
+/* Header Section */
+.search-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.search-header h1 {
+  font-size: 26px; /* Slightly smaller font for better consistency */
+  margin-bottom: 10px;
+  color: #333;
+}
+
+/* Search Bar */
+.search-bar {
+  padding: 8px 12px;
+  font-size: 16px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  margin-bottom: 20px; /* Space between search bar and content */
+  transition: border-color 0.3s ease;
+}
+
+.search-bar:focus {
+  border-color: #3f51b5;
+  outline: none;
+}
+
+/* Person Details and Result Sections */
+.person-details, .no-results, .error-message {
+  background-color: #fafafa;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  margin-top: 20px;
+}
+
+/* Person Details Section */
+.person-details h2 {
+  margin-bottom: 15px;
+  color: #222;
+  font-size: 20px;
+}
+
+.person-details p {
+  font-size: 16px;
+  line-height: 1.8;
+  margin-bottom: 10px;
+}
+
+/* Error Message Section */
+.error-message {
+  color: #d32f2f;
+  border-color: #d32f2f;
+  background-color: #ffeaea;
+}
+
+/* No Results Section */
+.no-results p {
+  color: #888;
+  font-size: 16px;
+}
+
+/* Mobile View Adjustments */
+@media screen and (max-width: 768px) {
+  .search-page {
+    padding: 15px;
+    margin: 20px auto;
+  }
+
+  .search-header h1 {
+    font-size: 22px; /* Slightly smaller title on mobile */
+  }
+
+  .search-bar {
+    padding: 10px 12px;
+    font-size: 14px; /* Adjust font size for search bar */
+  }
+
+  .person-details, .no-results, .error-message {
+    padding: 15px;
+  }
+}
