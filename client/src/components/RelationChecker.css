@@ -1,0 +1,107 @@
+/* Styles for the relation page layout */
+
+/* Main container */
+.relation-page {
+  display: flex; /* Flexbox layout */
+  justify-content: space-between; /* Space between the main content and duplicates */
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: 'Cairo', sans-serif;
+  direction: rtl; /* Right to left for Arabic text */
+  background-color: #fefefe;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Main content section (right side) */
+.relation-page .main-content {
+  flex: 1; /* Main content takes up remaining space */
+  padding-left: 20px;
+}
+
+/* Form input fields */
+input[type="text"] {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  transition: border-color 0.3s;
+}
+
+input[type="text"]:focus {
+  border-color: #3f51b5;
+  outline: none;
+}
+
+/* Submit button styling */
+button {
+  background-color: #3f51b5;
+  color: white;
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #303f9f;
+}
+
+/* Relation paragraph styling */
+#relationHolder {
+  margin-top: 20px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #333;
+  text-align: right;
+}
+
+/* Duplicates list section (left side) */
+.dups_list {
+  width: 250px; /* Fixed width for the sidebar */
+  padding: 15px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  font-size: 14px;
+  direction: rtl; /* Ensure the Arabic content is right-to-left */
+  margin-left: 20px;
+  height: 100%; /* Full height to keep the list within bounds */
+}
+
+/* Title for the duplicates list */
+.dups_list h3 {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: right;
+}
+
+/* Duplicates list styling */
+.dups_list ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dups_list li {
+  background-color: #fff;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dups_list li strong {
+  color: #333;
+}
+
+.dups_list li span {
+  font-size: 14px;
+  color: #555;
+}

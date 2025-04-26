@@ -1,0 +1,68 @@
+/* Wrapper for the entire tree */
+#treeWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f4f6f9; /* Light neutral background */
+  padding: 20px;
+}
+
+/* Styling for each node in the tree */
+.react-d3-tree .rd3t-node {
+  border: 2px solid #4682b4; /* Slightly darker border for contrast */
+  border-radius: 8px; /* Rounded corners */
+  padding: 12px 18px; /* Ample padding for better spacing */
+  background-color: #e0f7fa; /* Light cyan background */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.react-d3-tree .rd3t-node:hover {
+  transform: scale(1.05); /* Slight scaling effect on hover */
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); /* Slightly enhanced shadow on hover */
+}
+
+/* Simplified text styles inside the nodes */
+text {
+  font-family: 'Arial', sans-serif;
+  font-weight: normal;
+  font-size: 24px; /* Standard font size for better clarity */
+  text-anchor: middle;
+  fill: #333; /* Dark gray for clear visibility */
+}
+
+/* Styling for the tree container with overflow handling */
+.tree-container {
+  max-height: 80vh;
+  width: 100%;
+  overflow-y: auto;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.9); /* Slightly transparent background */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); /* Soft shadow around the tree */
+}
+
+/* Highlighting for the husband's node */
+.react-d3-tree .rd3t-node.highlight {
+  border: 2px solid #ff6347; /* Red border for husband's node */
+  background-color: #ffebee; /* Light red background */
+  transform: scale(1.1); /* Slight scaling */
+}
+
+/* Centering the family tree vertically and horizontally */
+.react-d3-tree {
+  position: relative;
+  padding: 10px;
+}
+
+/* Adding a subtle animation for the nodes when loaded */
+.react-d3-tree .rd3t-node-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.react-d3-tree .rd3t-node-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+}
