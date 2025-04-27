@@ -1,12 +1,14 @@
-Ksar Family Tree
-The Ksar Family Tree project is a comprehensive family tree visualization tool dedicated to the people of Ksar Ouled Boubaker, a town in southern Tunisia. This project aims to represent and preserve the vast and interconnected family tree of the town, helping to map out relationships, track the population, and facilitate understanding of family history.
+Introduction
+Welcome to the Ksar Family Tree project, a unique platform dedicated to preserving and showcasing the rich history of Ksar Ouled Boubaker's vast family network. This website aims to connect over 3000 members of the community by providing an interactive, visual representation of our family tree.
 
-Features
-Visual Family Tree: A zoomable and interactive family tree to display generations and family connections.
+The project is designed to make it easier for current and future generations to explore their heritage, discover their familial connections, and understand the intricate web of relationships within our town. With the use of cutting-edge web technologies, we bring to life a dynamic and user-friendly interface that allows users to search, explore, and interact with the family tree in ways never before possible.
 
-Relationship Finder Tool: A tool to explore and find relationships within the family tree.
+Key features include:
 
-Live Population Counter: An up-to-date count of the population within the family tree.
-
-Dual Family Assignment for Women: Linking women to both their father’s and husband’s families, ensuring clear representation in the family tree.
-
+- A zoomable family tree for easy navigation.
+- A relationship finder tool to trace connections across generations.
+- A live statistics page for tracking key informations about the Ksar Ouled Boubaker Large Family.
+- Dual family assignments for women to ensure that both their father’s and husband’s family lines are represented.
+- A search page for finding any person in the database.
+- 
+This website not only aims to be a tool for genealogical exploration but also serves as a way to strengthen ties within the community. By visualizing our shared history, we celebrate the bonds that unite us all. Whether you're tracing your roots, learning about your ancestors, or simply exploring family connections, the Ksar Family Tree project will help you connect with your past and understand the legacy that shapes the future.
