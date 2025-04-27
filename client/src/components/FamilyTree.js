@@ -174,19 +174,6 @@ const FamilyTree = ({ searchQuery }) => {
     loadFamilyTree();
   }, []);
 
-  // Fuse.js search logic
-  const fuseOptions = {
-    keys: ['name', 'fatherName', 'grandFatherName', 'lastName'], // Customize based on your data
-    threshold: 0.3,
-  };
-
-  const fuse = new Fuse(familyTree ? familyTree : [], fuseOptions);
-
-  // Filter the family tree based on the search query
-  const filteredFamilyTree = searchQuery.trim()
-    ? fuse.search(searchQuery).map(result => result.item)
-    : familyTree;
-
   if (!familyTree) return <div>Loading...</div>;
 
   return (
@@ -196,7 +183,7 @@ const FamilyTree = ({ searchQuery }) => {
       style={{ width: "100vw", height: "100vh" }}
     >
       <Tree
-        data={filteredFamilyTree}
+        data={familyTree}
         orientation="vertical"
         pathFunc="step"
         translate={translate}
