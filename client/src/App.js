@@ -1,49 +1,40 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import FamilyTree from './components/FamilyTree';  // Adjust the path as needed
-import RelationPage from './components/RelationChecker';  // Import your RelationPage
-import StatisticsDashboard from './components/StatisticsDashboard'; // Adjust the path if needed
-import SearchPage from './components/SearchPage'; // Adjust the path if needed
-
-import './styles.css';  // Import your styles
+import React from 'react';
+import { BrowserRouter as Router, Route, Link, Routes } from 'react-router-dom';
+import FamilyTree from './components/FamilyTree';  // Correct import
+import RelationPage from './components/RelationChecker'; // Correct import
+import StatisticsDashboard from './components/StatisticsDashboard'; // Correct import
+import SearchPage from './components/SearchPage'; // Correct import
+import './styles.css';  // Import styles
 
 const App = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Handle search input change
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
-  };
-
   return (
     <div className="app-container">
-      {/* Top Header */}
+      {/* Header */}
       <header className="header">
         <h1>شجرة عائلة قصر أولاد بوبكر</h1>
       </header>
 
-      {/* Main Content Layout */}
+      {/* Router Setup */}
       <Router>
         <div className="main-container">
-          {/* Sidebar */}
+          {/* Sidebar Navigation */}
           <nav className="sidebar">
             <ul>
-              <li><Link to="#home">الرئيسية</Link></li>
-              <li><Link to="/SearchPage">البحث</Link></li>
-              <li><Link to="#settings">أفراح الجنوب</Link></li>
-              <li><Link to="/StatisticsDashboard">إحصائيات</Link></li>
+              <li><Link to="/">الرئيسية</Link></li>
+              <li><Link to="/search">البحث</Link></li>
+              <li><Link to="/statistics">إحصائيات</Link></li>
               <li><Link to="/relation-checker">ماهي العلاقة بينهما؟</Link></li>
             </ul>
           </nav>
 
-          {/* Main Content for Routes */}
+          {/* Content */}
           <div className="content">
-            {/* Define Routes here */}
             <Routes>
-              <Route path="/SearchPage" element={<SearchPage />} />
+              {/* Updated Route Definitions */}
               <Route path="/" element={<FamilyTree />} />
+              <Route path="/search" element={<SearchPage />} />
+              <Route path="/statistics" element={<StatisticsDashboard />} />
               <Route path="/relation-checker" element={<RelationPage />} />
-              <Route path="/StatisticsDashboard" element={<StatisticsDashboard />} />
             </Routes>
           </div>
         </div>

@@ -1,9 +1,8 @@
-// pages/StatisticsDashboard.js
-
 import { useEffect, useState } from 'react';
 import neo4j from 'neo4j-driver';
 import './StatisticsDashboard.css';
 const translations = require('./translation.json');
+require('dotenv').config(); // Load .env file
 
 const driver = neo4j.driver(
   'neo4j+s://2cd0ce39.databases.neo4j.io',

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './RelationChecker.css';
 const neo4j = require('neo4j-driver');
 const translations = require('./translation.json');
+require('dotenv').config();
 
 
 const driver = neo4j.driver(
