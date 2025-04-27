@@ -2,98 +2,475 @@
 .search-page {
   max-width: 800px;
   margin: 40px auto;
-  padding: 20px;
-  font-family: 'Cairo', sans-serif;
+  padding: 30px;
+  font-family: 'Cairo', sans-serif; /* 'Cairo' is great for Arabic fonts */
   direction: rtl; /* Right-to-left text direction */
   text-align: right; /* Align text to the right */
-  background-color: #fefefe;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: #F9FAFB; /* Soft light background for a modern feel */
+  border-radius: 15px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1); /* More prominent shadow */
   display: flex;
   flex-direction: column; /* Ensure content stacks vertically */
-  gap: 20px; /* Space between elements */
+  gap: 10px; /* Increase space between elements for breathing room */
 }
 
 /* Header Section */
 .search-header {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .search-header h1 {
-  font-size: 26px; /* Slightly smaller font for better consistency */
-  margin-bottom: 10px;
-  color: #333;
+  font-size: 28px; /* Slightly larger for stronger emphasis */
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #2F3C4D; /* Darker tone for the title */
+  font-family: 'Amiri', serif; /* Elegant Arabic font */
+}
+/* Basic search button styling */
+.search-button {
+  padding: 10px 20px;
+  background-color: #234f7b;
+  color: #fff;
+  border: none;
+  border-radius: 8px; 
+  font-size: 24px; 
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* Hover effect for the search button */
+.search-button:hover {
+  background-color: #168A3D; 
+  transform: scale(1.05); 
+}
+
+/* Focus effect for accessibility */
+.search-button:focus {
+  outline: none; 
+  box-shadow: 0 0 10px rgba(27, 147, 79, 0.5); 
+}
+
+.search-button:disabled {
+  background-color: #D3D3D3; 
+  cursor: not-allowed;
 }
 
 /* Search Bar */
 .search-bar {
-  padding: 8px 12px;
-  font-size: 16px;
+  padding: 12px 15px;
+  font-size: 28px;
   width: 100%;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  margin-bottom: 20px; /* Space between search bar and content */
-  transition: border-color 0.3s ease;
+  border-radius: 8px;
+  border: 2px solid #B0BEC5;
+  margin-bottom: 25px;
+  background-color: #FFF;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  color: #333;
+  font-family: 'Amiri', sans-serif;
+  text-align: center;
 }
 
 .search-bar:focus {
-  border-color: #3f51b5;
+  border-color: #1B934F; /* Green color on focus */
   outline: none;
-}
-
-/* Person Details and Result Sections */
-.person-details, .no-results, .error-message {
-  background-color: #fafafa;
-  border-radius: 10px;
-  padding: 20px;
-  border: 1px solid #ddd;
-  margin-top: 20px;
+  box-shadow: 0 0 10px rgba(27, 147, 79, 0.3); /* Green glow on focus */
 }
 
 /* Person Details Section */
-.person-details h2 {
-  margin-bottom: 15px;
-  color: #222;
-  font-size: 20px;
+.person-details {
+  background-color: #FFF; /* Clean background */
+  border-radius: 12px;
+  padding: 30px;
+  border: 2px solid #E0E0E0;
+  margin-top: 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Light shadow for depth */
 }
 
-.person-details p {
+/* Title (تفاصيل الشخص) */
+.person-details h2 {
+  font-size: 26px;
+  font-weight: bold;
+  color: #2F3C4D; /* Dark color for the title */
+  text-align: center;
+  margin-bottom: 25px;
+  font-family: 'Amiri', serif; /* Elegant Arabic font */
+}
+
+h3 {
+  text-align: center;
+  padding: 10px 20px;
+  border: 2px solid #B0BEC5;
+  border-radius: 8px;
+  background-color: #ECEFF1;
+  color: #333;
+  font-size: 24px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  font-family: 'Amiri', sans-serif; /* Apply Arabic style font */
+
+}
+.blankHeader {
+  background-color: transparent !important;
+}
+
+h3:hover {
+  transform: scale(1.05);
+  background-color: #B0BEC5; 
+  color: #fff; 
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); 
+  cursor: pointer; 
+}
+
+.person-details-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-family: 'Cairo', sans-serif;
+  text-align: right; /* Align the text to the right for Arabic */
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.person-details-table th, .person-details-table td {
+  padding: 12px 15px;
+  text-align: center;
+  border: 1px solid #ddd;
   font-size: 16px;
-  line-height: 1.8;
-  margin-bottom: 10px;
+}
+
+.person-details-table th {
+  background-color: #1B934F;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+.person-details-table td {
+  background-color: #fff;
+  color: #1a85c3;
+  font-family: 'Almarai', sans-serif;
+
+}
+
+.personDetails {
+  font-size: 16px;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  font-weight: normal;
+}
+
+.person-details-table td p {
+  margin: 0;
+  padding: 0;
+}
+
+/* Gender and Age and other details table */
+.person-details p strong {
+  font-weight: bold;
+  color: #2F3C4D; /* Dark color for labels */
+}
+
+.person-details p span {
+  font-size: 20px;
+  color: #333; /* Darker color for the text values */
+}
+
+.person-details2-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  direction: rtl;
+}
+
+.person-details2-table thead {
+  background-color: #136da1;
+  color: #fff;
+  text-align: right;
+  border-radius: 8px;
+}
+
+.person-details2-table th, .person-details2-table td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+.person-details2-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.person-details2-table td {
+  font-size: 16px;
+  color: #333;
+  font-weight: normal;
+  text-align: center;
+  font-family: 'Almarai', sans-serif;
+
+}
+
+.person-details2-table td:first-child,
+.person-details2-table th:first-child {
+  text-align: right; /* Align first column (gender, etc.) to the right */
+}
+
+.person-details2-table tbody tr:hover {
+  background-color: #f1f1f1;
 }
 
 /* Error Message Section */
 .error-message {
-  color: #d32f2f;
-  border-color: #d32f2f;
-  background-color: #ffeaea;
+  color: #D32F2F;
+  background-color: #FFEBEE;
+  border-color: #D32F2F;
+  text-align: center;
+  padding: 18px;
+  font-size: 18px;
+  border-radius: 10px;
+  font-weight: bold;
 }
 
 /* No Results Section */
 .no-results p {
   color: #888;
-  font-size: 16px;
+  font-size: 18px;
+  text-align: center;
 }
 
+/* Person Name Styling in Results */
+.dupPersonName {
+  padding: 12px;
+  margin: 8px 0;
+  text-align: center;
+  background-color: #1B934F; /* Elegant green */
+  color: #F4F4F9; /* Light text for contrast */
+  font-family: 'Amiri', serif; /* Arabic-style font */
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 10px; /* Rounded corners */
+  border: 2px solid #1B934F;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow */
+  display: inline-block;
+  width: auto;
+  transition: transform 0.3s ease-in-out; /* Smooth hover effect */
+}
+
+.dupPersonName:hover {
+  transform: scale(1.05); /* Slight scale on hover */
+  background-color: #155D38; /* Darker shade of green on hover */
+  cursor: pointer; /* Pointer cursor for interaction */
+}
+
+
 /* Mobile View Adjustments */
+/* Mobile Styles */
 @media screen and (max-width: 768px) {
+
+  /* General Styles for Search Page */
   .search-page {
-    padding: 15px;
-    margin: 20px auto;
+    max-width: 100%;
+    margin: 20px;
+    padding: 14px;
+    font-size: 14px; /* Adjust font size for readability on smaller screens */
+  }
+
+  /* Header Section */
+  .search-header h1 {
+    font-size: 24px; /* Slightly smaller font size for mobile */
+    margin-bottom: 10px;
+  }
+
+  /* Search Button */
+  .search-button {
+    padding: 8px 4px; /* Smaller padding */
+    font-size: 20px; /* Adjust font size */
+  }
+
+  /* Search Bar */
+  .search-bar {
+    font-size: 20px; /* Adjust font size */
+    padding: 4px 4px; /* Reduce padding */
+  }
+
+  /* Person Details Section */
+  .person-details {
+    padding: 20px; /* Less padding on mobile */
+    font-size: 14px; /* Adjust font size */
+  }
+
+  /* Title (تفاصيل الشخص) */
+  .person-details h2 {
+    font-size: 20px; /* Slightly smaller title */
+  }
+
+  /* h3 Styling */
+  h3 {
+    font-size: 16px; /* Adjust font size for smaller screens */
+    padding: 6px 14px; /* Reduce padding */
+  }
+
+  /* Person Details Table */
+  .person-details-table {
+    font-size: 10px; /* Adjust font size for tables */
+  }
+  .person-details-table td, .person-details td p{
+    font-size: 10px;
+    padding: 4px 4px;
+  }
+  .person-details-table th, .person-details2-table th{
+    font-size: 10px;
+    padding: 4px 4px; /* Adjust padding */
+
+  }
+
+  /* Gender and Age and other details table */
+  .person-details2-table th, .person-details2-table td {
+    padding: 4px 8px; /* Adjust padding */
+    font-size: 10px; /* Adjust font size */
+  }
+
+  /* Error Message Section */
+  .error-message {
+    font-size: 16px; /* Smaller font size for error messages */
+    padding: 12px;
+  }
+
+  /* No Results Section */
+  .no-results p {
+    font-size: 14px; /* Adjust font size for smaller screens */
+  }
+
+  /* Person Name Styling in Results */
+  .dupPersonName {
+    font-size: 16px; /* Smaller font size */
+    padding: 8px 16px; /* Reduced padding */
+    margin: 6px 0; /* Reduced margin */
+  }
+
+  /* Hover effect adjustments */
+  .dupPersonName:hover {
+    transform: scale(1.03); /* Slightly smaller scale on hover */
+  }
+
+  /* Make the sidebar menu more mobile-friendly */
+  .sidebar {
+    width: 100%; /* Full width for the sidebar */
+    position: absolute;
+    top: 0;
+    left: -100%; /* Start off-screen */
+    height: 100vh; /* Full height */
+    background-color: #213448;
+    transition: left 0.3s ease; /* Smooth transition */
+  }
+
+  .sidebar ul {
+    display: block;
+    padding: 0;
+    list-style-type: none;
+    margin-top: 20px;
+  }
+
+  .sidebar li {
+    margin: 14px 0;
+    text-align: center;
+  }
+
+  .sidebar li a {
+    font-size: 18px;
+    color: #ECEFCA;
+    padding: 12px 0;
+    display: block;
+  }
+
+  /* Show the sidebar when it’s active */
+  .sidebar.active {
+    left: 0; /* Bring the sidebar into view */
+  }
+
+  /* Ensure that the navigation menu is easily accessible */
+  .header {
+    position: relative;
+  }
+
+  .search-button{
+    padding: 6px 16px;
+  }
+  .header .menu-toggle {
+    display: block;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 24px;
+    cursor: pointer;
+  }
+
+  .header h1 {
+    font-size: 22px; /* Adjust title size for mobile */
+    margin-left: 45px; /* Shift title to the right to make room for the menu icon */
+  }
+}
+
+@media screen and (max-width: 480px) {
+
+  /* Adjust font size and layout for very small screens */
+  .search-page {
+    padding: 2px;
   }
 
   .search-header h1 {
-    font-size: 22px; /* Slightly smaller title on mobile */
+    font-size: 16px; /* Smaller title size */
+  }
+
+  .search-button {
+    padding: 8px 12px;
+    font-size: 16px; /* Smaller button text */
   }
 
   .search-bar {
-    padding: 10px 12px;
-    font-size: 14px; /* Adjust font size for search bar */
+    font-size: 16px; /* Smaller font size */
+    padding: 8px 10px; /* Reduced padding */
   }
 
-  .person-details, .no-results, .error-message {
-    padding: 15px;
+  .person-details h2 {
+    font-size: 18px; /* Smaller font size for title */
+  }
+
+  .person-details p{
+    font-size: 9px;
+  }
+  h3 {
+    font-size: 18px; /* Smaller font size for h3 */
+    padding: 6px 12px; /* Reduced padding */
+  }
+
+  .person-details-table th, .person-details-table td {
+    padding: 4px 4px; /* Reduced padding */
+    font-size: 8px;
+  }
+  .person-details2-table th, .person-details2-table td {
+    padding: 4px 4px; /* Reduced padding */
+    font-size: 8px;
+  }
+  .error-message {
+    font-size: 14px; /* Smaller font size for error messages */
+    padding: 10px;
+  }
+
+  .no-results p {
+    font-size: 14px; /* Smaller font size */
+  }
+
+  .dupPersonName {
+    font-size: 16px; /* Smaller font size for person name */
+    padding: 6px 12px; /* Reduced padding */
+  }
+
+  .dupPersonName:hover {
+    transform: scale(1.02); /* Slightly smaller hover scale */
   }
 }
+
+

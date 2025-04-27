@@ -20,13 +20,6 @@ const App = () => {
       {/* Top Header */}
       <header className="header">
         <h1>شجرة عائلة قصر أولاد بوبكر</h1>
-        <input
-          type="text"
-          className="search-bar"
-          placeholder="ابحث عن شخص ..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-        />
       </header>
 
       {/* Main Content Layout */}
@@ -37,27 +30,20 @@ const App = () => {
             <ul>
               <li><Link to="#home">الرئيسية</Link></li>
               <li><Link to="/SearchPage">البحث</Link></li>
-              <li><Link to="#settings">الإعدادات</Link></li>
               <li><Link to="#settings">أفراح الجنوب</Link></li>
               <li><Link to="/StatisticsDashboard">إحصائيات</Link></li>
-              {/* Use React Router Link for navigation */}
               <li><Link to="/relation-checker">ماهي العلاقة بينهما؟</Link></li>
             </ul>
           </nav>
 
           {/* Main Content for Routes */}
-          <div className="content" name="maincontent">
+          <div className="content">
             {/* Define Routes here */}
             <Routes>
               <Route path="/SearchPage" element={<SearchPage />} />
-            </Routes>
-            <Routes>
-              <Route path="/" element={<FamilyTree searchQuery={searchQuery} />} />
+              <Route path="/" element={<FamilyTree />} />
               <Route path="/relation-checker" element={<RelationPage />} />
-            </Routes>
-            <Routes>
               <Route path="/StatisticsDashboard" element={<StatisticsDashboard />} />
-              {/* other routes */}
             </Routes>
           </div>
         </div>
