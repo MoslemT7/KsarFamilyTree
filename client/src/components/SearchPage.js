@@ -11,10 +11,9 @@ const driver = neo4j.driver(
 export const translateName = (fullName, language = true) => {
   const nameParts = fullName.split(' ');
 
-  // Build reverse translation map if needed
-  const reverseTranslations = Object.fromEntries(
-    Object.entries(translations).map(([key, value]) => [value, key])
-  );
+const reverseTranslations = Object.fromEntries(
+  Object.entries(translations).map(([key, value]) => [value, key])
+);
 
   const dict = language ? translations : reverseTranslations;
 
@@ -51,10 +50,8 @@ function splitName(fullName) {
   return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] };
 }
 
-
-
 const SearchPage = () => {
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [personDetails, setPersonDetails] = useState(null);
   const [error, setError] = useState('');
@@ -116,25 +113,38 @@ const SearchPage = () => {
       cypherQuery += ` AND child.lastName = $familyName`;
       queryParamsObject.familyName = familyName;
     }
-
+    
     cypherQuery += `
-      RETURN 
-        child.name AS childName, 
-        father.name AS fatherName, 
-        grandfather.name AS grandfatherName, 
+      OPTIONAL MATCH (motherGrandfather)-[:FATHER_OF]->(motherfather)-[:FATHER_OF]->(mother:Person)-[:MOTHER_OF]->(child:Person)
+      RETURN
+        id(child) as childID, 
+        child.name AS childName, father.name AS fatherName, grandfather.name AS grandfatherName, 
         child.YoB AS childYoB, 
         child.gender AS childGender, 
-        child.lastName AS familyName
+        child.lastName AS familyName, 
+        mother.name as motherName, motherfather.name AS motherFatherName, motherGrandfather.name AS motherGrandfatherName, mother.lastName AS motherFamilyName, child.isAlive AS lifeStatus
     `;
 
     const session = driver.session();
     try {
       const result = await session.run(cypherQuery, queryParamsObject);
-
+      
       if (result.records.length == 1) {
         const record = result.records[0];
         const age = new Date().getFullYear() - record.get('childYoB');
+        const childID = record.get("childID").toNumber();
+        console.log(childID);
+        const childrenCountRecord = await session.run( `
+          MATCH (p:Person)-[:FATHER_OF|MOTHER_OF]->(child:Person)
+          WHERE id(p) = $childID
+          RETURN count(child) AS childrenCount
+        `, {childID});
+        const isMarried = await session.run(`
+          MATCH (m:Person)-[r:HUSBAND_OF]->(w:Person)
+          WHERE id(m) = $childID
+          RETURN count(r) > 0 AS isMarried
 
+        `,{ childID });
         setPersonDetails({
           personName: record.get('childName'),
           fatherName: record.get('fatherName'),
@@ -142,7 +152,14 @@ const SearchPage = () => {
           familyName: record.get('familyName'),
           gender: record.get('childGender'),
           age,
+          motherName: record.get('motherName') ?? "غير متوفر",
+          motherFatherName: record.get('motherFatherName') ?? "غير متوفر",
+          motherGrandFatherName: record.get('motherGrandfatherName') ?? "غير متوفر",
+          motherFamilyName: record.get('motherFamilyName') ?? "غير متوفر",
+          lifeStatus: record.get('lifeStatus'),
+          childrenCount : childrenCountRecord.records[0].get('childrenCount').toInt()
         });
+        
 
         setError('');
       }
@@ -226,10 +243,10 @@ const SearchPage = () => {
         </tr>
         <tr>
           <td><strong>الأم</strong></td>
-          <td><p className='personDetails'>{translateName(personDetails.personName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.personName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.personName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.personName) || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails.motherName) || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails.motherFatherName) || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails.motherGrandFatherName) || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails.motherFamilyName) || 'غير متوفر'}</p></td>
         </tr>
       </tbody>
     </table>
@@ -255,9 +272,28 @@ const SearchPage = () => {
               ? `${personDetails.age} سنوات`
               : `${personDetails.age} سنة`}
           </td>
-          <td>{personDetails.maritalStatus || 'غير متوفر'}</td>
-          <td>{personDetails.lifeStatus === 'alive' ? 'حي' : 'متوفى'}</td>
-          <td>{personDetails.childrenCount || 'غير متوفر'}</td>
+          <td>
+            {personDetails.isMarried === 1
+              ? (personDetails.gender === 'Male' ? 'متزوج' : 'متزوجة')
+              : (personDetails.gender === 'Male' ? 'أعزب' : 'عزباء')}
+          </td>
+          <td>
+          {personDetails.lifeStatus === true 
+            ? (personDetails.gender === 'Male' ? 'حي' : 'حية') 
+            : (personDetails.gender === 'Male' ? 'متوفى' : 'متوفية')}
+        </td>
+        <td>
+          {personDetails.childrenCount === 0 || personDetails.childrenCount == null
+            ? '0'
+            : personDetails.childrenCount === 1
+            ? 'طفل واحد'
+            : personDetails.childrenCount === 2
+            ? 'طفلان'
+            : personDetails.childrenCount >= 3 && personDetails.childrenCount <= 10
+            ? `${personDetails.childrenCount} أطفال`
+            : `${personDetails.childrenCount} طفلا`
+          }
+        </td>
         </tr>
       </tbody>
     </table>
