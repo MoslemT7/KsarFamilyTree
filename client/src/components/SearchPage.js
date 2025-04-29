@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import neo4j from 'neo4j-driver';
 import "./SearchPage.css"
 const translations = require('./translation.json');
-require('dotenv').config(); // Load .env file
+require('dotenv').config();
 
 const driver = neo4j.driver(
   'neo4j+s://2cd0ce39.databases.neo4j.io',  // URI of the Neo4j server
@@ -50,11 +50,54 @@ function splitName(fullName) {
   return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] };
 }
 
+
 const SearchPage = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [personDetails, setPersonDetails] = useState(null);
   const [error, setError] = useState('');
+  
+  const getChildrenOfFather = async (fatherId) => {
+    const session = driver.session();
+    try {
+      const result = await session.run(
+        `
+        MATCH (father:Person)
+        WHERE id(father) = $fatherId
+        OPTIONAL MATCH (father)-[:FATHER_OF]->(child:Person)
+        RETURN father, collect(child) AS children
+        `,
+        { fatherId }
+      );
+  
+      if (result.records.length > 0) {
+        const record = result.records[0];
+        const fatherNode = record.get('father');
+        const childrenNodes = record.get('children');
+  
+        const father = {
+          id: fatherNode.identity.toNumber(),
+          ...fatherNode.properties,
+        };
+  
+        const children = childrenNodes
+          .filter(child => child) // filter out nulls if no children
+          .map(child => ({
+            id: child.identity.toNumber(),
+            ...child.properties,
+          }));
+  
+        return { father, children };
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching father and children:', error);
+      return null;
+    } finally {
+      await session.close();
+    }
+  };
   
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -87,95 +130,202 @@ const SearchPage = () => {
     const { personName, fatherName, grandfatherName, familyName } = splitName(translatedInputName);
 
 
-    let cypherQuery = `
-      MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
-      WHERE 1=1
-    `;
+    let cypherQuery = ``;
 
     const queryParamsObject = {};
 
-    if (personName) {
-      cypherQuery += ` AND child.name = $personName`;
-      queryParamsObject.personName = personName;
-    }
+    if (personName){
+      console.log(`Searching for person: ${personName}`);
+      
+      if (fatherName) {
+        console.log(`Searching for father: ${fatherName}`);
+        
+        if (grandfatherName) {
+          console.log(`Searching for grandfather: ${grandfatherName}`);
+          
+          if (familyName) {
+            console.log(`Searching for familyName: ${familyName}`);
+            
+            cypherQuery += `
+              MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+              WHERE child.name = $personName AND 
+                    father.name = $fatherName AND 
+                    grandfather.name = $grandfatherName AND 
+                    child.lastName = $familyName
+              RETURN child.name AS childName, father.name AS fatherName, grandfather.name AS grandfatherName, child.lastName AS familyName,  
+              child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID
+            `;
+            
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+            queryParamsObject.grandfatherName = grandfatherName;
+            queryParamsObject.familyName = familyName;
+            
+          } 
+          else {
+            console.log("No familyName provided.");
+            cypherQuery += `
+              MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+              WHERE child.name = $personName AND 
+                    father.name = $fatherName AND 
+                    grandfather.name = $grandfatherName
+              RETURN child.name AS childName, father.name AS fatherName, grandfather.name AS grandfatherName, 
+              child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID`;
+            
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+            queryParamsObject.grandfatherName = grandfatherName;
+          }
+          
+        } else {
+          console.log("No grandfatherName provided.");
+          if (familyName){
+            cypherQuery += `
+            MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+            WHERE child.name = $personName AND 
+                  father.name = $fatherName AND
+                  child.lastName = $familyName
+            OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+            RETURN child.name AS childName, 
+                  father.name AS fatherName,
+                  grandfather.name as grandfatherName,
+                  child.lastName AS familyName,
+                  child.YoB AS childYoB, 
+                  child.gender AS childGender, 
+                  id(child) AS childID
+            `;
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+            queryParamsObject.familyName = familyName;
+          }
+          else{
+            cypherQuery += `
+            MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+            WHERE child.name = $personName AND 
+                  father.name = $fatherName AND
+            RETURN child.name AS childName, father.name AS fatherName
+            child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID
+            `;
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+          }
+          }
+      }
+      else {
+        if (familyName){
+          cypherQuery += `
+          MATCH (child:Person)
+          WHERE child.name = $personName AND child.lastName = $familyName
+          OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
+          OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+          RETURN 
+            child.name AS childName, 
+            father.name AS fatherName,
+            grandfather.name AS grandfatherName,
+            child.lastName AS familyName,
+            child.YoB AS childYoB, 
+            child.gender AS childGender, 
+            id(child) AS childID
+        `;
+        queryParamsObject.personName = personName;
+        queryParamsObject.familyName = familyName;
+        }
+        else{
+          console.log("No fatherName provided.");
+          cypherQuery += `
+            MATCH (child:Person)
+            WHERE child.name = $personName
+            OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
+            OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+            RETURN child.name AS childName, 
+                  child.YoB AS childYoB, 
+                  child.gender AS childGender,
+                  father.name AS fatherName, 
+                  grandfather.name AS grandfatherName,
+                   child.lastName AS familyName,
+                  id(child) AS childID
 
-    if (fatherName) {
-      cypherQuery += ` AND father.name = $fatherName`;
-      queryParamsObject.fatherName = fatherName;
-    }
-
-    if (grandfatherName) {
-      cypherQuery += ` AND grandfather.name = $grandfatherName`;
-      queryParamsObject.grandfatherName = grandfatherName;
-    }
-
-    if (familyName) {
-      cypherQuery += ` AND child.lastName = $familyName`;
-      queryParamsObject.familyName = familyName;
+          `;
+          queryParamsObject.personName = personName;
+        }
+      }
     }
     
-    cypherQuery += `
-      OPTIONAL MATCH (motherGrandfather)-[:FATHER_OF]->(motherfather)-[:FATHER_OF]->(mother:Person)-[:MOTHER_OF]->(child:Person)
-      RETURN
-        id(child) as childID, 
-        child.name AS childName, father.name AS fatherName, grandfather.name AS grandfatherName, 
-        child.YoB AS childYoB, 
-        child.gender AS childGender, 
-        child.lastName AS familyName, 
-        mother.name as motherName, motherfather.name AS motherFatherName, motherGrandfather.name AS motherGrandfatherName, mother.lastName AS motherFamilyName, child.isAlive AS lifeStatus
-    `;
-
+    console.log("Cypher Query:", cypherQuery);
+    console.log("Query Parameters:", queryParamsObject);
+  
     const session = driver.session();
     try {
       const result = await session.run(cypherQuery, queryParamsObject);
-      
-      if (result.records.length == 1) {
+      if (result.records.length === 0) {
+        setError('هذا الشخص ليس مسجل في الشجرة.');
+        setPersonDetails(null);
+        return;
+      }
+      else if (result.records.length === 1) {
         const record = result.records[0];
+        
         const age = new Date().getFullYear() - record.get('childYoB');
         const childID = record.get("childID").toNumber();
         console.log(childID);
-        const childrenCountRecord = await session.run( `
+        const motherQuery = await session.run(`
+          OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child:Person)
+          WHERE id(child) = $childID
+          OPTIONAL MATCH (motherFather)-[:FATHER_OF]->(mother:Person)
+          OPTIONAL MATCH (motherGrandFather)-[:FATHER_OF]->(motherFather:Person)
+          RETURN 
+            mother.name AS motherName,
+            motherFather.name AS motherFatherName,
+            motherGrandFather.name AS motherGrandFatherName,
+            mother.lastName AS motherFamilyName
+        `, {childID});
+        const motherResult = motherQuery.records[0];
+
+        const childrenCountRecord = await session.run(`
           MATCH (p:Person)-[:FATHER_OF|MOTHER_OF]->(child:Person)
           WHERE id(p) = $childID
           RETURN count(child) AS childrenCount
-        `, {childID});
+        `, { childID });
+    
         const isMarried = await session.run(`
           MATCH (m:Person)-[r:HUSBAND_OF]->(w:Person)
           WHERE id(m) = $childID
           RETURN count(r) > 0 AS isMarried
-
-        `,{ childID });
-        setPersonDetails({
-          personName: record.get('childName'),
-          fatherName: record.get('fatherName'),
-          grandfatherName: record.get('grandfatherName'),
-          familyName: record.get('familyName'),
-          gender: record.get('childGender'),
+        `, { childID });
+    
+        const personDetails = {
+          personID: childID,
+          personName: record.get('childName') ?? "غير متوفر", // Default if missing
+          fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر", // Check if fatherName exists
+          grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", // Check if grandfatherName exists
+          familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر", // Check if familyName exists
+          gender: record.has('childGender') ? record.get('childGender') : "غير متوفر", // Check if childGender exists
           age,
-          motherName: record.get('motherName') ?? "غير متوفر",
-          motherFatherName: record.get('motherFatherName') ?? "غير متوفر",
-          motherGrandFatherName: record.get('motherGrandfatherName') ?? "غير متوفر",
-          motherFamilyName: record.get('motherFamilyName') ?? "غير متوفر",
-          lifeStatus: record.get('lifeStatus'),
-          childrenCount : childrenCountRecord.records[0].get('childrenCount').toInt()
-        });
-        
+          motherName: motherResult.has('motherName') ? motherResult.get('motherName') : "غير متوفر", // Check if motherName exists
+          motherFatherName: motherResult.has('motherFatherName') ? motherResult.get('motherFatherName') : "غير متوفر", // Check if motherFatherName exists
+          motherGrandFatherName: motherResult.has('motherGrandfatherName') ? motherResult.get('motherGrandfatherName') : "غير متوفر", // Check if motherGrandfatherName exists
+          motherFamilyName: motherResult.has('motherFamilyName') ? motherResult.get('motherFamilyName') : "غير متوفر", // Check if motherFamilyName exists
 
+          lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر", // Check if lifeStatus exists
+          martialStatus: isMarried.records[0]?.get('isMarried') ?? "غير متوفر", // Safe access for marital status
+          childrenCount: childrenCountRecord.records[0]?.get('childrenCount')?.toInt() ?? 0 // Default to 0 if missing
+        };
+    
+        setPersonDetails(personDetails);
         setError('');
-      }
-      else if (result.records.length >= 2) {
-        // Prepare a list of matching persons to show
+    
+      } else if (result.records.length >= 2) {
         const multipleMatches = result.records.map(record => ({
           personName: record.get('childName'),
-          fatherName: record.get('fatherName'),
-          grandfatherName: record.get('grandfatherName'),
-          familyName: record.get('familyName'),
+          fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر", // Check for fatherName
+          grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", // Check for grandfatherName
+          familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر", // Check for familyName
         }));
-      
+    
         setPersonDetails({ multipleMatches });
         setError('هناك العديد من الأشخاص يحملون نفس الاسم. الرجاء اختيار الشخص الصحيح.');
-      }
-      else {
+    
+      } else {
         setPersonDetails(null);
         setError('لم يتم العثور على شخص مطابق.');
       }
@@ -186,6 +336,7 @@ const SearchPage = () => {
     } finally {
       await session.close();
     }
+    
   };
 
   return (
@@ -222,7 +373,12 @@ const SearchPage = () => {
 ) : personDetails ? (
   <div className="person-details">
     <h2>تفاصيل الشخص :</h2>
-    <h3>{translateName(personDetails.personName)} بن {translateName(personDetails.fatherName)} بن {translateName(personDetails.grandfatherName)} {translateName(personDetails.familyName)}</h3>
+    <h3>
+    {translateName(personDetails?.personName ?? "غير معروف")}
+    {personDetails?.fatherName ? ` بن ${translateName(personDetails.fatherName)}` : ''}
+    {personDetails?.grandfatherName ? ` بن ${translateName(personDetails.grandfatherName)}` : ''}
+    {personDetails?.familyName ? ` ${translateName(personDetails.familyName)}` : ''}    
+</h3>
     <table className="person-details-table">
       <thead>
         <tr>
@@ -236,17 +392,17 @@ const SearchPage = () => {
       <tbody>
         <tr>
           <td><strong>الشخص</strong></td>
-          <td><p className='personDetails'>{translateName(personDetails.personName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.fatherName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.grandfatherName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.familyName) || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.personName ?? '') || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.fatherName ?? '') || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.grandfatherName ?? '') || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.familyName ?? '') || 'غير متوفر'}</p></td>
         </tr>
         <tr>
           <td><strong>الأم</strong></td>
-          <td><p className='personDetails'>{translateName(personDetails.motherName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.motherFatherName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.motherGrandFatherName) || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails.motherFamilyName) || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.motherName ?? '') || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.motherFatherName ?? '') || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.motherGrandFatherName ?? '') || 'غير متوفر'}</p></td>
+          <td><p className='personDetails'>{translateName(personDetails?.motherFamilyName ?? '') || 'غير متوفر'}</p></td>
         </tr>
       </tbody>
     </table>
@@ -283,6 +439,13 @@ const SearchPage = () => {
             : (personDetails.gender === 'Male' ? 'متوفى' : 'متوفية')}
         </td>
         <td>
+        <button
+          onClick={async (e) => {
+            e.stopPropagation();
+            const children = await getChildrenOfFather(personDetails.childID);
+            console.log(children);
+          }}
+        >
           {personDetails.childrenCount === 0 || personDetails.childrenCount == null
             ? '0'
             : personDetails.childrenCount === 1
@@ -293,7 +456,8 @@ const SearchPage = () => {
             ? `${personDetails.childrenCount} أطفال`
             : `${personDetails.childrenCount} طفلا`
           }
-        </td>
+        </button>
+      </td>
         </tr>
       </tbody>
     </table>
@@ -304,7 +468,9 @@ const SearchPage = () => {
     <p>لا توجد نتائج للبحث.</p>
   </div>
 )}
-
+  <div>
+    
+  </div>
     </div>
   );
 };
