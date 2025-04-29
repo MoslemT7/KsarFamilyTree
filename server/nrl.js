@@ -2,17 +2,13 @@ const neo4j = require('neo4j-driver');
 const { type } = require('os');
 const readline = require('readline');
 
-
-// Initialize the Neo4j driver
 const driver = neo4j.driver(
   'neo4j+s://2cd0ce39.databases.neo4j.io',  // URI of the Neo4j server
   neo4j.auth.basic('neo4j', 'nW1azrzTK-lrTOO5G1uOkUVFwelcQlEmKPHggPUB7xQ')
 );
 
-// Create a session to run queries
 const session = driver.session();
 
-// Function to create a Father-Child relationship
 const createFatherChildRelationship = async (fatherFullName, childFullName) => {
   const [fatherFirstName, ...fatherLastParts] = fatherFullName.trim().split(' ');
   const [childFirstName, ...childLastParts] = childFullName.trim().split(' ');
@@ -70,19 +66,22 @@ const createFatherChildRelationship = async (fatherFullName, childFullName) => {
   }
 };
 
-const createPerson = async (name, lastName, gender) => {
+const createPerson = async (name, lastName, gender, YoB, isAlive) => {
   try {
 
     const result = await session.run(
       `
-      CREATE (person:Person {name: $name, lastName: $lastName, gender: $gender})
+      CREATE (person:Person {name: $name, lastName: $lastName, 
+                            gender: $gender, 
+                            YoB : $YoB, 
+                            isAlive : $isAlive})
       RETURN person
       `,
-      { name: name, lastName, gender }
+      {name, lastName, gender, YoB, isAlive }
     );
 
     if (result.records.length > 0) {
-      console.log(`✅ Created person: ${name} ${lastName}, Gender: ${gender}`);
+      console.log(`✅ Created person: ${name} ${lastName} : ${gender}, ${YoB}, ${isAlive === true? "Alive" : "Dead"}`);
     } else {
       console.log(`⚠️ Could not create person.`);
     }
@@ -362,7 +361,6 @@ const getPeopleWithSameName = async (name, lastName) => {
   return people;
 };
 
-// Function to prompt user to select the correct person
 const promptUserForSelection = (people) => {
   return new Promise((resolve) => {
     const rl = readline.createInterface({
@@ -386,8 +384,6 @@ const promptUserForSelection = (people) => {
     });
   });
 };
-
-
 
 const getRelationship = async (person1FullName, person2FullName) => {
   const gender1 = await getGender(person1FullName);
@@ -823,7 +819,36 @@ const getRelationship = async (person1FullName, person2FullName) => {
   }
 };
 
+const args = process.argv.slice(2); // Ignore 'node' and file name
+const command = args[0]; // Example: createPerson
+const params = args.slice(1); // Example: ["X", "Y", "Male"]
+console.log(params);
+if (require.main === module) {
+  (async () => {
+    try {
+      switch (command) {
+        case "createPerson":
+          const [firstName, lastName, gender, YobStr, isAliveStr] = params;
+          const Yob = parseInt(YobStr, 10);
+          const isAlive = isAliveStr === 'true';
+          await createPerson(firstName, lastName, gender, Yob, isAlive);
+          break;
 
+        case "createFatherChildRelationship":
+          const [fatherName, childName] = params;
+          await createFatherChildRelationship(fatherName, childName);
+          break;
+
+        default:
+          console.log("Unknown command:", command);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      process.exit(0); // Always exit Node
+    }
+  })();
+}
 module.exports = {
   createFatherChildRelationship,
   createPerson,
