@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import neo4j from 'neo4j-driver';
 import "./SearchPage.css"
+import Tree from 'react-d3-tree';
 const translations = require('./translation.json');
 require('dotenv').config();
 
-const driver = neo4j.driver(
-  'neo4j+s://2cd0ce39.databases.neo4j.io',  // URI of the Neo4j server
-  neo4j.auth.basic('neo4j', 'nW1azrzTK-lrTOO5G1uOkUVFwelcQlEmKPHggPUB7xQ'));
+const neo4jURI = process.env.REACT_APP_NEO4J_URI;
+const neo4jUser = process.env.REACT_APP_NEO4J_USER;
+const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;
 
+const driver = require('neo4j-driver').driver(
+    neo4jURI,
+    require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
+);
 export const translateName = (fullName, language = true) => {
   const nameParts = fullName.split(' ');
 
@@ -52,9 +56,10 @@ function splitName(fullName) {
 
 
 const SearchPage = () => {
-
+  const [treeVisible, setTreeVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [personDetails, setPersonDetails] = useState(null);
+  const [treeData, setTreeData] = useState(null);
   const [error, setError] = useState('');
   
   const getChildrenOfFather = async (fatherId) => {
@@ -99,6 +104,25 @@ const SearchPage = () => {
     }
   };
   
+  const handleShowChildren = async (e) => {
+    setTreeVisible(true);
+    e.stopPropagation();
+    const { father, children } = await getChildrenOfFather(personDetails.personID);
+  
+    // Transform into correct format for Tree component
+    const formattedData = {
+      id: father.id,
+      name: father.name,
+      children: children.map(child => ({
+        id: child.id,
+        name: child.name
+      }))
+    };
+  
+    setTreeData(formattedData);
+    
+  };
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
@@ -116,6 +140,7 @@ const SearchPage = () => {
   };
 
   const handleSearchSubmit = async () => {
+    setTreeVisible(false);
     if (!searchQuery.trim()) {
       setError('الرجاء إدخال نص للبحث.');
       setPersonDetails(null);
@@ -128,7 +153,6 @@ const SearchPage = () => {
     let translatedInputName = translateName(searchText, false);
     console.log(translatedInputName);
     const { personName, fatherName, grandfatherName, familyName } = splitName(translatedInputName);
-
 
     let cypherQuery = ``;
 
@@ -153,7 +177,8 @@ const SearchPage = () => {
                     grandfather.name = $grandfatherName AND 
                     child.lastName = $familyName
               RETURN child.name AS childName, father.name AS fatherName, grandfather.name AS grandfatherName, child.lastName AS familyName,  
-              child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID
+              child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID,
+              child.isAlive AS lifeStatus, child.YoD AS YoD
             `;
             
             queryParamsObject.personName = personName;
@@ -170,7 +195,7 @@ const SearchPage = () => {
                     father.name = $fatherName AND 
                     grandfather.name = $grandfatherName
               RETURN child.name AS childName, father.name AS fatherName, grandfather.name AS grandfatherName, 
-              child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID`;
+              child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID, child.isAlive AS lifeStatus, child.YoD AS YoD`;
             
             queryParamsObject.personName = personName;
             queryParamsObject.fatherName = fatherName;
@@ -192,7 +217,9 @@ const SearchPage = () => {
                   child.lastName AS familyName,
                   child.YoB AS childYoB, 
                   child.gender AS childGender, 
-                  id(child) AS childID
+                  id(child) AS childID,
+                  child.isAlive AS lifeStatus, 
+                  child.YoD AS YoD
             `;
             queryParamsObject.personName = personName;
             queryParamsObject.fatherName = fatherName;
@@ -203,8 +230,10 @@ const SearchPage = () => {
             MATCH (father:Person)-[:FATHER_OF]->(child:Person)
             WHERE child.name = $personName AND 
                   father.name = $fatherName AND
-            RETURN child.name AS childName, father.name AS fatherName
-            child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID
+            RETURN child.name AS childName, father.name AS fatherName, 
+                   child.YoB AS childYoB, child.gender AS childGender, 
+                   id(child) AS childID, child.isAlive AS lifeStatus,
+                   child.YoD AS YoD
             `;
             queryParamsObject.personName = personName;
             queryParamsObject.fatherName = fatherName;
@@ -225,7 +254,9 @@ const SearchPage = () => {
             child.lastName AS familyName,
             child.YoB AS childYoB, 
             child.gender AS childGender, 
-            id(child) AS childID
+            id(child) AS childID,
+            child.isAlive AS lifeStatus,
+            child.YoD AS YoD
         `;
         queryParamsObject.personName = personName;
         queryParamsObject.familyName = familyName;
@@ -243,7 +274,9 @@ const SearchPage = () => {
                   father.name AS fatherName, 
                   grandfather.name AS grandfatherName,
                    child.lastName AS familyName,
-                  id(child) AS childID
+                  id(child) AS childID,
+                  child.isAlive AS lifeStatus,
+                  child.YoD AS YoD
 
           `;
           queryParamsObject.personName = personName;
@@ -251,9 +284,6 @@ const SearchPage = () => {
       }
     }
     
-    console.log("Cypher Query:", cypherQuery);
-    console.log("Query Parameters:", queryParamsObject);
-  
     const session = driver.session();
     try {
       const result = await session.run(cypherQuery, queryParamsObject);
@@ -264,10 +294,19 @@ const SearchPage = () => {
       }
       else if (result.records.length === 1) {
         const record = result.records[0];
+        let age;
+        let YoB = record.get('childYoB');
+        let YoD = record.get('YoD');
+        console.log(YoD);
+        if (YoB == null){
+          age = -1;
+        }
+        else{
+          age = new Date().getFullYear() - YoB;
+        }
         
-        const age = new Date().getFullYear() - record.get('childYoB');
         const childID = record.get("childID").toNumber();
-        console.log(childID);
+
         const motherQuery = await session.run(`
           OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child:Person)
           WHERE id(child) = $childID
@@ -292,20 +331,20 @@ const SearchPage = () => {
           WHERE id(m) = $childID
           RETURN count(r) > 0 AS isMarried
         `, { childID });
-    
         const personDetails = {
           personID: childID,
-          personName: record.get('childName') ?? "غير متوفر", // Default if missing
-          fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر", // Check if fatherName exists
-          grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", // Check if grandfatherName exists
-          familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر", // Check if familyName exists
-          gender: record.has('childGender') ? record.get('childGender') : "غير متوفر", // Check if childGender exists
+          personName: record.get('childName') ?? "غير متوفر",
+          fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
+          grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", 
+          familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر", 
+          gender: record.has('childGender') ? record.get('childGender') : "غير متوفر", 
           age,
-          motherName: motherResult.has('motherName') ? motherResult.get('motherName') : "غير متوفر", // Check if motherName exists
+          YoD: YoD,
+          motherName: motherResult.has('motherName') ? motherResult.get('motherName') : "غير متوفر", 
           motherFatherName: motherResult.has('motherFatherName') ? motherResult.get('motherFatherName') : "غير متوفر", // Check if motherFatherName exists
           motherGrandFatherName: motherResult.has('motherGrandfatherName') ? motherResult.get('motherGrandfatherName') : "غير متوفر", // Check if motherGrandfatherName exists
           motherFamilyName: motherResult.has('motherFamilyName') ? motherResult.get('motherFamilyName') : "غير متوفر", // Check if motherFamilyName exists
-
+          
           lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر", // Check if lifeStatus exists
           martialStatus: isMarried.records[0]?.get('isMarried') ?? "غير متوفر", // Safe access for marital status
           childrenCount: childrenCountRecord.records[0]?.get('childrenCount')?.toInt() ?? 0 // Default to 0 if missing
@@ -419,35 +458,52 @@ const SearchPage = () => {
       <tbody>
         <tr>
           <td>{personDetails.gender === 'Male' ? 'ذكر 👨'  : 'أنثى 👩'}</td>
+          <td
+            dangerouslySetInnerHTML={{
+              __html: personDetails.lifeStatus === true
+                ? personDetails.age !== -1
+                  ? personDetails.age === 1
+                    ? `سنة واحدة (مواليد ${new Date().getFullYear() - personDetails.age})`
+                    : personDetails.age === 2
+                    ? `سنتان (مواليد ${new Date().getFullYear() - personDetails.age})`
+                    : personDetails.age >= 3 && personDetails.age <= 10
+                    ? `${personDetails.age} سنوات (مواليد ${new Date().getFullYear() - personDetails.age})`
+                    : `${personDetails.age} سنة (مواليد ${new Date().getFullYear() - personDetails.age})`
+                  : 'العمر غير معروف'
+                : personDetails.hasOwnProperty('YoD') && personDetails.YoD
+                ? personDetails.age !== -1
+                  ? `مواليد سنة ${new Date().getFullYear() - personDetails.age} <br /> 
+                      عاش ${personDetails.YoD - (new Date().getFullYear() - personDetails.age)} سنة <br /> 
+                      توفي في ${personDetails.YoD}`
+                  : `مواليد ${new Date().getFullYear() - personDetails.age} <br /> 
+                      توفي في سنة ${personDetails.YoD}`
+                : personDetails.hasOwnProperty('YoB') && personDetails.YoB
+                ? `مواليد ${personDetails.YoB} <br /> العمر غير معروف`
+                : 'غير متوفر'
+            }}
+          />
+
           <td>
-            {personDetails.age === 1
-              ? 'سنة واحدة'
-              : personDetails.age === 2
-              ? 'سنتان'
-              : personDetails.age >= 3 && personDetails.age <= 10
-              ? `${personDetails.age} سنوات`
-              : `${personDetails.age} سنة`}
-          </td>
-          <td>
-            {personDetails.isMarried === 1
-              ? (personDetails.gender === 'Male' ? 'متزوج' : 'متزوجة')
-              : (personDetails.gender === 'Male' ? 'أعزب' : 'عزباء')}
+            {personDetails.lifeStatus === true
+              ? personDetails.martialStatus === true
+                ? personDetails.gender === 'Male'
+                  ? 'متزوج'
+                  : 'متزوجة'
+                : personDetails.gender === 'Male'
+                ? 'أعزب'
+                : 'عزباء'
+              : '-'}
           </td>
           <td>
           {personDetails.lifeStatus === true 
             ? (personDetails.gender === 'Male' ? 'حي' : 'حية') 
             : (personDetails.gender === 'Male' ? 'متوفى' : 'متوفية')}
-        </td>
+          </td>
         <td>
-        <button
-          onClick={async (e) => {
-            e.stopPropagation();
-            const children = await getChildrenOfFather(personDetails.childID);
-            console.log(children);
-          }}
-        >
+        <button id='childrenButton' 
+        onClick={handleShowChildren}>
           {personDetails.childrenCount === 0 || personDetails.childrenCount == null
-            ? '0'
+            ? 'ليس لديه أطفال'
             : personDetails.childrenCount === 1
             ? 'طفل واحد'
             : personDetails.childrenCount === 2
@@ -457,11 +513,47 @@ const SearchPage = () => {
             : `${personDetails.childrenCount} طفلا`
           }
         </button>
+        
       </td>
         </tr>
       </tbody>
     </table>
-    
+    <div className="tree-wrapper">
+        <div className='titleTree'>
+
+        </div>
+      
+      {treeData && (
+        <div className="tree-container">
+          <Tree
+            data={treeData}
+            orientation="vertical"
+            pathFunc="step"
+            nodeSize={{ x: 60, y: 100 }}
+            separation={{ siblings: 2, nonSiblings: 2 }}
+            translate={{ x: 325, y: 27 }} 
+            scaleExtent={{ min: 1, max: 1 }} // Disable zooming
+            renderCustomNodeElement={({ nodeDatum }) => (
+              <g className="tree-node">
+                <title>{nodeDatum.id}</title>
+                <rect
+                  className="tree-node-rect"
+                  x="-50"
+                  y="-20"
+                  width="100"
+                  height="40"
+                />
+                <text className="tree-node-text" x="0" y="5">
+                  {translateName(nodeDatum.name)}
+                </text>
+              </g>
+            )}
+          />
+        </div>
+      )}
+    </div>
+
+
   </div>
 ) : (
   <div className="no-results">

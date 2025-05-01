@@ -1,8 +1,7 @@
 import React, { useEffect, useState , useRef } from 'react';
 import Tree from 'react-d3-tree';
 import './FamilyTree.css';
-// import neo4j from 'neo4j-driver';
-require('dotenv').config(); // Load .env file
+require('dotenv').config();
 
 const translations = require('./translation.json');
 
@@ -113,8 +112,6 @@ const getGenderbyID = async (personID) => {
   }
 };
 
-
-
 const FamilyTree = ({ searchQuery }) => {
   const treeContainerRef = useRef(null);
   const [familyTree, setFamilyTree] = useState(null);
@@ -181,8 +178,7 @@ const FamilyTree = ({ searchQuery }) => {
   }, []);
 
   if (!familyTree) return <div>Loading...</div>;
-  console.log("FamilyTree is being rendered");
-
+  console.log(familyTree);
   return (
     <div
       id="treeWrapper"
