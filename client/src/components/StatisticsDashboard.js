@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
-import neo4j from 'neo4j-driver';
 import './StatisticsDashboard.css';
 const translations = require('./translation.json');
-require('dotenv').config(); // Load .env file
+require('dotenv').config();
 
-const driver = neo4j.driver(
-  'neo4j+s://2cd0ce39.databases.neo4j.io',
-  neo4j.auth.basic('neo4j', 'nW1azrzTK-lrTOO5G1uOkUVFwelcQlEmKPHggPUB7xQ')
+const neo4jURI = process.env.REACT_APP_NEO4J_URI;
+const neo4jUser = process.env.REACT_APP_NEO4J_USER;
+const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;
+
+const driver = require('neo4j-driver').driver(
+    neo4jURI,
+    require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
-
 const totalPopulation = async () => {
   const session = driver.session();
   try {

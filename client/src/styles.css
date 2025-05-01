@@ -80,6 +80,7 @@ body {
   display: block;
   color: #ECEFCA;
   font-family: "Amiri";
+  text-align: center;
 }
 
 .sidebar ul li:hover {

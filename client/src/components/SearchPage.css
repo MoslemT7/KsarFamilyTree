@@ -264,9 +264,62 @@ h3:hover {
   cursor: pointer; /* Pointer cursor for interaction */
 }
 
+.child-list li:hover {
+  background-color: #e7f5ee;
+}
 
+#childrenButton{
+  background-color: white;
+  color: #1a85c3;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Group styling, optional for spacing or transformations */
+.tree-node {
+  cursor: pointer; /* Optional: make the node clickable */
+  pointer-events: none; /* Disable mouse events (optional, for making nodes non-interactive) */
+}
+
+/* Rectangle Styling */
+.tree-node-rect {
+  stroke: #444;
+  stroke-width: 2;
+  rx: 6;
+  fill: #67AE6E;
+}
+
+/* Text Styling */
+.tree-node-text {
+  font-size: 20px;
+  text-anchor: middle;
+  fill: #dddddd;
+  font-family: "Amiri", serif;
+}
+
+.tree-wrapper {
+  display: flex;
+  justify-content: center;  /* Center horizontally */
+  align-items: center;      /* Center vertically */
+  overflow: hidden;
+}
+
+.tree-container {
+  position: relative;       /* Allows absolute positioning of the tree */
+  max-width: 100%;          /* Limit maximum width */
+  height: 100%;         /* Limit maximum height */
+  display: inline-block;    /* Adjust the size to the content */
+  overflow: hidden;         /* Prevent scrolling inside the tree */
+  pointer-events: none;
+}
+
+.tree-container .tree {
+  position: absolute;  /* Fix the tree in place */
+  top: 0;              /* Or set the desired top offset */
+  left: 0;             /* Or set the desired left offset */
+  pointer-events: auto; /* Enable interactions with the tree itself */
+}
 /* Mobile View Adjustments */
-/* Mobile Styles */
 @media screen and (max-width: 768px) {
 
   /* General Styles for Search Page */
