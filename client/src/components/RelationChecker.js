@@ -392,10 +392,8 @@ const getRelationship = async (person1FullName, person2FullName) => {
           }
           
           else if (p1Level === 3 && p2Level === 2) {          
-            const p1AncestorFullName = getAncestorFullName(person1Ancestors, 1);
             const p1AncestorGender = await getGender(person1AncestorsIds[1]);
 
-            const p2AncestorFullName = getAncestorFullName(person2Ancestors, 1);
             const p2AncestorGender = await getGender(person2AncestorsIds[1]);
 
             if (p1AncestorGender === 'Male') {  // father's side
@@ -524,6 +522,8 @@ const getRelationship = async (person1FullName, person2FullName) => {
             }
             
           }
+
+          // Still : (0,4) - (4,0) - (3-1) - (1-3) - (1-4) - (4-1) - (4-2) - (2-4) - (3-4) - (4-3) - (4-4)  
         }
       }
     }

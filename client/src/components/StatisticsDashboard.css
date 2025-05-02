@@ -1,46 +1,108 @@
 .stats-dashboard {
-    max-width: 1000px;
-    margin: 40px auto;
-    padding: 20px;
-    direction: rtl;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 40px auto;
+  width: 75%;
+  padding: 20px;
+  direction: rtl;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.stats-dashboard h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #2c3e50;
+  font-size: 28px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+  text-align: center;
+}
+
+.stat-card:hover {
+  transform: scale(1.03);
+}
+
+.stat-card h3 {
+  font-size: 20px;
+  color: #2980b9;
+  margin-bottom: 10px;
+}
+
+.stat-card p {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.charts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 15px;
+  border: 2px solid #007BFF; /* Border color for highlighting */
+  border-radius: 10px; /* Rounded corners */
+  padding: 15px;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2); /* Soft shadow for a glowing effect */
+}
+
+.chart-container {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  padding: 10px;
+  width: calc(50% - 20px); /* Two items per row */
+  min-height: 300px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-container h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+  text-align: center;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: auto !important; /* Ensure aspect ratio is preserved */
+}
+
+/* Specific styles for each chart */
+#ageChart {
+  max-width: 500px;  /* Set a max width for the Age Distribution chart */
+  max-height: 350px; /* Ensure the Age Distribution chart has a limited height */
+  margin-top: 10%;
+}
+
+#genderChart {
+  max-width: 500px; /* Set a max width for the Gender Ratio chart */
+  max-height: 350px; /* Ensure the Gender Ratio chart has a limited height */
+}
+
+/* Media queries for smaller screens */
+@media (max-width: 1200px) {
+  .chart-container {
+    width: calc(50% - 20px); /* 2 items per row on medium screens */
   }
-  
-  .stats-dashboard h2 {
-    text-align: center;
-    margin-bottom: 30px;
-    color: #2c3e50;
-    font-size: 28px;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    width: 100% !important; /* 1 item per row on small screens */
   }
-  
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 20px;
-  }
-  
-  .stat-card {
-    background-color: #ffffff;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-    transition: transform 0.2s ease;
-    text-align: center;
-  }
-  
-  .stat-card:hover {
-    transform: scale(1.03);
-  }
-  
-  .stat-card h3 {
-    font-size: 20px;
-    color: #2980b9;
-    margin-bottom: 10px;
-  }
-  
-  .stat-card p {
-    font-size: 18px;
-    font-weight: bold;
-    color: #2c3e50;
-  }
-  
+}
+

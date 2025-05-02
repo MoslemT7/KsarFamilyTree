@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import "./SearchPage.css"
 import Tree from 'react-d3-tree';
 const translations = require('./translation.json');
@@ -196,16 +196,12 @@ const SearchPage = () => {
     const queryParamsObject = {};
 
     if (personName){
-      console.log(`Searching for person: ${personName}`);
       
       if (fatherName) {
-        console.log(`Searching for father: ${fatherName}`);
         
         if (grandfatherName) {
-          console.log(`Searching for grandfather: ${grandfatherName}`);
           
           if (familyName) {
-            console.log(`Searching for familyName: ${familyName}`);
             
             cypherQuery += `
               MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
@@ -225,7 +221,6 @@ const SearchPage = () => {
             
           } 
           else {
-            console.log("No familyName provided.");
             cypherQuery += `
               MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
               WHERE child.name = $personName AND 
@@ -240,7 +235,6 @@ const SearchPage = () => {
           }
           
         } else {
-          console.log("No grandfatherName provided.");
           if (familyName){
             cypherQuery += `
             MATCH (father:Person)-[:FATHER_OF]->(child:Person)
@@ -263,7 +257,6 @@ const SearchPage = () => {
             queryParamsObject.familyName = familyName;
           }
           else{
-            console.log("No familyName provided.");
             cypherQuery += `
             MATCH (father:Person)-[:FATHER_OF]->(child:Person)
             
@@ -307,7 +300,6 @@ const SearchPage = () => {
         queryParamsObject.familyName = familyName;
         }
         else{
-          console.log("No fatherName provided.");
           cypherQuery += `
             MATCH (child:Person)
             WHERE child.name = $personName
@@ -342,7 +334,6 @@ const SearchPage = () => {
         let age;
         let YoB = record.get('childYoB');
         let YoD = record.get('YoD');
-        console.log(YoD);
         if (YoB == null){
           age = -1;
         }
@@ -385,7 +376,6 @@ const SearchPage = () => {
           WHERE id(p) = $childID
           RETURN count(*) > 0 AS isMarried
         `, { childID });
-        console.log(isMarried.records[0]?.get('isMarried'));
         const personDetails = {
           personID: childID,
           personName: record.get('childName') ?? "غير متوفر",
@@ -397,7 +387,7 @@ const SearchPage = () => {
           YoD: YoD,
           motherName: motherResult.has('motherName') ? motherResult.get('motherName') : "غير متوفر", 
           motherFatherName: motherResult.has('motherFatherName') ? motherResult.get('motherFatherName') : "غير متوفر", // Check if motherFatherName exists
-          motherGrandFatherName: motherResult.has('motherGrandfatherName') ? motherResult.get('motherGrandfatherName') : "غير متوفر", // Check if motherGrandfatherName exists
+          motherGrandFatherName: motherResult.has('motherGrandFatherName') ? motherResult.get('motherGrandFatherName') : "غير متوفر", // Check if motherGrandfatherName exists
           motherFamilyName: motherResult.has('motherFamilyName') ? motherResult.get('motherFamilyName') : "غير متوفر", // Check if motherFamilyName exists
           
           lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر", // Check if lifeStatus exists
@@ -439,7 +429,6 @@ const SearchPage = () => {
           `, { childID });
       
           const motherResult = motherQuery.records[0] ?? null;
-      
           const childrenCountRecord = await session.run(`
             MATCH (p:Person)-[:FATHER_OF|MOTHER_OF]->(child:Person)
             WHERE id(p) = $childID
@@ -465,6 +454,7 @@ const SearchPage = () => {
             motherFatherName: motherResult?.get('motherFatherName') ?? "غير متوفر",
             motherGrandFatherName: motherResult?.get('motherGrandFatherName') ?? "غير متوفر",
             motherFamilyName: motherResult?.get('motherFamilyName') ?? "غير متوفر",
+
             lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر",
             martialStatus: isMarried.records[0]?.get('isMarried') ?? "غير متوفر",
             childrenCount: childrenCountRecord.records[0]?.get('childrenCount')?.toInt() ?? 0
