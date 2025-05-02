@@ -9,53 +9,50 @@ body {
   font-family: Arial, sans-serif;
   background-color: #f4f4f4;
   color: #333;
+  overflow-x: hidden; /* Prevent horizontal scrollbar */
+  height: 100%; /* Ensure body takes full height */
+  display: flex;
+  flex-direction: column;
 }
 
 .app-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh; /* Ensure app-container takes full viewport height */
+  flex-grow: 1; /* Allow it to expand to fill space */
+  overflow-y: auto; /* Allow scrolling */
 }
 
 /* Header */
 .header {
-  background-color: #ECEFCA   ;
+  background-color: #ECEFCA;
   color: white;
-  padding: 10px 20px; /* Reduced padding for a more compact header */
+  padding: 10px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
   width: 100%;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
 .header h1 {
-  font-size: 24px;  /* Font size */
-  margin: 0;        /* Remove any default margin */
-  flex-grow: 1;      /* Makes it grow and take available space in flexbox */
-  text-align: center;/* Center-align the title */
-  font-family: "Amiri", serif; /* Use "Amiri" font with fallback */
-  font-weight: bold; /* Makes the text bold */
-  color: #3A5D6E   ;
+  font-size: 24px;
+  margin: 0;
+  flex-grow: 1;
+  text-align: center;
+  font-family: "Amiri", serif;
+  font-weight: bold;
+  color: #3A5D6E;
 }
 
 /* Sidebar (Horizontal Menu for Mobile) */
 .sidebar {
   background-color: #234f7b;
   color: white;
-  position: fixed;
-  top: 63px; /* Adjust to header height */
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 999;
   width: 100%;
   height: 40px;
 }
@@ -90,22 +87,21 @@ body {
 /* Main Content Area */
 .main-container {
   display: flex;
-  height: calc(100% - 60px); /* Subtract header height */
-  margin-top: 110px; /* Adjust to avoid overlap with the header and horizontal menu */
+  flex-direction: column;
+  flex-grow: 1; /* Allow it to take all remaining space */
+  padding: 20px;
 }
 
 .content {
-  margin-top: 60px;
   padding: 20px;
-  width: 100%;
-  overflow-y: auto;
+  flex-grow: 1; /* Allow content to expand and take available space */
+  overflow-y: auto; /* Allow scrolling */
 }
 
 /* Mobile View Adjustments */
 @media screen and (max-width: 768px) {
   .main-container {
     flex-direction: column;
-    margin-top: 160px; /* Adjust to account for the header and the new menu */
   }
 
   .sidebar {
@@ -115,25 +111,20 @@ body {
   }
 
   .sidebar ul {
-    flex-direction: row; /* Ensure menu items are horizontal */
-    justify-content: space-evenly; /* Evenly space out the items */
+    flex-direction: row;
+    justify-content: space-evenly;
   }
 
   .content {
-    margin-top: 80px; /* Adjust margin to ensure the content doesn’t overlap with the horizontal menu */
+    margin-top: 80px;
   }
 
-  /* Smaller font for mobile devices */
   .header h1 {
-    font-size: 18px; /* Smaller title for mobile */
-  }
-
-  .search-bar {
-    width: 180px; /* Smaller search bar width on mobile */
+    font-size: 18px;
   }
 
   .sidebar ul li a {
-    font-size: 14px; /* Smaller font size for menu links */
+    font-size: 14px;
   }
 }
 
@@ -144,9 +135,9 @@ body {
   padding: 20px;
   text-align: center;
   font-size: 14px;
-  position: relative;
-  bottom: 0;
   width: 100%;
+  /* No fixed positioning here */
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1); /* Slight shadow above footer */
 }
 
 .footer-content {
