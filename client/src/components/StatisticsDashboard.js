@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import React, { useRef } from 'react';
-
+import Plotly from 'plotly.js-dist-min';
 import './StatisticsDashboard.css';
 import Chart from 'chart.js/dist/chart.js';
+import WorldMap from './WorldMap';
 
 const translations = require('./translation.json');
 require('dotenv').config();
@@ -190,18 +191,48 @@ const totalAlivePopulation = async () => {
     }
 };
 
-
+const mostUsedFamilyName = async () => {
+  /* 
+  MATCH (p:Person)
+  WHERE p.name IS NOT NULL
+  RETURN p.lastName AS lastName, count(*) AS occurrences
+  ORDER BY occurrences DESC
+  */
+}
 const StatisticsDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ageDistribution, setAgeDistribution] = useState([]);
+  const [cumulativePopulationGrowth, setpopulationGrowth] = useState([]);
+  const [weddingData, setWeddingData] = useState([]);
+  const [topFamiliesData, setTopFamilies] = useState([]);
 
-    // Use different refs for each canvas
-    const ageDistributionChartRef = useRef(null);
-    const genderRatioChartRef = useRef(null);
-    
-    let ageDistributionChartInstance = useRef(null);
-    let genderRatioChartInstance = useRef(null);
+  const weddingYears = [
+    2016, 2003, 2014, 2022, 2019, 2012, 2017, 2024, 2024, 2021, 2025,
+    2024, 2024, 2024, 2023, 2023, 2023, 2023, 2023, 2022, 2022, 2022,
+    2023, 2022, 2021, 2020, 2019, 2023, 2022, 2023, 2021, 2021, 2023,
+    2022, 2022, 2022, 2023, 2021, 2021, 2021, 2021, 2021, 2022, 2021,
+  ];
+  const topFamilies = [
+    { family: 'البوبكري', count: 320 },
+    { family: 'اللقماني', count: 275 },
+    { family: 'الفرحاتي', count: 240 },
+    { family: 'السقراطي', count: 215 },
+    { family: 'الرحموني', count: 198 }
+  ];
+  
+  // Use different refs for each canvas
+  const ageDistributionChartRef = useRef(null);
+  const genderRatioChartRef = useRef(null);
+  const weddingChartRef = useRef(null);
+  const cumulativePopulationGrowthRef = useRef(null);
+  const topFamiliesRef = useRef(null);
+
+  let ageDistributionChartInstance = useRef(null);
+  let genderRatioChartInstance = useRef(null);
+  let weddingChartInstance = useRef(null);
+  let cumulativePopulationGrowthInstance = useRef(null);
+  let topFamiliesInstance = useRef(null);
 
   const ageBins = async () => {
     const session = driver.session();
@@ -227,10 +258,40 @@ const StatisticsDashboard = () => {
         ORDER BY ageBin
       `);
   
-      // Map the result to an array of objects
       const ageDistribution = result.records.map(record => ({
         ageBin: record.get('ageBin'),
         count: record.get('count').toNumber(),
+      }));
+      return ageDistribution;
+    } catch (error) {
+      console.error('Error running the query:', error);
+    } finally {
+      await session.close();
+    }
+  };
+
+  const populationGrowth = async () => {
+    const session = driver.session();
+    try {
+      // Run the Cypher query
+      const result = await session.run(`
+        WITH range(1900, 2025) AS years
+        UNWIND years AS year
+        MATCH (p:Person)
+        WHERE p.YoB <= year
+        WITH year, 
+            count(p) AS cumulativePopulation,
+            count(CASE 
+              WHEN (p.YoD IS NULL OR toInteger(p.YoD) >= year) THEN p 
+              END) AS alivePopulation
+        RETURN year, cumulativePopulation, alivePopulation
+        ORDER BY year
+      `);
+  
+      const ageDistribution = result.records.map(record => ({
+        year: record.get('year').toNumber(),
+        cumulativePopulation: record.get('cumulativePopulation').toNumber(),
+        alivePopulation: record.get('alivePopulation').toNumber(),
       }));
       return ageDistribution;
     } catch (error) {
@@ -251,7 +312,7 @@ const StatisticsDashboard = () => {
         const avgChild = await averageChildrenPerFamily();
         const { maleCount, femaleCount } = await SexCount();
         const fetchedAgeDistribution = await ageBins();
-
+        const fetchedCumGrowth = await populationGrowth();
         setStats({
           totalPopulation: total,
           totalAlivePopulation: totalAlive,
@@ -262,7 +323,11 @@ const StatisticsDashboard = () => {
           youngestPerson: youngest,
           averageChildrenPerFamily: avgChild
         });
-        setAgeDistribution(fetchedAgeDistribution); // Store the age distribution data
+        setAgeDistribution(fetchedAgeDistribution);
+        setpopulationGrowth(fetchedCumGrowth);
+        setWeddingData(weddingYears);
+        setTopFamilies(topFamilies);
+
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -273,6 +338,7 @@ const StatisticsDashboard = () => {
     fetchStats();
   }, []);
 
+  // AGE DISTRIBUTION DATA
   useEffect(() => {
     if (!ageDistributionChartRef.current || ageDistribution.length === 0) return;
 
@@ -303,7 +369,17 @@ const StatisticsDashboard = () => {
         scales: {
           y: {
             beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Population',
+            },
           },
+          x: {
+            title: {
+              display: true,
+              text: 'Age Distribution',
+            },
+          }
         },
       },
     });
@@ -311,8 +387,9 @@ const StatisticsDashboard = () => {
     return () => {
       ageDistributionChartInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
     };
-  }, [ageDistribution]); // Runs when age distribution data is available
+  }, [ageDistribution]);
 
+  // GENDER DISTRIBUTION DATA
   useEffect(() => {
     if (!stats || !stats.totalMen || !stats.totalWomen) return;
 
@@ -356,70 +433,434 @@ const StatisticsDashboard = () => {
     return () => {
       genderRatioChartInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
     };
-  }, [stats]); // Runs when stats are available (totalMen and totalWomen)
+  }, [stats]);
 
+  // POPULATION GROWTH:
+  useEffect(() => {
+    if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
+  
+    const ctx = cumulativePopulationGrowthRef.current.getContext('2d');
+  
+    // Destroy previous chart if it exists
+    if (cumulativePopulationGrowthInstance.current) {
+      cumulativePopulationGrowthInstance.current.destroy();
+    }
+  
+    // Prepare labels and datasets for both populations
+    const labels = cumulativePopulationGrowth.map(item => item.year);
+    const cumulativeValues = cumulativePopulationGrowth.map(item => item.cumulativePopulation);
+    const aliveValues = cumulativePopulationGrowth.map(item => item.alivePopulation);  // Assuming you added alivePopulation to your data
+    // Create line chart
+    cumulativePopulationGrowthInstance.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Cumulative Population',
+            data: cumulativeValues,
+            borderColor: '#36A2EB', // Blue color for cumulative population
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+          },
+          {
+            label: 'Alive Population',
+            data: aliveValues,
+            borderColor: '#FF6384', // Red color for alive population
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function (tooltipItem) {
+                return tooltipItem.raw + ' people';
+              },
+            },
+          },
+          legend: {
+            position: 'bottom',
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Year',
+            },
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Population',
+            },
+          },
+        },
+      },
+    });
+  
+    return () => {
+      cumulativePopulationGrowthInstance.current?.destroy();
+    };
+  }, [cumulativePopulationGrowth]);
+
+  useEffect(() => {
+    if (!weddingChartRef.current || weddingData.length === 0) return;
+
+  // Destroy previous chart if it exists
+  if (weddingChartInstance.current) {
+    weddingChartInstance.current.destroy();
+  }
+    // Count the occurrences of each year in the wedding data
+    const countOccurrences = (data) => {
+      const counts = {};
+      data.forEach(year => {
+        counts[year] = (counts[year] || 0) + 1;
+      });
+      return counts;
+    };
+
+    const weddingCount = countOccurrences(weddingData);
+    console.log(weddingCount);
+    // Convert the object to arrays for labels and data
+    const labels = Object.keys(weddingCount);
+    const data = Object.values(weddingCount);
+
+    // Destroy previous chart if it exists
+    if (weddingChartInstance.current) {
+      weddingChartInstance.current.destroy();
+    }
+
+    // Create a new chart instance
+    const ctx = weddingChartRef.current.getContext('2d');
+    
+    weddingChartInstance.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'عدد حفلات الزواج حسب السنة',
+            data: data,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue color
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            font: {
+              size: 20,
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: (tooltipItem) => {
+                return `${tooltipItem.raw} حفلة زواج`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'السنة',
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'عدد الحفلات',
+            },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+
+    return () => {
+      weddingChartInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
+    };
+  }, [weddingData]); // Trigger the effect when weddingData changes
+
+  useEffect(() => {
+    if (!topFamiliesRef.current || topFamiliesData.length === 0) return;
+
+    if (topFamiliesInstance.current) {
+      topFamiliesInstance.current.destroy();
+    }
+
+    const ctx = topFamiliesRef.current.getContext('2d');
+
+    topFamiliesInstance.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: topFamiliesData.map(f => f.family),
+        datasets: [{
+          label: 'عدد الأفراد في العائلة',
+          data: topFamiliesData.map(f => f.count),
+          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          borderColor: 'rgba(255, 99, 132, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        indexAxis : 'y',
+        plugins: {
+          title: {
+            display: true,
+            text: 'أكثر 5 عائلات عددًا في قصر أولاد بوبكر'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'اللقب'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "عدد الأشخاص الحاملين لـاللقب"
+            }
+          }
+        }
+      }
+    });
+
+
+    return () => {
+      topFamiliesInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
+    };
+
+  }, [topFamilies]);
   if (loading) return <p>جاري تحميل الإحصائيات...</p>;
   if (!stats) return <p>تعذر تحميل البيانات.</p>;
 
   return (
     <div className="stats-dashboard">
-      <h2>📊 لوحة الإحصائيات</h2>
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>👥 أبناء قصر أولاد بوبكر</h3>
-          <p>{stats.totalPopulation}</p>
+      <section className="statistics-dashboard">
+
+        <h2 class="dashboard-title">لوحة الإحصائيات العامة</h2>
+
+        <div class="category-block population-overview">
+          <h3 class="category-title">نظرة عامة على السكان</h3>
+          <div class="stats-grid">
+            <div class="stat-card"> <h4>إجمالي عدد الأفراد</h4> <p class="stat-number">{stats.totalPopulation}</p> </div>
+            <div class="stat-card"> <h4>عدد الأحياء</h4> <p class="stat-number">{stats.totalAlivePopulation}</p> </div>
+            <div class="stat-card" id="men"> <h4>عدد الرجال الأحياء</h4> <p class="stat-number">{stats.totalMen}</p> </div>
+            <div class="stat-card" id="women"> <h4>عدد النساء الأحياء</h4> <p class="stat-number">{stats.totalWomen}</p> </div>
+            <div class="stat-card"> <h4>عدد العائلات المسجلة</h4> <p class="stat-number">420</p> </div>
+            <div class="stat-card"> <h4>نسبة الأحياء مقابل المتوفين</h4> <p class="stat-number">{stats.totalAlivePopulation * 100 / stats.totalPopulation}% أحياء</p> </div>
+          </div>
         </div>
 
-        <div className="stat-card">
-          <h3>💓 عدد السكان الإجمالي</h3>
-          <p>{stats.totalAlivePopulation}</p>
+        <div class="category-block demographics">
+          <h3 class="category-title">العمر والديموغرافيا</h3>
+          <div class="stats-grid">
+            <div class="stat-card"> <h4>أكبر فرد</h4> <p class="stat-number">الحاج عمر (98 سنة)</p> </div>
+            <div class="stat-card"> <h4>أصغر فرد</h4> <p class="stat-number">زينب (4 شهور)</p> </div>
+            <div class="stat-card"> <h4>متوسط الأعمار</h4> <p class="stat-number">44 سنة</p> </div>
+            <div class="stat-card"> <h4>الوسيط العمري</h4> <p class="stat-number">41 سنة</p> </div>
+            <div class="stat-card"> <h4>عدد المعمرين (+100 سنة)</h4> <p class="stat-number">4</p> </div>
+          </div>
         </div>
 
-        <div className="stat-card">
-          <h3>👩 عدد النساء</h3>
-          <p>{stats.totalWomen}</p>
+        <div class="category-block family-structure">
+          <h3 class="category-title">بنية العائلة</h3>
+          <div class="stats-grid">
+            <div class="stat-card"> <h4>متوسط عدد الأطفال لكل عائلة</h4> <p class="stat-number">4.8</p> </div>
+            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number">عائلة فلان بن فلان  (12 فردا)</p> </div>
+            <div class="stat-card"> <h4>عدد العائلات بـ 6 أطفال أو أكثر</h4> <p class="stat-number">38</p> </div>
+            <div class="stat-card average-marriage-card">
+              <h4>متوسط عمر الزواج</h4>
+              <div class="marriage-averages">
+                <div class="average-item men">
+                  <span class="label">الرجال:</span>
+                  <span class="value">31 سنة</span>
+                </div>
+                <div class="average-item women">
+                  <span class="label">النساء:</span>
+                  <span class="value">27 سنة</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="stat-card"> <h4>عدد المتزوجين</h4> <p class="stat-number">950</p> </div>
+          </div>
         </div>
 
-        <div className="stat-card">
-          <h3>👨 عدد الرجال</h3>
-          <p>{stats.totalMen}</p>
-        </div>
+        </section>
 
-        <div className="stat-card">
-          <h3>📈 متوسط العمر</h3>
-          <p>{stats.averageAge} سنة</p>
-        </div>
 
-        <div className="stat-card">
-          <h3>👴أكبر شخص سنًا</h3>
-          <p>{translateName(stats.oldestPerson.name, stats.oldestPerson.lastName)} ({stats.oldestPerson.age} سنة)</p>
-        </div>
-
-        <div className="stat-card">
-          <h3>👶أصغر شخص سنًا</h3>
-          <p>{translateName(stats.youngestPerson.name, stats.youngestPerson.lastName)} ({stats.youngestPerson.age} سنة)</p>
-        </div>
-        <div className="stat-card">
-          <h3>معدل الأبناء في العائلة</h3>
-          <p>{stats.averageChildrenPerFamily}</p>
-        </div>
-      </div>
+      <h1 class="dashboard-title">عرض البيانات الرسومي</h1>
       <div className="charts">
+        <div className="row">
         <div className="chart-container">
-          <h3>Age Distribution</h3>
-          <canvas id="ageChart" ref={ageDistributionChartRef }></canvas>
+            <h3>توزيع الفئات العمرية</h3>
+            <canvas id="ageChart" ref={ageDistributionChartRef}></canvas>
+          </div>
+          <div className="chart-container">
+            <h3>الرجال VS النساء</h3>
+            <canvas id="genderChart" ref={genderRatioChartRef}></canvas>
+          </div>
+        
         </div>
 
-        <div className="chart-container">
-          <h3>Gender Ratio</h3>
-          <canvas id="genderChart" ref={genderRatioChartRef}></canvas>
+        <div className="chart-container full-width">
+          <h3>تطور عدد السكان</h3>
+          <canvas id="cumulativeGrowth" ref={cumulativePopulationGrowthRef}></canvas>
         </div>
 
-        <div className="chart-container">
-          <h3>Alive vs Deceased</h3>
-          <canvas id="lifeStatusChart"></canvas>
+        <div className="row">
+          <div className="chart-container">
+            <h3>أكثر الألقاب إستعمالاً</h3>
+            <canvas id="topFamilyName" ref={topFamiliesRef}></canvas>
+          </div>
+
+          <div className="chart-container">
+            <h3>عدد الأعراس في كل سنة</h3>
+            <canvas id="weddingCount" ref={weddingChartRef}></canvas>
+          </div>
         </div>
       </div>
+
+      {/* <div className="Map-Container">
+          <WorldMap/>
+      </div> */}
+      <div id="funFacts">
+      <h1 class="dashboard-title">هل تعلم؟ </h1>
+      <div class="fun-facts-container">
+        <div class="fun-fact">
+          <h2 class="fun-chart">58</h2>
+          <p>58 شخص، يحملون اسم <strong>محمد</strong> كأكثر اسم مستعمل، ويمثل <strong>18٪</strong> من السكان.</p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">185</h2>
+          <p>185 شخص، يحملون لقب <strong>التائب</strong> كأكثر لقب شائع، ويمثل <strong>35٪</strong> من السكان.</p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">240</h2>
+          <p>
+          عدد الأزواج الحاليين هو <strong>240</strong>، أي حوالي <strong>32٪</strong> من السكان متزوجون.
+          </p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">55</h2>
+          <p>
+          <strong>55</strong> شاب تجاوزوا الـ<strong>35</strong> عاما ليسوا متزوجين
+          </p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">60٪</h2>
+          <p>
+          أكثر من <strong>60٪</strong> من السكان أعمارهم أقل من <strong>30</strong> سنة، مما يجعل البلدة ذات طابع شبابي واضح.
+          </p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">22٪</h2>
+          <p>
+          حوالي <strong>22٪</strong> من أبناء قصر أولاد بوبكر يعيشون خارج البلدة، سواء في مدن تونسية أخرى أو في الخارج.
+          </p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">110</h2>
+          <p>
+          يُقيم <strong>110</strong> شخصًا من أبناء قصر أولاد بوبكر في <strong>فرنسا</strong>، مما يجعلها الوجهة الأجنبية الأكثر استقطابًا لأبناء البلدة في المهجر.
+          </p>
+        </div>
+        <br>
+        </br>
+        <div class="fun-fact">
+          <h2 class="fun-chart">12</h2>
+          <p>
+          أكبر عائلة في قصر أولاد بوبكر هي عائلة <strong>فلان بن فلان</strong>، وتضم أكثر من <strong>12</strong> فردًا مسجلًا في الشجرة العائلية.
+          </p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">142</h2>
+          <p>
+          يبلغ عدد تلاميذ المدرسة الابتدائية في قصر أولاد بوبكر حوالي <strong>142</strong> تلميذ، مما يشكل نسبة كبيرة من الأطفال في البلدة.
+          </p>
+        </div>
+        <div class="fun-fact">
+          <h2 class="fun-chart">11</h2>
+          <p>
+          تمتد شجرة العائلة من الجيل الأول حتى الجيل <strong>الحادي عشر</strong>، أي أن هناك <strong>11 جيلاً</strong> متتالياً تربط بين الجد الأول وأبعد حفيد مسجَّل في قصر أولاد بوبكر.      </p>
+        </div>
+        </div>
+        <br></br>
+        <div class="data-completeness-container">
+          <div class="data-completeness-card">
+            <h2>نسبة إكتمال البيانات لجميع أفراد الشجرة</h2>
+            <div class="content-wrapper">
+              <div class="percentage">
+                <span className='percentageText'>83٪</span>
+                <div class="progress-bar">
+                <div className="progress" style={{ width: `${83}%` }}></div>
+                </div>
+              </div>
+              <div class="data-completeness-content">
+                <p>التقدير الحالي يُظهر أننا غطّينا حوالي <strong>83%</strong> من جميع أفراد الشجرة العائلية، بناءً على عدد تقريبي إجمالي للسكان في الشجرة من الجد الأول بوبكر يصل إلى <strong>3000</strong> شخص.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="data-completeness-card">
+            <h2>نسبة الأفراد الأحياء في قاعدة البيانات</h2>
+            <div class="content-wrapper">
+              <div class="percentage">
+                <span>75٪</span>
+                <div class="progress-bar">
+                <div className="progress" style={{ width: `${75}%` }}></div>
+                </div>
+              </div>
+              <div class="data-completeness-content">
+                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>75%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+
+
+        <div class="important-info">
+          <h2>دقة توثيق التاريخ القديم</h2>
+          <p>تم تسجيل <strong><span class="highlight">70%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
+        </div>
+        </div>
+        <div className="engagement-panel">
+          <h2>مشاركة المجتمع في توثيق شجرة العائلة</h2>
+          <p className="engagement-text">
+            بفضل جهود المجتمع، ساهم <strong>150 شخصًا</strong> حتى الآن في توثيق شجرة العائلة، مما يعكس روح التعاون والانتماء القوي لهذا المشروع العائلي الفريد.
+          </p>
+          <div className="progress-bar">
+            <div className="progress" style={{ width: '70%' }}></div>
+          </div>
+        </div>
+
+
+
+
+  
     </div>
   );
 };

@@ -319,6 +319,8 @@ h3:hover {
   left: 0;             /* Or set the desired left offset */
   pointer-events: auto; /* Enable interactions with the tree itself */
 }
+
+
 /* Mobile View Adjustments */
 @media screen and (max-width: 768px) {
 
