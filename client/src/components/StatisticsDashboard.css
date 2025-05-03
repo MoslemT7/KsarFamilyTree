@@ -1,96 +1,493 @@
 .stats-dashboard {
-  margin: 40px auto;
-  width: 75%;
-  padding: 20px;
+  margin: 35px auto;
+  width: 95%;
+  padding: 15px;
   direction: rtl;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.stats-dashboard h2 {
+.statistics-dashboard {
+  padding: 5px 20px;
+  font-family: 'Cairo', sans-serif;
+  direction: rtl;
+}
+
+.dashboard-title {
   text-align: center;
-  margin-bottom: 30px;
+  font-size: 32px;
   color: #2c3e50;
-  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 25px;
+  border-bottom: 3px solid #2980b9;
+  padding-bottom: 10px;
+}
+
+.category-block {
+  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #fdfdfd;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.category-title {
+  font-size: 26px;
+  margin-bottom: 18px;
+  text-align: center;
+  font-family: 'Noto Kufi Arabic';
+  color: #2c3e50;
+  border-right: 6px solid #2980b9;
+  border-left: 6px solid #2980b9;
+  padding-right: 15px;
 }
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: space-between;
 }
 
 .stat-card {
-  background-color: #ffffff;
-  border-radius: 12px;
+  flex: 1 1 calc(25% - 18px); /* 4 cards per row */
+  min-width: 230px;
+  background-color: #fff;
   padding: 20px;
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+#men {
+  background: linear-gradient(135deg, #2196F3, #0D47A1);
+  border: 2px solid #0D47A1;
+}
+
+/* Unique Style for Women */
+#women {
+  background: linear-gradient(135deg, #E91E63, #880E4F);
+  border: 2px solid #880E4F;
+}
+
+/* Men card text color */
+#men h4,
+#men p {
+  color: #BBDEFB; /* light blue */
+}
+
+/* Women card text color */
+#women h4,
+#women p {
+  color: #F8BBD0; /* light pink */
+}
+
+.average-marriage-card {
+  background: linear-gradient(135deg, #cfd9df, #e2ebf0);
+  border: 2px solid #263238;
+  border-radius: 8px;
+  padding: 20px;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.average-marriage-card h4 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  color: #ffffff;
+}
+
+.marriage-averages {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.average-item {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
   text-align: center;
+  font-weight: bold;
+}
+
+.average-item.men {
+  background: linear-gradient(135deg, #2196F3, #0D47A1);
+  color: #E3F2FD;
+}
+
+.average-item.women {
+  background: linear-gradient(135deg, #E91E63, #880E4F);
+  color: #FCE4EC;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.value {
+  font-size: 20px;
 }
 
 .stat-card:hover {
-  transform: scale(1.03);
+  transform: translateY(-4px);
 }
 
-.stat-card h3 {
-  font-size: 20px;
-  color: #2980b9;
-  margin-bottom: 10px;
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 
-.stat-card p {
+.stat-card h4 {
   font-size: 18px;
-  font-weight: bold;
+  text-align: center;
+  color: #34495e;
+  margin-bottom: 15px;
+  flex-grow: 1;
+}
+
+.stat-number {
+  font-size: 26px;
   color: #2c3e50;
+  font-weight: bold;
+  text-align: center;
+
+}
+
+
+
+/* Unique category background accents */
+.population-overview {
+  border-right: 8px solid #3498db;
+  background: linear-gradient(145deg, #ecf4fc, #dfeffc);
+}
+
+.demographics {
+  border-right: 8px solid #e67e22;
+  background: linear-gradient(145deg, #fef2e6, #fce8d9);
+}
+
+.family-structure {
+  border-right: 8px solid #27ae60;
+  background: linear-gradient(145deg, #e7f8f0, #daf3e7);
+}
+
+.charts {
+  border: 2px dotted #0056b3;
+  border-radius: 10px;
+  padding: 20px;
+  margin: 30px 0;
+  background-color: #f9f9f9; /* Optional: light background for contrast */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Optional: subtle shadow */
+}
+
+
+.charts-container-title {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #2c3e50;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.charts-container-title:hover {
+  color: #0056b3;
+  background-color: rgba(0, 123, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.dashboard-stats-title {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #2c3e50;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.dashboard-stats-title:hover {
+  background-color: #e9ecef;
+  transform: translateY(-2px);
 }
 
 .charts {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.row {
+  display: flex;
   gap: 20px;
-  justify-content: center;
-  margin-top: 15px;
-  border: 2px solid #007BFF; /* Border color for highlighting */
-  border-radius: 10px; /* Rounded corners */
-  padding: 15px;
-  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2); /* Soft shadow for a glowing effect */
+  justify-content: space-between;
 }
 
 .chart-container {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  padding: 10px;
-  width: calc(50% - 20px); /* Two items per row */
-  min-height: 300px;
+  padding: 25px;
+  min-height: 100;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: calc(50% - 10px); /* Take half the width for each chart in the row */
 }
 
-.chart-container h3 {
-  font-size: 16px;
-  margin-bottom: 15px;
-  color: #333;
-  text-align: center;
+.chart-container.full-width {
+  width: 100%; /* Makes the cumulative chart span the full width */
+  height: 75%;
 }
+
+#genderChart {
+  max-width: 100%; /* Ensure it doesn't exceed the parent container width */
+  max-height: 300px; /* Limit the height for consistency */
+}
+
+
+.chart-container h3 {
+  font-size: 22px;
+  background: linear-gradient(90deg, #007BFF, #00C9A7);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: bold;
+  letter-spacing: 1.5px;
+}
+
+
 
 .chart-container canvas {
   width: 100% !important;
   height: auto !important; /* Ensure aspect ratio is preserved */
 }
 
-/* Specific styles for each chart */
-#ageChart {
-  max-width: 500px;  /* Set a max width for the Age Distribution chart */
-  max-height: 350px; /* Ensure the Age Distribution chart has a limited height */
-  margin-top: 10%;
+#cumulativeGrowth{
+  width: 100%;
 }
 
-#genderChart {
-  max-width: 500px; /* Set a max width for the Gender Ratio chart */
-  max-height: 350px; /* Ensure the Gender Ratio chart has a limited height */
+#funFacts {
+  padding: 30px 20px;
+  background-color: #f4f6fb;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  direction: rtl; /* Since it's Arabic */
+  font-family: 'Cairo', sans-serif;
+}
+
+#funFacts h1 {
+  text-align: center;
+  margin-bottom: 25px;
+  color: #2c3e50;
+  font-size: 30px;
+  font-weight: bold;
+}
+
+.fun-facts-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+.fun-fact {
+  background-color: white;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 123, 255, 0.08);
+  padding: 20px 15px;
+  width: calc(33.33% - 20px);
+  min-width: 260px;
+  max-width: 300px;
+  text-align: center;
+  transition: transform 0.2s ease;
+  border-top: 4px solid #007BFF;
+}
+
+.fun-fact:hover {
+  transform: translateY(-6px);
+}
+
+.fun-chart {
+  font-size: 36px;
+  font-weight: bold;
+  color: #007BFF;
+  margin-bottom: 12px;
+}
+
+.fun-fact p {
+  font-size: 16px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.data-completeness-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px; /* space between the cards */
+  margin-bottom: 30px; /* space between the cards and the important info section */
+}
+
+.data-completeness-card {
+  background: linear-gradient(145deg, #7e91b3, #246bae); /* Cool gradient background */
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 48%; /* or use a fixed width like 300px if preferred */
+  color: #fff; /* Make text white for better contrast */
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out; /* Smooth hover transition */
+}
+
+.data-completeness-card:hover {
+  transform: translateY(-5px); /* Slight hover effect */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
+}
+
+.data-completeness-container h2 {
+  font-size: 20px;
+  color: #92cd12;
+  margin-bottom: 10px;
+}
+
+.data-completeness-container p {
+  font-size: 16px;
+  color: #f3f5f7;
+}
+
+/* Container to divide content and percentage */
+.content-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Main content - description part */
+.data-completeness-content {
+  flex: 1; /* Take up remaining space */
+}
+
+/* Percentage part */
+.percentage {
+  font-size: 42px; /* Larger font for percentage */
+  font-weight: bold;
+  color: #92cd12; /* Match the heading color */
+  margin-left: 10px; /* Small gap between percentage and description */
+  flex-direction: column;
+  align-items: flex-end;
+  width: 20%; /* Make percentage section narrower to match layout */
+}
+
+
+/* Progress bar container */
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #ddd;
+  border-radius: 5px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+/* Progress bar itself */
+.progress {
+  height: 100%;
+  background-color: #92cd12;
+  border-radius: 5px;
+}
+
+
+.important-info {
+  background: linear-gradient(145deg, #EEAECA, #94BBE9); /* Warm gradient background for emphasis */
+  color: #fff; /* White text for contrast */
+  padding: 40px;
+  border-radius: 12px; /* Slightly rounded corners */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Stronger shadow for depth */
+  margin-top: 40px;
+  font-size: 18px; /* Larger text for emphasis */
+  text-align: center; /* Center text */
+  position: relative;
+  overflow: hidden;
+}
+
+.important-info h2 {
+  font-size: 32px; /* Big, bold title */
+  font-weight: bold;
+  color:#b72818;
+  margin-bottom: 20px;
+}
+
+.important-info p {
+  font-size: 22px; /* Larger body text */
+  line-height: 1.5;
+  font-weight: 950;
+  margin-bottom: 20px;
+}
+
+.important-info::before {
+  content: "\f0e7"; /* Font Awesome icon for visual emphasis (you can replace with any other icon) */
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  font-size: 48px;
+  color: #fff;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  opacity: 0.15;
+}
+
+.important-info .highlight {
+  font-size: 36px;
+  font-weight: bold;
+  color: #b83f32;
+  padding: 5px 5px;
+  border-radius: 5px;
+}
+
+.engagement-panel {
+  background: linear-gradient(135deg, #eef2f7, #d8e3f0);
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-top: 30px;
+  color: #2c3e50;
+}
+
+.engagement-panel h2 {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #1c3c64;
+}
+
+.engagement-text {
+  font-size: 17px;
+  line-height: 1.7;
+  color: #34495e;
+  margin-bottom: 20px;
+}
+
+.progress-bar {
+  background-color: #d0dce6;
+  border-radius: 8px;
+  height: 16px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.progress {
+  background-color: #3498db;
+  height: 100%;
+  width: 0;
+  transition: width 1s ease-in-out;
+  border-radius: 8px 0 0 8px;
+}
+
+.highlight {
+  color: #3498db;
+  font-weight: bold;
 }
 
 /* Media queries for smaller screens */

@@ -123,7 +123,7 @@ const createMotherChildRelationship = async (motherFullName, childFullName) => {
     // Check that the selected IDs are valid
     const motherId = selectedMotherId.toNumber();
     const childId = selectedChildId.toNumber();
-
+    
     console.log("Selected Father ID:", motherId, typeof(motherId));
     console.log("Selected Child ID:", childId);
 
@@ -245,6 +245,9 @@ const getGrandMother = async (personFullName) => {
   }
 };
 
+const addMarriage = async(personFullName) => {
+  // Adding Year of Marraige.
+};
 const createMarriage = async (maleFullName, femaleFullName) => {
   try {
     const [maleName, maleLastName] = maleFullName.trim().split(' ');
