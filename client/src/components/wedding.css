@@ -1,0 +1,100 @@
+body {
+    font-family: 'Cairo', sans-serif;
+    background: linear-gradient(to right, #fffaf7, #fef2ed);
+    margin: 0;
+    padding: 0;
+    color: #333;
+  }
+  
+  .wedding-dates-page {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 30px 20px;
+    background: #ffffffcc;
+    backdrop-filter: blur(5px);
+    border-radius: 16px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    direction: rtl;
+  }
+  
+  .wedding-dates-page h2 {
+    text-align: center;
+    font-size: 30px;
+    color: #c0392b;
+    border-bottom: 3px solid #f1c40f;
+    display: inline-block;
+    padding-bottom: 5px;
+    margin-bottom: 35px;
+  }
+  
+  .wedding-date-card {
+    background: linear-gradient(135deg, #fffaf0, #fefefe);
+    border: 1px solid #ffddcc;
+    border-left: 10px solid #f39c12;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 30px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  }
+  
+  .wedding-date-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+  }
+  
+  .wedding-header {
+    margin-bottom: 20px;
+  }
+  
+  .wedding-date {
+    font-size: 20px;
+    font-weight: bold;
+    color: #8e44ad;
+    background: #fce5ff;
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+  
+  .wedding-names {
+    margin: 15px 0;
+  }
+  
+  .wedding-names p {
+    font-size: 17px;
+    color: #34495e;
+    margin: 6px 0;
+  }
+  
+  .wedding-names p strong {
+    color: #c0392b;
+  }
+  
+  .wedding-notes {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px dashed #ccc;
+  }
+  
+  .note-item {
+    margin-bottom: 15px;
+  }
+  
+  .note-item h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #e67e22;
+    font-weight: 600;
+  }
+  
+  .note-item p {
+    margin: 6px 0 0;
+    font-size: 15.5px;
+    color: #2c3e50;
+    background: #fff9f4;
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+  
