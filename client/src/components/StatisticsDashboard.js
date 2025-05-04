@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import React, { useRef } from 'react';
-import Plotly from 'plotly.js-dist-min';
 import './StatisticsDashboard.css';
 import Chart from 'chart.js/dist/chart.js';
-import WorldMap from './WorldMap';
 
 const translations = require('./translation.json');
 require('dotenv').config();
@@ -57,61 +55,142 @@ const averageChildrenPerFamily = async () => {
 }
 
 const oldestPerson = async () => {
-    const session = driver.session();
-    try {
-      const result = await session.run(`
-        MATCH (n:Person)
-        WHERE n.YoB IS NOT NULL AND n.isAlive = true
-        RETURN n
-        ORDER BY n.YoB ASC
-        LIMIT 1
-      `);
-      if (result.records.length > 0) {
-        const person = result.records[0].get("n").properties;
-        const age = new Date().getFullYear() - person.YoB;
-        return {
-          name: person.name || '',
-          lastName: person.lastName || '',
-          age
-        };
-      } else {
-        return { name: "غير معروف", lastName: "", age: "-" };
-      }
-    } catch (error) {
-      console.error("Error fetching oldest person:", error);
-      return { name: "خطأ", lastName: "", age: "-" };
-    } finally {
-      await session.close();
+  const session = driver.session();
+  try {
+    const result = await session.run(`
+      MATCH (n:Person)
+      WHERE n.YoB IS NOT NULL AND n.isAlive = true
+      WITH n
+      ORDER BY n.YoB ASC
+      LIMIT 1
+      OPTIONAL MATCH (n)<-[:FATHER_OF]-(father:Person)
+      OPTIONAL MATCH (father)<-[:FATHER_OF]-(grandfather:Person)
+      RETURN 
+        n.name AS Name, 
+        n.lastName AS lastName, 
+        n.YoB AS YoB,
+        father.name AS fatherName,
+        grandfather.name AS grandfatherName
+    `);
+
+    if (result.records.length > 0) {
+      const record = result.records[0];
+      const yobRaw = record.get("YoB");
+      const yob = parseFloat(yobRaw);
+      const age = new Date().getFullYear() - yob;
+      return {
+        name: record.get("Name") || '',
+        lastName: record.get("lastName") || '',
+        fatherName: record.get("fatherName") || '',
+        grandfatherName: record.get("grandfatherName") || '',
+        age
+      };
+    } else {
+      return { name: "غير معروف", lastName: "", fatherName: "", grandfatherName: "", age: "-" };
     }
-  };
-  
+  } catch (error) {
+    console.error("Error fetching oldest person:", error);
+    return { name: "خطأ", lastName: "", fatherName: "", grandfatherName: "", age: "-" };
+  } finally {
+    await session.close();
+  }
+};
+
 const youngestPerson = async () => {
   const session = driver.session();
   try {
     const result = await session.run(`
       MATCH (n:Person)
-      WHERE n.YoB IS NOT NULL
-      RETURN n
+      WHERE n.YoB IS NOT NULL AND n.isAlive = true
+      WITH n
       ORDER BY n.YoB DESC
       LIMIT 1
+      OPTIONAL MATCH (n)<-[:FATHER_OF]-(father:Person)
+      OPTIONAL MATCH (father)<-[:FATHER_OF]-(grandfather:Person)
+      RETURN 
+        n.name AS Name, 
+        n.lastName AS lastName, 
+        n.YoB AS YoB,
+        father.name AS fatherName,
+        grandfather.name AS grandfatherName
     `);
+
     if (result.records.length > 0) {
-      const person = result.records[0].get("n").properties;
-      const age = new Date().getFullYear() - person.YoB;
+      const record = result.records[0];
+      const yobRaw = record.get("YoB");
+      const yob = parseFloat(yobRaw);
+      const age = new Date().getFullYear() - yob;
       return {
-        name: person.name || '',
-        lastName: person.lastName || '',
+        name: record.get("Name") || '',
+        lastName: record.get("lastName") || '',
+        fatherName: record.get("fatherName") || '',
+        grandfatherName: record.get("grandfatherName") || '',
         age
       };
     } else {
-        return { name: "غير معروف", lastName: "", age: "-" };
+      return { name: "غير معروف", lastName: "", fatherName: "", grandfatherName: "", age: "-" };
     }
   } catch (error) {
-    console.error("Error fetching youngest person:", error);
-    return { name: "خطأ", lastName: "", age: "-" };
-} finally {
+    console.error("Error fetching oldest person:", error);
+    return { name: "خطأ", lastName: "", fatherName: "", grandfatherName: "", age: "-" };
+  } finally {
     await session.close();
   }
+};
+
+const biggestFamily = async () =>{
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+        WITH father, COUNT(child) AS childrenCount
+        ORDER BY childrenCount DESC
+        LIMIT 1
+        RETURN father.name AS FatherName, father.lastName AS FatherLastName, childrenCount
+
+      `);
+  
+      if (result.records.length > 0) {
+        const fatherName = result.records[0].get('FatherName');
+        const FatherLastName = result.records[0].get('FatherLastName');
+        const childrenCount = result.records[0].get('childrenCount').toNumber();
+
+        return { fatherName, FatherLastName, childrenCount};
+      } else {
+        return { fatherName:"-", FatherLastName:"-", childrenCount : -1 };
+      }
+    } catch (error) {
+      console.error("Error fetching average age:", error);
+      return { fatherName: "-", FatherLastName:"-", childrenCount : "-"};
+    } finally {
+      await session.close();
+    }
+};
+
+const topAbroadCountry = async () =>{
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (p:Person)
+        WHERE p.WorkCountry IS NOT NULL
+        RETURN COUNT(p) AS abroadPeople, p.WorkCountry
+        LIMIT 1
+      `);
+  
+      if (result.records.length > 0) {
+        const countryCount = result.records[0].get('abroadPeople').toNumber();
+        const countryName = result.records[0].get('p.WorkCountry');
+
+        return { countryCount, countryName};
+      } else {
+        return { countryCount:"-", countryName:"-"};
+      }
+    } catch (error) {
+      console.error("Error fetching average age:", error);
+      return { countryCount: "-", countryName:"-"};
+    } finally {
+      await session.close();
+    }
 };
 
 const averageAge = async () => {
@@ -138,7 +217,70 @@ const averageAge = async () => {
       await session.close();
     }
 };
-  
+
+const medianAge = async () => {
+  const session = driver.session();
+  try {
+    const result = await session.run(`
+      MATCH (n:Person)
+      WHERE n.YoB IS NOT NULL AND n.isAlive = true
+      WITH COLLECT(n.YoB) AS ages
+      WITH 
+        ages, 
+        SIZE(ages) AS totalCount, 
+        CASE
+          WHEN SIZE(ages) % 2 = 1 THEN
+            ages[(SIZE(ages) / 2)]
+          ELSE
+            (ages[(SIZE(ages) / 2) - 1] + ages[SIZE(ages) / 2]) / 2.0
+        END AS medianAge
+      RETURN medianAge
+    `);
+
+    if (result.records.length > 0) {
+      const avgYoB = result.records[0].get('medianAge');
+      const currentYear = new Date().getFullYear();
+      const medianAge = Math.round(currentYear - avgYoB);
+      return { medianAge };
+    } else {
+      return { medianAge: "-" };
+    }
+  } catch (error) {
+    console.error("Error fetching average age:", error);
+    return { medianAge: "-" };
+  } finally {
+    await session.close();
+  }
+};
+
+const agedPersonCount = async () => {
+  const session = driver.session();
+  try {
+    const result = await session.run(`
+      MATCH (n:Person)
+      WHERE n.YoB IS NOT NULL AND n.isAlive = true
+      WITH n, (date().year - n.YoB) AS age
+      WHERE age > 100
+      RETURN COUNT(n) as agedPeopleCount
+    `);
+
+    if (result.records.length > 0) {
+      const record = result.records[0];
+      return {
+        count: record.get("agedPeopleCount").toNumber(),
+      };
+    } else {
+      return { count : -1};
+    }
+  } catch (error) {
+    console.error("Error fetching oldest person:", error);
+    return { count: "خطأ"};
+  } finally {
+    await session.close();
+  }
+};
+
+
 const SexCount = async () => {
     const session = driver.session();
     try {
@@ -168,10 +310,18 @@ const SexCount = async () => {
     }
 };
 
-export const translateName = (firstName, lastName) => {
-    const translatedFirstName = translations[firstName] || firstName; // Translate first name
-    const translatedLastName = translations[lastName] || lastName; // Translate last name
-    return `${translatedFirstName} ${translatedLastName}`; // Return combined translated names
+export const translateName = (fullName, language = true) => {
+  const nameParts = fullName.split(' ');
+
+const reverseTranslations = Object.fromEntries(
+  Object.entries(translations).map(([key, value]) => [value, key])
+);
+
+  const dict = language ? translations : reverseTranslations;
+
+  const translatedParts = nameParts.map(part => dict[part] || part);
+
+  return translatedParts.join(' ');
 };
 
 const totalAlivePopulation = async () => {
@@ -192,12 +342,77 @@ const totalAlivePopulation = async () => {
 };
 
 const mostUsedFamilyName = async () => {
-  /* 
-  MATCH (p:Person)
-  WHERE p.name IS NOT NULL
-  RETURN p.lastName AS lastName, count(*) AS occurrences
-  ORDER BY occurrences DESC
-  */
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (p:Person)
+        WHERE p.name IS NOT NULL
+        RETURN p.lastName AS lastName, count(*) AS occurrences
+        ORDER BY occurrences DESC
+        LIMIT 5
+      `);
+      return {familyName: result.records[0].get('lastName'), 
+              occurences: (result.records[0].get('occurrences').toNumber())
+      };
+    } catch (error) {
+      console.error("Error counting population:", error);
+      return 0;
+    } finally {
+      await session.close();
+    }
+};
+
+const unmariedMales = async () => {
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+       MATCH (p:Person)
+      WHERE p.gender = 'Male' 
+        AND p.YoB IS NOT NULL 
+        AND (2025 - p.YoB) > 35 
+        AND NOT EXISTS((p)-[:HUSBAND_OF]->()) // Check if there are no marriage relations
+      RETURN COUNT(p) AS unmarriedMenOver35
+      `);
+      return result.records[0].get('unmarriedMenOver35').toNumber();
+    } catch (error) {
+      console.error("Error counting population:", error);
+      return 0;
+    } finally {
+      await session.close();
+    }
+};
+
+const livingAbroad = async () => {
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (p:Person)
+        WHERE p.WorkCountry IS NOT NULL
+        RETURN COUNT(p) AS abroadPeople
+      `);
+      return result.records[0].get('abroadPeople').toNumber();
+    } catch (error) {
+      console.error("Error counting population:", error);
+      return 0;
+    } finally {
+      await session.close();
+    }
+};
+
+const familiesNumber = async () => {
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (h:Person)-[:HUSBAND_OF]->(w:Person)
+        RETURN COUNT(DISTINCT h) AS totalFamilies
+      `);
+      return result.records[0].get('totalFamilies').toNumber();
+    } catch (error) {
+      console.error("Error counting families:", error);
+      return 0;
+    } finally {
+      await session.close();
+    }
 }
 const StatisticsDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -306,22 +521,42 @@ const StatisticsDashboard = () => {
       try {
         const total = await totalPopulation();
         const totalAlive = await totalAlivePopulation();
+        const totalDead = (total-totalAlive).toFixed(1);
         const oldest = await oldestPerson();
         const youngest = await youngestPerson();
+      
         const avgAge = await averageAge();
+        const medAge = await medianAge();
         const avgChild = await averageChildrenPerFamily();
+        const nbrOfAgedPeople = await agedPersonCount();
+        const biggestFamilyCount = await biggestFamily();
+        const abroadPeoplePercentage = ((await livingAbroad()) * 100 / totalAlive).toFixed(2);
+        const topAbroadCountryCount = await topAbroadCountry();
+
+        const unmariedMalesCount = await unmariedMales();
+        const mostUsedFamilyNameCount = await mostUsedFamilyName();
         const { maleCount, femaleCount } = await SexCount();
         const fetchedAgeDistribution = await ageBins();
         const fetchedCumGrowth = await populationGrowth();
+        const familiesCount = await familiesNumber();
         setStats({
           totalPopulation: total,
           totalAlivePopulation: totalAlive,
           totalMen: maleCount,
+          deadPopulation: totalDead,
           totalWomen: femaleCount,
-          averageAge: avgAge.averageAge, 
+          averageAge: avgAge.averageAge,
+          medianAge: medAge.medianAge,
+          agedPeopleCount: nbrOfAgedPeople.count,
           oldestPerson: oldest,
           youngestPerson: youngest,
-          averageChildrenPerFamily: avgChild
+          biggestFamily: biggestFamilyCount,
+          mostUsedFamilyNameCount,
+          unmariedMalesCount,
+          abroadPeoplePercentage,
+          topAbroadCountryCount,
+          averageChildrenPerFamily: avgChild,
+          familiesCount
         });
         setAgeDistribution(fetchedAgeDistribution);
         setpopulationGrowth(fetchedCumGrowth);
@@ -530,7 +765,6 @@ const StatisticsDashboard = () => {
     };
 
     const weddingCount = countOccurrences(weddingData);
-    console.log(weddingCount);
     // Convert the object to arrays for labels and data
     const labels = Object.keys(weddingCount);
     const data = Object.values(weddingCount);
@@ -651,7 +885,7 @@ const StatisticsDashboard = () => {
     };
 
   }, [topFamilies]);
-  if (loading) return <p>جاري تحميل الإحصائيات...</p>;
+  if (loading) return <p className="loading-text">جاري تحميل الإحصائيات...</p>;
   if (!stats) return <p>تعذر تحميل البيانات.</p>;
 
   return (
@@ -667,7 +901,7 @@ const StatisticsDashboard = () => {
             <div class="stat-card"> <h4>عدد الأحياء</h4> <p class="stat-number">{stats.totalAlivePopulation}</p> </div>
             <div class="stat-card" id="men"> <h4>عدد الرجال الأحياء</h4> <p class="stat-number">{stats.totalMen}</p> </div>
             <div class="stat-card" id="women"> <h4>عدد النساء الأحياء</h4> <p class="stat-number">{stats.totalWomen}</p> </div>
-            <div class="stat-card"> <h4>عدد العائلات المسجلة</h4> <p class="stat-number">420</p> </div>
+            <div class="stat-card"> <h4>عدد العائلات المسجلة</h4> <p class="stat-number">{stats.familiesCount}</p> </div>
             <div class="stat-card"> <h4>نسبة الأحياء مقابل المتوفين</h4> <p class="stat-number">{stats.totalAlivePopulation * 100 / stats.totalPopulation}% أحياء</p> </div>
           </div>
         </div>
@@ -675,19 +909,42 @@ const StatisticsDashboard = () => {
         <div class="category-block demographics">
           <h3 class="category-title">العمر والديموغرافيا</h3>
           <div class="stats-grid">
-            <div class="stat-card"> <h4>أكبر فرد</h4> <p class="stat-number">الحاج عمر (98 سنة)</p> </div>
-            <div class="stat-card"> <h4>أصغر فرد</h4> <p class="stat-number">زينب (4 شهور)</p> </div>
-            <div class="stat-card"> <h4>متوسط الأعمار</h4> <p class="stat-number">44 سنة</p> </div>
-            <div class="stat-card"> <h4>الوسيط العمري</h4> <p class="stat-number">41 سنة</p> </div>
-            <div class="stat-card"> <h4>عدد المعمرين (+100 سنة)</h4> <p class="stat-number">4</p> </div>
+          <div className="stat-card">
+            <h4>أكبر فرد</h4>
+            <p className="stat-number">
+              {translateName(stats.oldestPerson.name || '')}{" "}
+              {translateName(stats.oldestPerson.lastName || '')} بن{" "} 
+              {translateName(stats.oldestPerson.fatherName || '')} بن{" "}
+              {translateName(stats.oldestPerson.grandfatherName || '')}
+            </p>
+            <p className="stat-note">
+              {stats.oldestPerson.age} سنة
+            </p>
+          </div>
+            <div class="stat-card"> 
+              <h4>أكبر فرد</h4>
+              <p className="stat-number">
+                {translateName(stats.youngestPerson.name || '')}{" "}
+                {translateName(stats.youngestPerson.lastName || '')} بن{" "} 
+                {translateName(stats.youngestPerson.fatherName || '')} بن{" "}
+                {translateName(stats.youngestPerson.grandfatherName || '')}
+              </p>
+              <p className="stat-note">
+                {stats.youngestPerson.age} سنة
+              </p>
+            </div>
+            <div class="stat-card"> <h4>متوسط الأعمار</h4> <p class="stat-number">{stats.averageAge} سنة</p> </div>
+            <div class="stat-card"> <h4>الوسيط العمري</h4> <p class="stat-number">{stats.medianAge} سنة</p> </div>
+            <div class="stat-card"> <h4>عدد المعمرين (+100 سنة)</h4> <p class="stat-number">{stats.agedPeopleCount}</p> </div>
           </div>
         </div>
 
         <div class="category-block family-structure">
           <h3 class="category-title">بنية العائلة</h3>
           <div class="stats-grid">
-            <div class="stat-card"> <h4>متوسط عدد الأطفال لكل عائلة</h4> <p class="stat-number">4.8</p> </div>
-            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number">عائلة فلان بن فلان  (12 فردا)</p> </div>
+            <div class="stat-card"> <h4>متوسط عدد الأطفال لكل عائلة</h4> <p class="stat-number">{stats.averageChildrenPerFamily}</p> </div>
+            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number"> عائلة {translateName(stats.biggestFamily.fatherName)} {translateName(stats.biggestFamily.FatherLastName)} 
+              ({stats.biggestFamily.childrenCount}) </p> </div>
             <div class="stat-card"> <h4>عدد العائلات بـ 6 أطفال أو أكثر</h4> <p class="stat-number">38</p> </div>
             <div class="stat-card average-marriage-card">
               <h4>متوسط عمر الزواج</h4>
@@ -702,8 +959,6 @@ const StatisticsDashboard = () => {
                 </div>
               </div>
             </div>
-
-            <div class="stat-card"> <h4>عدد المتزوجين</h4> <p class="stat-number">950</p> </div>
           </div>
         </div>
 
@@ -742,9 +997,6 @@ const StatisticsDashboard = () => {
         </div>
       </div>
 
-      {/* <div className="Map-Container">
-          <WorldMap/>
-      </div> */}
       <div id="funFacts">
       <h1 class="dashboard-title">هل تعلم؟ </h1>
       <div class="fun-facts-container">
@@ -753,19 +1005,14 @@ const StatisticsDashboard = () => {
           <p>58 شخص، يحملون اسم <strong>محمد</strong> كأكثر اسم مستعمل، ويمثل <strong>18٪</strong> من السكان.</p>
         </div>
         <div class="fun-fact">
-          <h2 class="fun-chart">185</h2>
-          <p>185 شخص، يحملون لقب <strong>التائب</strong> كأكثر لقب شائع، ويمثل <strong>35٪</strong> من السكان.</p>
+          <h2 class="fun-chart">{stats.mostUsedFamilyNameCount.occurences}</h2>
+          <p>{stats.mostUsedFamilyNameCount.occurences} شخص، يحملون لقب <strong>{translateName(stats.mostUsedFamilyNameCount.familyName)}</strong>   كأكثر لقب شائع، ويمثل  
+             <strong>{(((stats.mostUsedFamilyNameCount.occurences))*100/stats.totalPopulation).toFixed(1)}% </strong> من السكان.</p>
         </div>
         <div class="fun-fact">
-          <h2 class="fun-chart">240</h2>
+          <h2 class="fun-chart">{stats.unmariedMalesCount}</h2>
           <p>
-          عدد الأزواج الحاليين هو <strong>240</strong>، أي حوالي <strong>32٪</strong> من السكان متزوجون.
-          </p>
-        </div>
-        <div class="fun-fact">
-          <h2 class="fun-chart">55</h2>
-          <p>
-          <strong>55</strong> شاب تجاوزوا الـ<strong>35</strong> عاما ليسوا متزوجين
+          <strong>{stats.unmariedMalesCount}</strong> شاب تجاوزوا الـ<strong>35</strong> عاما ليسوا متزوجين
           </p>
         </div>
         <div class="fun-fact">
@@ -775,25 +1022,19 @@ const StatisticsDashboard = () => {
           </p>
         </div>
         <div class="fun-fact">
-          <h2 class="fun-chart">22٪</h2>
+          <h2 class="fun-chart">{stats.abroadPeoplePercentage}%</h2>
           <p>
-          حوالي <strong>22٪</strong> من أبناء قصر أولاد بوبكر يعيشون خارج البلدة، سواء في مدن تونسية أخرى أو في الخارج.
+          حوالي <strong>{stats.abroadPeoplePercentage}%</strong> من أبناء قصر أولاد بوبكر يعيشون خارج البلدة، سواء في مدن تونسية أخرى أو في الخارج.
           </p>
         </div>
         <div class="fun-fact">
-          <h2 class="fun-chart">110</h2>
+          <h2 class="fun-chart">{stats.topAbroadCountryCount.countryCount}</h2>
           <p>
-          يُقيم <strong>110</strong> شخصًا من أبناء قصر أولاد بوبكر في <strong>فرنسا</strong>، مما يجعلها الوجهة الأجنبية الأكثر استقطابًا لأبناء البلدة في المهجر.
+          يُقيم <strong>{stats.topAbroadCountryCount.countryCount}</strong> شخصًا من أبناء قصر أولاد بوبكر في <strong>{stats.topAbroadCountryCount.countryName}</strong>، مما يجعلها الوجهة الأجنبية الأكثر استقطابًا لأبناء البلدة في المهجر.
           </p>
         </div>
         <br>
         </br>
-        <div class="fun-fact">
-          <h2 class="fun-chart">12</h2>
-          <p>
-          أكبر عائلة في قصر أولاد بوبكر هي عائلة <strong>فلان بن فلان</strong>، وتضم أكثر من <strong>12</strong> فردًا مسجلًا في الشجرة العائلية.
-          </p>
-        </div>
         <div class="fun-fact">
           <h2 class="fun-chart">142</h2>
           <p>
@@ -812,13 +1053,13 @@ const StatisticsDashboard = () => {
             <h2>نسبة إكتمال البيانات لجميع أفراد الشجرة</h2>
             <div class="content-wrapper">
               <div class="percentage">
-                <span className='percentageText'>83٪</span>
+                <span className='percentageText'>{stats.totalAlivePopulation * 100 / 3000}%</span>
                 <div class="progress-bar">
-                <div className="progress" style={{ width: `${83}%` }}></div>
+                <div className="progress" style={{ width: `${stats.totalAlivePopulation * 100 / 3000}%` }}></div>
                 </div>
               </div>
               <div class="data-completeness-content">
-                <p>التقدير الحالي يُظهر أننا غطّينا حوالي <strong>83%</strong> من جميع أفراد الشجرة العائلية، بناءً على عدد تقريبي إجمالي للسكان في الشجرة من الجد الأول بوبكر يصل إلى <strong>3000</strong> شخص.</p>
+                <p>التقدير الحالي يُظهر أننا غطّينا حوالي <strong>{stats.totalAlivePopulation * 100 / 3000}%</strong> من جميع أفراد الشجرة العائلية، بناءً على عدد تقريبي إجمالي للسكان في الشجرة من الجد الأول بوبكر يصل إلى <strong>3000</strong> شخص.</p>
               </div>
             </div>
           </div>
@@ -827,13 +1068,13 @@ const StatisticsDashboard = () => {
             <h2>نسبة الأفراد الأحياء في قاعدة البيانات</h2>
             <div class="content-wrapper">
               <div class="percentage">
-                <span>75٪</span>
+                <span>{(stats.totalAlivePopulation * 100 / 1600).toFixed(1)}%</span>
                 <div class="progress-bar">
-                <div className="progress" style={{ width: `${75}%` }}></div>
+                <div className="progress" style={{ width: `${(stats.totalAlivePopulation * 100 / 1600).toFixed(1)}%` }}></div>
                 </div>
               </div>
               <div class="data-completeness-content">
-                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>75%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
+                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>{(stats.totalAlivePopulation * 100 / 1600).toFixed(1)}%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
               </div>
             </div>
           </div>
@@ -844,7 +1085,7 @@ const StatisticsDashboard = () => {
 
         <div class="important-info">
           <h2>دقة توثيق التاريخ القديم</h2>
-          <p>تم تسجيل <strong><span class="highlight">70%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
+          <p>تم تسجيل <strong><span class="highlight">{(stats.deadPopulation*100/1400).toFixed(1)}%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
         </div>
         </div>
         <div className="engagement-panel">

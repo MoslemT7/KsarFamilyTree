@@ -84,7 +84,6 @@ function splitName(fullName) {
   return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] };
 }
 
-
 const SearchPage = () => {
   const [treeVisible, setTreeVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

@@ -58,6 +58,40 @@
   transition: transform 0.2s;
 }
 
+.stat-note {
+  text-align: center;
+  font-weight: 800;
+  font-size: 16px; /* Adjust font size */
+  color: #fff; /* White text color */
+  background: linear-gradient(135deg, #ff5722, #ff7043); /* Gradient background */
+  padding: 5px 15px; /* Add some padding for spacing */
+  border-radius: 10px; /* Rounded corners */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+  margin: 5px 0; /* Add some margin between other elements */
+  transition: transform 0.3s ease, background 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.loading-text {
+  font-size: 18px;
+  font-weight: bold;
+  color: #d13a10; /* You can change the color to match your theme */
+  text-align: center;
+  animation: loading-animation 2s infinite;
+}
+
+@keyframes loading-animation {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+
 #men {
   background: linear-gradient(135deg, #2196F3, #0D47A1);
   border: 2px solid #0D47A1;
