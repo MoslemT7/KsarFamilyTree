@@ -280,7 +280,6 @@ const agedPersonCount = async () => {
   }
 };
 
-
 const SexCount = async () => {
     const session = driver.session();
     try {
@@ -382,6 +381,66 @@ const unmariedMales = async () => {
     }
 };
 
+const avgMarringAgeMale = async () => {
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (p:Person)
+        WHERE p.gender = 'Male' 
+        AND p.YoB IS NOT NULL AND p.YoM IS NOT NULL
+        RETURN SUM(p.YoM - p.YoB)/COUNT(p) AS avgMarringAge
+      `);
+      return ((result.records[0].get('avgMarringAge')))
+      
+    } catch (error) {
+      console.error("Error counting population:", error);
+      return 0;
+    } finally {
+      await session.close();
+    }
+};
+
+const avgMarringAgeFemale = async () => {
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (p:Person)
+        WHERE p.gender = 'Female' 
+        AND p.YoB IS NOT NULL AND p.YoM IS NOT NULL
+        RETURN SUM(p.YoM - p.YoB)/COUNT(p) AS avgMarringAge
+      `);
+      return result.records[0].get('avgMarringAge');
+    } catch (error) {
+      console.error("Error counting population:", error);
+      return 0;
+    } finally {
+      await session.close();
+    }
+};
+
+const families6pluschildren = async () => {
+  const session = driver.session();
+    try {
+      const result = await session.run(`
+        MATCH (f:Person)-[:FATHER_OF]->(c:Person)
+        WITH f, count(c) AS childrenCount
+        WHERE childrenCount >= 3
+        RETURN count(f) AS familiesWith6PlusChildren
+      `);
+  
+      if (result.records.length > 0) {
+        return  result.records[0].get('familiesWith6PlusChildren').toNumber() ;
+      } else {
+        return { count:"-"};
+      }
+    } catch (error) {
+      console.error("Error fetching average age:", error);
+      return { count: "-"};
+    } finally {
+      await session.close();
+    }
+};
+
 const livingAbroad = async () => {
   const session = driver.session();
     try {
@@ -460,9 +519,10 @@ const StatisticsDashboard = () => {
         WITH currentYear - p.YoB AS age
         WITH CASE
           WHEN age < 3 THEN '0-2'
-          WHEN age < 13 THEN '3-12'
           WHEN age < 19 THEN '13-18'
           WHEN age < 30 THEN '19-29'
+          WHEN age < 13 THEN '3-12'
+
           WHEN age < 45 THEN '30-44'
           WHEN age < 60 THEN '45-59'
           WHEN age < 70 THEN '60-69'
@@ -533,6 +593,10 @@ const StatisticsDashboard = () => {
         const abroadPeoplePercentage = ((await livingAbroad()) * 100 / totalAlive).toFixed(2);
         const topAbroadCountryCount = await topAbroadCountry();
 
+        const avgMarAgeMale = (await avgMarringAgeMale()).toFixed(0);
+        const avgMarAgeFemale = (await avgMarringAgeFemale()).toFixed(0);
+        const sixPlusFamilies = await families6pluschildren();
+
         const unmariedMalesCount = await unmariedMales();
         const mostUsedFamilyNameCount = await mostUsedFamilyName();
         const { maleCount, femaleCount } = await SexCount();
@@ -554,7 +618,10 @@ const StatisticsDashboard = () => {
           mostUsedFamilyNameCount,
           unmariedMalesCount,
           abroadPeoplePercentage,
+          avgMarAgeMale,
+          avgMarAgeFemale,
           topAbroadCountryCount,
+          sixPlusFamilies: sixPlusFamilies,
           averageChildrenPerFamily: avgChild,
           familiesCount
         });
@@ -885,6 +952,7 @@ const StatisticsDashboard = () => {
     };
 
   }, [topFamilies]);
+
   if (loading) return <p className="loading-text">جاري تحميل الإحصائيات...</p>;
   if (!stats) return <p>تعذر تحميل البيانات.</p>;
 
@@ -943,19 +1011,19 @@ const StatisticsDashboard = () => {
           <h3 class="category-title">بنية العائلة</h3>
           <div class="stats-grid">
             <div class="stat-card"> <h4>متوسط عدد الأطفال لكل عائلة</h4> <p class="stat-number">{stats.averageChildrenPerFamily}</p> </div>
-            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number"> عائلة {translateName(stats.biggestFamily.fatherName)} {translateName(stats.biggestFamily.FatherLastName)} 
-              ({stats.biggestFamily.childrenCount}) </p> </div>
-            <div class="stat-card"> <h4>عدد العائلات بـ 6 أطفال أو أكثر</h4> <p class="stat-number">38</p> </div>
+            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number"> عائلة {translateName(stats.biggestFamily.fatherName)} {translateName(stats.biggestFamily.FatherLastName)}  </p>
+            <p className="stat-note"> {stats.biggestFamily.childrenCount} أبناء </p>  </div>
+            <div class="stat-card"> <h4>عدد العائلات بـ 6 أطفال أو أكثر</h4> <p class="stat-number">{stats.sixPlusFamilies}</p> </div>
             <div class="stat-card average-marriage-card">
               <h4>متوسط عمر الزواج</h4>
               <div class="marriage-averages">
                 <div class="average-item men">
                   <span class="label">الرجال:</span>
-                  <span class="value">31 سنة</span>
+                  <span class="value">{stats.avgMarAgeMale}</span>
                 </div>
                 <div class="average-item women">
                   <span class="label">النساء:</span>
-                  <span class="value">27 سنة</span>
+                  <span class="value">{stats.avgMarAgeFemale}</span>
                 </div>
               </div>
             </div>
@@ -1013,12 +1081,6 @@ const StatisticsDashboard = () => {
           <h2 class="fun-chart">{stats.unmariedMalesCount}</h2>
           <p>
           <strong>{stats.unmariedMalesCount}</strong> شاب تجاوزوا الـ<strong>35</strong> عاما ليسوا متزوجين
-          </p>
-        </div>
-        <div class="fun-fact">
-          <h2 class="fun-chart">60٪</h2>
-          <p>
-          أكثر من <strong>60٪</strong> من السكان أعمارهم أقل من <strong>30</strong> سنة، مما يجعل البلدة ذات طابع شبابي واضح.
           </p>
         </div>
         <div class="fun-fact">
