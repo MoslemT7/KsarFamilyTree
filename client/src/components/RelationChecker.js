@@ -13,6 +13,8 @@ const driver = require('neo4j-driver').driver(
 );
 const session = driver.session();
 
+let score;
+let relationDescribtion = '';
 const getPersonMatches = async (name, fatherName = "", grandfatherName = "", lastName) => {
   let query = "";
 
@@ -185,8 +187,9 @@ const getRelationship = async (person1FullName, person2FullName) => {
 
           if (p1Level === 0 && p2Level === 1) {
             if (gender1 === 'Male'){
-              console.log(`${translatedName1} هو والد ${translatedName2}`);
-              return `${translatedName1} هو والد ${translatedName2}`;
+              score = 100;
+              relationDescribtion = `${translatedName1} هو والد ${translatedName2}`;
+              return {relationDescribtion , score}
             }
             else{
               console.log(`${translatedName1} هي والدة ${translatedName2}`);
@@ -357,7 +360,7 @@ const getRelationship = async (person1FullName, person2FullName) => {
                   return `${translatedName1} هو إبن عم والد ${translatedName2}`;
                 } else { 
                   console.log(`${person1FullName} هو إبن عمة والد ${person2FullName}.`);
-                  return `${translatedName1} هو إبن همة والد ${translatedName2}`;
+                  return `${translatedName1} هو إبن عمة والد ${translatedName2}`;
                 }
               } else {  // mother's side
                 if (p2AncestorGender === 'Male') {  // mother's brother's son
@@ -596,7 +599,16 @@ const RelationPage = () => {
   const [person2, setPerson2] = useState('');
   const [relationship, setRelationship] = useState('');
   const [duplicates, setDuplicates] = useState({ person1: [], person2: [] });
-
+  const relationTypes = ["Blood"]; // or ["In-Law", "Marriage"]
+  const explanation = "You both share the same grandfather. This makes you close relatives (blood relation).";
+  function getArabicClosenessLabel(score) {
+    if (score >= 95) return "صلة قرابة شديدة جدًا";
+    if (score >= 85) return "صلة قرابة قوية";
+    if (score >= 70) return "صلة قرابة متوسطة";
+    if (score >= 50) return "صلة بعيدة نسبياً";
+    if (score > 0) return "صلة ضعيفة جدًا";
+    return "لا توجد صلة واضحة";
+  }
   const fetchRelationship = async (name1, name2) => {
     
     const relationshipResult = await getRelationship(name1, name2);
@@ -620,61 +632,90 @@ const RelationPage = () => {
 
   return (
     <div className="relation-page">
-      {/* Left-side: Duplicates List */}
-      {(duplicates.person1.length > 0 || duplicates.person2.length > 0) && (
-        <div className="dups_list">
-          {duplicates.person1.length > 0 && (
-            <>
-              <h3>: أكتب الاسم الكامل للشخص الصحيح </h3>
-              <ul>
-                {duplicates.person1.map((p, idx) => (
-                  <li key={`p1-${idx}`}>
-                    {`${translateName(p.name)} بن ${translateName(p.father)} بن ${translateName(p.grandfather)} ${translateName(p.lastName)}`}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
+    {/* Left Panel: Duplicate Suggestions */}
+    {(duplicates.person1.length > 0 || duplicates.person2.length > 0) && (
+      <aside className="duplicates-panel">
+        {duplicates.person1.length > 0 && (
+          <section className="duplicates-group">
+            <h3>أكتب الاسم الكامل للشخص الصحيح:</h3>
+            <ul>
+              {duplicates.person1.map((p, idx) => (
+                <li key={`p1-${idx}`}>
+                  {`${translateName(p.name)} بن ${translateName(p.father)} بن ${translateName(p.grandfather)} ${translateName(p.lastName)}`}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
   
-          {duplicates.person2.length > 0 && (
-            <>
-              <h3>اختر الشخص الصحيح "{person2}"</h3>
-              <ul>
-                {duplicates.person2.map((p, idx) => (
-                  <li key={`p2-${idx}`}>
-                    {`${translateName(p.name)} بن ${translateName(p.father)} بن ${translateName(p.grandfather)} ${translateName(p.lastName)}`}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </div>
-      )}
+        {duplicates.person2.length > 0 && (
+          <section className="duplicates-group">
+            <h3>اختر الشخص الصحيح "{person2}"</h3>
+            <ul>
+              {duplicates.person2.map((p, idx) => (
+                <li key={`p2-${idx}`}>
+                  {`${translateName(p.name)} بن ${translateName(p.father)} بن ${translateName(p.grandfather)} ${translateName(p.lastName)}`}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </aside>
+    )}
   
-      {/* Right-side: Main content */}
-      <div className="main-content">
+    {/* Main Panel: Form + Result */}
+    <main className="main-panel">
+      <section className="relation-form-section">
         <h2>ماهي العلاقة بينهما؟</h2>
-        <form onSubmit={FetchRelationship}>
+        <form onSubmit={FetchRelationship} className="relation-form">
           <input
-            id="name1"
             type="text"
             placeholder="الإسم الكامل الأول"
             value={person1}
             onChange={(e) => setPerson1(e.target.value)}
           />
           <input
-            id="name2"
             type="text"
             placeholder="الإسم الكامل الثاني"
             value={person2}
             onChange={(e) => setPerson2(e.target.value)}
           />
-          <button type="submit">تحقق من العلاقة</button><br />
+          <button type="submit">تحقق من العلاقة</button>
         </form>
+      </section>
   
-        <p id="relationHolder">{relationship}</p>
-      </div>
-    </div>
+      {/* Result */}
+      {relationship && (
+        <section className="relationship-result">
+          <h2>نتيجة العلاقة</h2>
+          <p className="relationText">{relationship}</p>
+  
+          <div className="scoreDisplay">
+            <div className="scoreCircle">{score}%</div>
+            <p className="scoreLabel">{getArabicClosenessLabel(score)}</p>
+          </div>
+  
+          <div className="scoreBarContainer">
+            <label>مستوى القرب</label>
+            <div className="scoreBarWrapper">
+              <div className="scoreBarFill" style={{ width: `${score}%` }} />
+            </div>
+          </div>
+  
+          <div className="relationTags">
+            {/* {relationTypes.map((type, index) => (
+              <span key={index} className={`tag ${type.toLowerCase()}`}>
+                {relationTypes(type)}
+              </span>
+            ))} */}
+          </div>
+  
+          {/* <p className="relationExplanation">{explanation}</p> */}
+        </section>
+      )}
+    </main>
+  </div>
+  
   );
 };
 

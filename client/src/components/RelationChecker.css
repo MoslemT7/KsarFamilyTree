@@ -1,109 +1,161 @@
-/* Styles for the relation page layout */
-
-/* Main container */
 .relation-page {
-  display: flex; /* Flexbox layout */
-  justify-content: space-between; /* Space between the main content and duplicates */
-  max-width: 1000px;
+  display: flex;
+  flex-direction: row;
+  max-width: 1100px;
   margin: 40px auto;
-  padding: 20px;
   font-family: 'Cairo', sans-serif;
-  direction: rtl; /* Right to left for Arabic text */
-  background-color: #fefefe;
+  direction: rtl;
+  gap: 20px;
+}
+
+.duplicates-panel {
+  width: 280px;
+  background-color: #f9f9f9;
+  padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* Main content section (right side) */
-.relation-page .main-content {
-  flex: 1; /* Main content takes up remaining space */
-  padding-left: 20px;
+.duplicates-group h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
 }
 
-/* Form input fields */
-input[type="text"] {
+.duplicates-group ul {
+  list-style: none;
+  padding: 0;
+}
+
+.duplicates-group li {
+  background: white;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.main-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.relation-form-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.relation-form input {
   width: 100%;
   padding: 12px 16px;
   font-size: 16px;
   border: 2px solid #ccc;
   border-radius: 8px;
   margin-bottom: 15px;
-  transition: border-color 0.3s;
 }
 
-input[type="text"]:focus {
+.relation-form input:focus {
   border-color: #3f51b5;
   outline: none;
 }
 
-/* Submit button styling */
-button {
+.relation-form button {
   background-color: #3f51b5;
   color: white;
   padding: 12px 20px;
-  font-size: 16px;
   border: none;
   border-radius: 8px;
+  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background 0.3s;
 }
 
-button:hover {
+.relation-form button:hover {
   background-color: #303f9f;
 }
 
-/* Relation paragraph styling */
-#relationHolder {
-  margin-top: 20px;
-  font-size: 16px;
-  line-height: 1.8;
-  color: #333;
-  text-align: right;
+.relationship-result {
+  background: #fff;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-/* Duplicates list section (left side) */
-.dups_list {
-  width: 250px; /* Fixed width for the sidebar */
-  padding: 15px;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  font-size: 14px;
-  direction: rtl; /* Ensure the Arabic content is right-to-left */
-  margin-left: 20px;
-  height: 100%; /* Full height to keep the list within bounds */
+.relationText {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 20px;
 }
 
-/* Title for the duplicates list */
-.dups_list h3 {
+.scoreDisplay {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.scoreCircle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #4caf50;
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.scoreLabel {
   font-size: 18px;
   color: #333;
-  margin-bottom: 15px;
-  text-align: right;
 }
 
-/* Duplicates list styling */
-.dups_list ul {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-.dups_list li {
-  background-color: #fff;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-weight: bolder;
-  size: 12px;
-}
-
-.dups_list li strong {
-  color: #333;
-}
-
-.dups_list li span {
+.scoreBarContainer label {
   font-size: 14px;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.scoreBarWrapper {
+  background: #eee;
+  height: 20px;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.scoreBarFill {
+  background-color: #4caf50;
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.relationTags {
+  margin-top: 15px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 5px 10px;
+  margin: 5px 5px 0 0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.tag.blood { background: #f39c12; color: white; }
+.tag.in-law { background: #3498db; color: white; }
+.tag.marriage { background: #9b59b6; color: white; }
+
+.relationExplanation {
+  margin-top: 20px;
+  font-size: 15px;
+  line-height: 1.6;
   color: #555;
 }
