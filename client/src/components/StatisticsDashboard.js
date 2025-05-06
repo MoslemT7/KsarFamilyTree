@@ -495,7 +495,6 @@ const StatisticsDashboard = () => {
     { family: 'الرحموني', count: 198 }
   ];
   
-  // Use different refs for each canvas
   const ageDistributionChartRef = useRef(null);
   const genderRatioChartRef = useRef(null);
   const weddingChartRef = useRef(null);
@@ -636,7 +635,7 @@ const StatisticsDashboard = () => {
         setLoading(false);
       }
     };
-  
+    
     fetchStats();
   }, []);
 

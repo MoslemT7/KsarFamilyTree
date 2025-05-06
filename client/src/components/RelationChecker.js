@@ -12,42 +12,6 @@ const driver = require('neo4j-driver').driver(
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
 const session = driver.session();
-const getPersonMatches = async (name, fatherName = "", grandfatherName = "", lastName) => {
-  let query = "";
-
-  if (grandfatherName) {
-    query = `
-      MATCH (grandfather:Person {name: $grandfatherName})-[:FATHER_OF]->(father:Person {name: $fatherName})-[:FATHER_OF]->(p:Person {name: $name, lastName: $lastName})
-      RETURN id(p) AS personID, p.name AS personName, p.lastName AS familyName, father.name AS fatherName, grandfather.name AS grandfatherName
-    `;
-  } 
-  else if (fatherName) {
-    query = `
-      MATCH (father:Person {name: $fatherName})-[:FATHER_OF]->(p:Person {name: $name, lastName: $lastName})
-      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
-      RETURN id(p) AS personID, p.name AS personName, p.lastName AS familyName, father.name AS fatherName, grandfather.name AS grandfatherName
-    `;
-  } 
-  else {
-    query = `
-      MATCH (p:Person {name: $name, lastName: $lastName})
-      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(p)
-      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
-      RETURN id(p) AS personID, p.name AS personName, p.lastName AS familyName, father.name AS fatherName, grandfather.name AS grandfatherName
-    `;
-  }
-
-  const params = { name, lastName, fatherName, grandfatherName };
-  const result = await session.run(query, params);
-
-  return result.records.map(record => ({
-    id: record.get('personID').toNumber(),
-    name: record.get('personName'),
-    father: record.get('fatherName') || "Unknown",
-    grandfather: record.get('grandfatherName') || "Unknown",
-    lastName: record.get('familyName')
-  }));
-};
 
 function countBenAndBent(str) {
   const matches = str.match(/\b(ben|bent)\b/gi);
@@ -131,26 +95,157 @@ const RelationPage = () => {
   const [ancestorName, setAncestorName] = useState('');
   const [ancestorLastName, setAncestorLastName] = useState('');
 
-  const fetchRelationship = async (name1, name2) => {
-    
-    const relationshipResult = await getRelationship(name1, name2);
-    return relationshipResult;
-  };
-
   const FetchRelationship = async (e) => {
     e.preventDefault();
   
-    const result = await fetchRelationship(person1, person2);
+    const result = await getRelationship(person1, person2);
   
     if (result.error === 'non-unique-name') {
       setDuplicates(result.duplicates);
       setRelationship(result.message); // optional message
     } else {
-      setDuplicates({ person1: [], person2: [] }); // clear if no dups
+      setDuplicates({ person1: [], person2: [] });
       setRelationship(result);
     }
   };
+  const getPersonMatches = async (personName, fatherName = "", grandfatherName = "", familyName) => {
+
+    let cypherQuery = ``;
+    const queryParamsObject = {};
   
+    if (personName){
+      if (fatherName) {
+        if (grandfatherName) {
+          if (familyName) {
+            cypherQuery += `
+              MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+              WHERE child.name = $personName AND 
+                    father.name = $fatherName AND 
+                    grandfather.name = $grandfatherName AND 
+                    child.lastName = $familyName
+              RETURN 
+                id(child) AS childID,
+                child.name AS childName, 
+                father.name AS fatherName, 
+                grandfather.name AS grandfatherName, 
+                child.lastName AS familyName  
+            `;
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+            queryParamsObject.grandfatherName = grandfatherName;
+            queryParamsObject.familyName = familyName;
+          } 
+          else {
+            cypherQuery += `
+              MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+              WHERE child.name = $personName AND 
+                    father.name = $fatherName AND 
+                    grandfather.name = $grandfatherName
+              RETURN 
+                    id(child) AS childID, 
+                    child.name AS childName, 
+                    father.name AS fatherName, 
+                    grandfather.name AS grandfatherName,
+                    child.lastName AS familyName       
+              `;
+            
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+            queryParamsObject.grandfatherName = grandfatherName;
+          }
+          
+        } else {
+          if (familyName){
+            cypherQuery += `
+            MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+            WHERE child.name = $personName AND 
+                  father.name = $fatherName AND
+                  child.lastName = $familyName
+            OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+            RETURN  
+              id(child) AS childID,
+              child.name AS childName, 
+              father.name AS fatherName,
+              grandfather.name AS grandfatherName,
+              child.lastName AS familyName
+            `;
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+            queryParamsObject.familyName = familyName;
+          }
+          else{
+            cypherQuery += `
+            MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+            
+            WHERE child.name = $personName AND 
+                  father.name = $fatherName
+            OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+            RETURN  id(child) AS childID, 
+                    child.name AS childName, 
+                    father.name AS fatherName, 
+                    grandfather.name AS grandfatherName,
+                    child.lastName AS familyName
+            `;
+            queryParamsObject.personName = personName;
+            queryParamsObject.fatherName = fatherName;
+          }
+          }
+      }
+      else {
+        if (familyName){
+          cypherQuery += `
+          MATCH (child:Person)
+          WHERE child.name = $personName AND child.lastName = $familyName
+          OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
+          OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+          RETURN 
+            id(child) AS childID,
+            child.name AS childName, 
+            father.name AS fatherName,
+            grandfather.name AS grandfatherName,
+            child.lastName AS familyName
+        `;
+        queryParamsObject.personName = personName;
+        queryParamsObject.familyName = familyName;
+        }
+        else{
+          cypherQuery += `
+            MATCH (child:Person)
+            WHERE child.name = $personName
+            OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
+            OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+            RETURN
+              id(child) AS childID,
+              child.name AS childName, 
+              father.name AS fatherName, 
+              grandfather.name AS grandfatherName,
+              child.lastName AS familyName
+          `;
+          queryParamsObject.personName = personName;
+        }
+      }
+    }
+
+    const session = driver.session();
+    try {
+      const result = await session.run(cypherQuery, queryParamsObject);
+  
+      return result.records.map(record => ({
+        id: record.get('childID').toNumber(),
+        name: record.get('childName'),
+        father: record.get('fatherName') || "",
+        grandfather: record.get('grandfatherName') || "",
+        lastName: record.get('familyName')
+      }));
+    } 
+    catch (Error) {
+      console.error('Query Error:', Error);
+      setError('حدث خطأ أثناء البحث.');
+    } 
+    finally {
+      await session.close();
+    }
+  };
   const getRelationship = async (person1FullName, person2FullName) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
     let translatedName1, translatedName2;
@@ -169,14 +264,15 @@ const RelationPage = () => {
     }
     
     const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(translatedName1);
+    console.log(person1Name,person1FatherName,person1GrandfatherName,person1LastName);
     const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(translatedName2);
+    console.log(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
     const errorContainer = document.getElementById('error-container');
     try {
       const person1Matches = await getPersonMatches(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
       if (person1Matches.length === 0) {
         throw new Error(`لا يوجد أشخاص بإسم ${person1FullName} الرجاء التثبت في الإسم جيدا`);
       }
-  
       const person2Matches = await getPersonMatches(person2Name, person2FatherName, person2GrandfatherName, person2LastName);
       if (person2Matches.length === 0) {
         throw new Error(`لا يوجد أشخاص بإسم ${person2FullName} الرجاء التثبت في الإسم جيدا`);
@@ -224,10 +320,7 @@ const RelationPage = () => {
             [n IN nodes(path1) | { id: id(n), name: n.name, lastName: n.lastName, gender: n.gender }] AS pathToP1,
             [n IN nodes(path2) | { id: id(n), name: n.name, lastName: n.lastName, gender: n.gender }] AS pathToP2
         `, { person1ID, person2ID });
-      
-        if (result.records.length === 0) {
-          throw new Error('Person not found or no ancestors available.');
-        }    
+
         const record = result.records[0];
       
         return {
@@ -257,14 +350,11 @@ const RelationPage = () => {
         pathFromAncestorToP2 
       } = relationRecord);
 
-      console.log(ancestorName, ancestorLastName);
       const pathToP1 = pathFromAncestorToP1;
       const pathToP2 = pathFromAncestorToP2;
-      console.log(pathFromAncestorToP1);
   
       console.log(pathFromAncestorToP1.reverse().map(a => a.name).join(" ben "));
       console.log(pathFromAncestorToP2.reverse().map(a => a.name).join(" ben "));
-  
   
       var p1Level = levelFromP1;
       var p2Level = levelFromP2;
@@ -674,12 +764,9 @@ const RelationPage = () => {
                   <th>عدد الأجيال بينهما</th>
                   <td class="generation-distance"><span id="numGen">5</span> أجيال</td>
                 </tr>
-                <tr>
-                  <th>أقرب جد مشترك</th>
-                  {/* <td class="common-ancestor"> {translateName(ancName)} {translateName(ancLastName)}</td> */}
-                </tr>
               </tbody>
             </table>
+            
           </div>
 
 
