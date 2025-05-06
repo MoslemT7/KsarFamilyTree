@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './RelationChecker.css';
 const translations = require('./translation.json');
 require('dotenv').config();
@@ -12,9 +12,6 @@ const driver = require('neo4j-driver').driver(
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
 const session = driver.session();
-
-let score;
-let relationDescribtion = '';
 const getPersonMatches = async (name, fatherName = "", grandfatherName = "", lastName) => {
   let query = "";
 
@@ -52,24 +49,52 @@ const getPersonMatches = async (name, fatherName = "", grandfatherName = "", las
   }));
 };
 
+function countBenAndBent(str) {
+  const matches = str.match(/\b(ben|bent)\b/gi);
+  return matches ? matches.length : 0;
+}
 
 // Function that split english translated name that may contain ben to full name only parts.
 function splitName(fullName) {
-  const parts = fullName.replace(/ ben /gi, ' ').split(/\s+/);
+  const parts = fullName.replace(/\s+(ben|bent)\s+/gi, ' ').trim().split(/\s+/);
+  const bentCount = countBenAndBent(fullName);
   if (parts.length === 2) {
-    return {
-      personName: parts[0],
-      fatherName: "",
-      grandfatherName: "",
-      familyName: parts[1]
-    };
-  } else if (parts.length === 3) {
-    return {
-      personName: parts[0],
-      fatherName: parts[1],
-      grandfatherName: "",
-      familyName: parts[2]
-    };
+    if (bentCount === 0){
+      return {
+        personName: parts[0],
+        fatherName: "",
+        grandfatherName: "",
+        familyName: parts[1]
+      };
+    }
+    else if (bentCount === 1){
+      return {
+        personName: parts[0],
+        fatherName: parts[1],
+        grandfatherName: "",
+        familyName: ""
+      };
+    }
+    
+  } 
+  else if (parts.length === 3) {
+    if (bentCount === 1){
+      return {
+        personName: parts[0],
+        fatherName: parts[1],
+        grandfatherName: "",
+        familyName: parts[2]
+      };
+    }
+    else if (bentCount === 2){
+      return {
+        personName: parts[0],
+        fatherName: parts[1],
+        grandfatherName: parts[2],
+        familyName: ""
+      };
+    }
+    
   } else if (parts.length === 4) {
     return {
       personName: parts[0],
@@ -81,502 +106,6 @@ function splitName(fullName) {
   // Default case if structure doesn't match
   return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] };
 }
-
-const getRelationship = async (person1FullName, person2FullName) => {
-  const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
-  // const isEnglish = (text) => /^[A-Za-z\s]+$/.test(text);
-  let translatedName1, translatedName2;
-
-  if (isArabic(person1FullName)){
-    translatedName1 = translateName(person1FullName, false);
-  }
-  else{
-    translatedName1 = person1FullName;
-  }
-  if (isArabic(person2FullName)){
-    translatedName2 = translateName(person2FullName, false);
-  }
-  else{
-    translatedName2 = person2FullName;
-  }
-  
-  const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(translatedName1);
-  const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(translatedName2);
-  const person1Matches = await getPersonMatches(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
-  const person2Matches = await getPersonMatches(person2Name, person2FatherName, person2GrandfatherName, person2LastName);
-
-  console.log("P1 matches : ", person1Matches);
-  console.log("P2 matches : ", person2Matches);
-
-  let person1ID, person2ID;
-  if (person1Matches.length > 1 || person2Matches.length > 1) {
-    return {
-      error: 'non-unique-name',
-      message: 'تم العثور على عدة أشخاص بنفس الاسم. الرجاء اختيار الصحيح.',
-      duplicates: {
-        person1: person1Matches.length > 1 ? person1Matches : [],
-        person2: person2Matches.length > 1 ? person2Matches : []
-      }
-    };
-  }
-  else{
-    person1ID = person1Matches[0].id;
-    person2ID = person2Matches[0].id;
-  }
-
-  const gender1 = await getGender(person1ID);
-  const gender2 = await getGender(person2ID);
-  try {
-
-    // Function that return the ancestors of a given person starting with the person itself and going up to the root.
-    const getAncestors = async (personID) => {
-      const result = await session.run(`
-        MATCH path = (ancestor:Person)-[:FATHER_OF|MOTHER_OF*]->(child:Person)
-        WHERE id(child) = $personID
-        WITH ancestor, id(ancestor) AS ID, length(path) AS level
-        RETURN DISTINCT ID, ancestor.name AS name, ancestor.lastName AS lastName, level
-        ORDER BY level ASC
-      `, { personID });
-    
-      const personResult = await session.run(`
-        MATCH (p:Person)
-        WHERE id(p) = $personID
-        RETURN id(p) AS ID, p.name AS name, p.lastName AS lastName
-      `, { personID });
-    
-      const person = personResult.records[0];
-    
-      return [
-        {
-          id: person.get('ID').toNumber(),
-          name: person.get('name'),
-          lastName: person.get('lastName'),
-          level: 0
-        },
-        ...result.records.map(record => ({
-          id: record.get('ID').toNumber(),
-          name: record.get('name'),
-          lastName: record.get('lastName'),
-          level: record.get('level').toNumber()
-        }))
-      ];
-    };
-
-    // Get the ancestors for both persons
-    // const maxLevels = 4; 
-    let person1Ancestors = await getAncestors(person1ID);
-    let person2Ancestors = await getAncestors(person2ID);
-    
-    console.log(`Person 1 Ancestors: ${person1Ancestors.map(a => a.name).join(' ben ')}`);
-    console.log(`Person 2 Ancestors: ${person2Ancestors.map(a => a.name).join(' ben ')}`);
-
-    const person1AncestorsIds = person1Ancestors.map(a => a.id);
-    const person2AncestorsIds = person2Ancestors.map(a => a.id);
-    const translatedName1 = translateName(person1FullName);
-    const translatedName2 = translateName(person2FullName);
-
-
-    // Check for common ancestors between the two persons
-    for (let i = 0; i < person1Ancestors.length; i++) {
-      for (let j = 0; j < person2Ancestors.length; j++) {
-        if (person1Ancestors[i].id === person2Ancestors[j].id) {
-          var p1Level = person1Ancestors[i].level;
-          var p2Level = person2Ancestors[j].level;
-          
-          console.log(`Level: (${p1Level}, ${p2Level})`);
-
-          if (p1Level === 0 && p2Level === 1) {
-            if (gender1 === 'Male'){
-              score = 100;
-              relationDescribtion = `${translatedName1} هو والد ${translatedName2}`;
-              return {relationDescribtion , score}
-            }
-            else{
-              console.log(`${translatedName1} هي والدة ${translatedName2}`);
-              return `${translatedName1} هي والدة ${translatedName2}`;
-            }
-          }
-
-          else if (p1Level === 1 && p2Level === 0) {
-            if (gender1 === 'Male'){
-              console.log(`${translatedName1} هو ابن ${translatedName2}`);
-              return `${translatedName1} هو ابن ${translatedName2}`;
-            }
-            else{
-              console.log(`${translatedName1} هي إبنة ${person2FullName}`);
-              return `${translatedName1} هي إبنة ${translatedName2}`;
-            }
-          } 
-
-          else if (p1Level === 2 && p2Level === 0) {
-            if (gender1 === 'Male'){
-              console.log(`${person1FullName} هو حفيد ${person2FullName}`);
-              return `${translatedName1} هو حفيد ${translatedName2}`;
-            }
-            else{
-              console.log(`${person1FullName} هي حفيدة ${person2FullName}.`);
-              return `${translatedName1} هي حفيدة ${translatedName2}`;
-            }
-          }
-
-          else if (p1Level === 0 && p2Level === 2) {
-            if (gender1 === 'Male'){
-              console.log(`${person1FullName} هو جدّ ${person2FullName}'.`);
-              return `${translatedName1} هو جدّ ${translatedName2}`;
-            }
-            else{
-              console.log(`${person1FullName} هي جدّة ${person2FullName}.`);
-              return `${translatedName1} هي جدّة ${translatedName2}`;
-            }
-          }
-
-          else if (p1Level === 3 && p2Level === 0) {
-            if (gender1 === 'Male'){
-              console.log(`${person1FullName} هو إبن حفيد ${person2FullName}.`);
-              return `${translatedName1} هو إبن حفيد ${translatedName2}`;
-            }
-            else{
-              console.log(`${person1FullName} هي إبنة حفيدة ${person2FullName}.`);
-              return `${translatedName1} هي إبنة حفيدة ${translatedName2}`;
-            }
-          }
-
-          else if (p1Level === 0 && p2Level === 3) {
-            if (gender1 === 'Male'){
-              console.log(`${person1FullName} هو جد والد ${person2FullName}`);
-              return `${translatedName1} و جد والد ${translatedName2}`;
-            }
-            else{
-              console.log(`${person1FullName}هي جدة والدة ${person2FullName}`);
-              return `${translatedName1} هي جدة والدة ${translatedName2}`;
-            }
-          } 
-          
-          else if (p1Level === 1 && p2Level === 1) {
-            if (gender1 === 'Male' && gender2 === 'Male'){
-              console.log(`${person1FullName} و ${person2FullName} إخوة.`);
-              return `${translatedName1} و ${translatedName2} إخوة`;
-            }
-            else if (gender1 === 'Female' && gender2 === 'Female'){
-              console.log(`${person1FullName} و ${person2FullName} أخوات.`);
-              return `${translatedName1} و ${translatedName2} أخوات`;
-            }
-            else{
-              console.log(`${person1FullName} و ${person2FullName} إخوة.`);
-              return `${translatedName1} و ${translatedName2} إخوة`;
-            }
-          } 
-          
-          else if (p1Level === 2 && p2Level === 1) {
-            if (gender1 === 'Male'){
-              console.log(`${translatedName1} هو ابن أخ ${translatedName2}`);
-              return `${translatedName1} هو ابن أخ ${translatedName2}`;
-            }
-            else{
-              console.log(`${person1FullName} هي إبنة أخ ${person2FullName}.`);
-              return `${translatedName1} هي إبن أخ ${translatedName2}`;
-            }
-          } 
-          
-          else if (p1Level === 1 && p2Level === 2) {
-            if (gender1 === 'Male'){
-              console.log(`${person1FullName} هو عم ${person2FullName}.`);
-              return `${translatedName1} هو عم ${translatedName2}'`;
-            }
-            else{
-              console.log(`${person1FullName} هي عمّة ${person2FullName}.`);
-              return `${translatedName1} هي عمّة ${translatedName2}`;
-            }
-          }
-
-          else if (p1Level === 2 && p2Level === 2) {
-            console.log(`${person1FullName} و ${person2FullName} أولاد العم.`);
-          
-            const p1AncestorFullName = getAncestorFullName(person1Ancestors, 1);
-            const p1AncestorGender = await getGender(p1AncestorFullName);
-
-            const p2AncestorFullName = getAncestorFullName(person2Ancestors, 1);
-            const p2AncestorGender = await getGender(p2AncestorFullName);
-            console.log(p1AncestorFullName);
-
-            if (gender1 === 'Male') { 
-              if (p1AncestorGender === 'Male') { 
-                if (p2AncestorGender === 'Male'){  // ولد عمه
-                  console.log(`${person1FullName} هو إبن عم ${person2FullName}.`);
-                  return `${translatedName1} إبن عم ${translatedName2}`;
-                }
-                else{ // ولد عمته
-                  console.log(`${person1FullName} هو إبن عمّة ${person2FullName}.`);
-                  return `${translatedName1} هو إبن عمّة ${translatedName2}`;
-                }
-              } 
-              else {  
-                if (p2AncestorGender === 'Male'){  // ولد خاله
-                  console.log(`${person1FullName} هو إبن خال ${person2FullName}.`);
-                  return `${translatedName1} هو إبن خال ${translatedName2}'`;
-                }
-                else{ // ولد خالته
-                  console.log(`${person1FullName} هو إبن خالة ${person2FullName}.`);
-                  return `${translatedName1} هو إبن خالة ${translatedName2}`;
-                }
-              }
-            }
-            else {
-              if (p1AncestorGender === 'Male') { 
-                if (p2AncestorGender === 'Male'){  // بنت عمه
-                  console.log(`${person1FullName} هي إبنة عمّ ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة عمّ ${translatedName2}`;
-                }
-                else{ // بنت عمته
-                  console.log(`${person1FullName} هي إبنة عمّة ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة عمّة ${translatedName2}`;
-                }
-              } 
-              else {  
-                if (p2AncestorGender === 'Male'){  // بنت خاله
-                  console.log(`${person1FullName} هي إبنة خال ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة خال ${translatedName2}`;
-                }
-                else{ // بنت خالته
-                  console.log(`${person1FullName} هي إبنة خالة ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة خالة ${translatedName2}`;
-                }
-              }
-            }
-          }
-
-          else if (p1Level === 2 && p2Level === 3) {          
-            const p1AncestorFullName = getAncestorFullName(person1Ancestors, 1);
-            const p1AncestorGender = await getGender(p1AncestorFullName);
-
-            const p2AncestorFullName = getAncestorFullName(person2Ancestors, 1);
-            const p2AncestorGender = await getGender(p2AncestorFullName);
-
-            if (gender1 === 'Male') { 
-              
-              if (p1AncestorGender === 'Male') {  // father's side
-                if (p2AncestorGender === 'Male') {  // father's brother's son
-                  console.log(`${person1FullName} هو إبن عم والد ${person2FullName}.`);
-                  return `${translatedName1} هو إبن عم والد ${translatedName2}`;
-                } else { 
-                  console.log(`${person1FullName} هو إبن عمة والد ${person2FullName}.`);
-                  return `${translatedName1} هو إبن عمة والد ${translatedName2}`;
-                }
-              } else {  // mother's side
-                if (p2AncestorGender === 'Male') {  // mother's brother's son
-                  console.log(`${person1FullName} هو إبن عم أم ${person2FullName}.`);
-                  return `${translatedName1} هو إبن عم أم ${translatedName2}.`;
-                } else {  // mother's brother's daughter
-                  console.log(`${person1FullName} هو إبن عمّة أم ${person2FullName}.`);
-                  return `${translatedName1} هو إبن عمّة أم ${translatedName2}`;
-                }
-              }
-            } else {  // If person1 is female
-            
-              if (p1AncestorGender === 'Male') {  // father's side
-                if (p2AncestorGender === 'Male') {  // father's brother's son
-                  console.log(`${person1FullName} هي إبنة عم والد ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة عم والد ${translatedName2}`;
-                } else {  // father's brother's daughter
-                  console.log(`${person1FullName} هي إبنة عمة والد ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة عمة والد ${translatedName2}`;
-                }
-              } else {  // mother's side
-                if (p2AncestorGender === 'Male') {  // mother's brother's son
-                  console.log(`${person1FullName} هي إبنة عم والدة ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة عم والدة ${translatedName2}`;
-                } else {  // mother's brother's daughter
-                  console.log(`${person1FullName} هي إبنة عمة والدة ${person2FullName}.`);
-                  return `${translatedName1} هي إبنة عمة والدة ${translatedName2}`;
-                }
-              }
-            }
-            
-          }
-          
-          else if (p1Level === 3 && p2Level === 2) {          
-            const p1AncestorGender = await getGender(person1AncestorsIds[1]);
-
-            const p2AncestorGender = await getGender(person2AncestorsIds[1]);
-
-            if (p1AncestorGender === 'Male') {  // father's side
-              if (p2AncestorGender === 'Male') {  // father's brother's son
-                console.log(`والد ${person1FullName} هو إبن عم ${person2FullName}`);
-                return `والد ${translatedName1} هو إبن عم ${translatedName2}`;
-              } else { 
-                console.log(`والد ${person1FullName} هو إبن خال ${person2FullName}.`);
-                return `والد ${translatedName1} هو إبن خال ${translatedName2}`;
-              }
-            } 
-            else {  // mother's side
-              if (p2AncestorGender === 'Male') {  // mother's brother's son
-                console.log(`والدة ${person1FullName} هي إبنة عم ${person2FullName}.`);
-                return `والدة ${translatedName1} هي إبنة عم ${translatedName2}`;
-              } else {  // mother's brother's daughter
-                console.log(`والدة ${person1FullName} هي إبنة خال ${person2FullName}.`);
-                return `والدة ${translatedName1} هي إبنة خال  ${translatedName2}`;
-              }
-            }
-            
-            
-          }
-          else if (p1Level === 3 && p2Level === 3) {          
-            
-            const p1AncestorGender = await getGender(person1AncestorsIds[1]);
-
-            const p1GreatAncestorGender = await getGender(person1AncestorsIds[2]);
-
-            const p2AncestorGender = await getGender(person2AncestorsIds[1]);
-
-            const p2GreatAncestorGender = await getGender(person2AncestorsIds[2]);
-            // Ancestor changes paternal/maternal
-            // Great Ancestor changes grandfather/grandmother
-            if (p1AncestorGender === 'Male') { 
-              if (p2AncestorGender === 'Male'){
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`جدّ ${person1FullName} من الأب و جد ${person2FullName} من الأب إخوة.`);
-                    return `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s paternal grandfather and ${person2FullName}'s paternal grandmother are siblings.`);
-                    return `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`${person1FullName}'s paternal grandmother and ${person2FullName}'s paternal grandfather are siblings.`);
-                    return `جدّة ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s paternal grandmother and ${person2FullName}'s paternal grandmother are sisters.`);
-                    return `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                }
-              }
-              else {
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`${person1FullName}'s paternal grandfather and ${person2FullName}'s maternal grandfather are brothers.`);
-                    return `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأم إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s paternal grandfather and ${person2FullName}'s maternal grandmother are siblings.`);
-                    return `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`${person1FullName}'s paternal grandmother and ${person2FullName}'s maternal grandfather are siblings.`);
-                    return `جدّة ${translatedName1} من الأب و جد${translatedName2} من الأم إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s paternal grandmother and ${person2FullName}'s maternal grandmother are sisters.`);
-                    return `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-              }
-            }
-            else {
-              if (p2AncestorGender === 'Male'){
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`${person1FullName}'s maternal grandfather and ${person2FullName}'s paternal grandfather are brothers.`);
-                    return `جدّ ${translatedName1} من الأم و جد${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s maternal grandfather and ${person2FullName}'s paternal grandmother are siblings.`);
-                    return `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`${person1FullName}'s maternal grandmother and ${person2FullName}'s paternal grandfather are siblings.`);
-                    return `جدّة ${translatedName1} من الأم و جد ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s maternal grandmother and ${person2FullName}'s paternal grandmother are sisters.`);
-                    return `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب أخوات.`;
-                  }
-                }
-              }
-              else {
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`${person1FullName}'s maternal grandfather and ${person2FullName}'s maternal grandfather are brothers.`);
-                    return `جدّ ${translatedName1} من الأم و جد ${translatedName2} من الأم إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s maternal grandfather and ${person2FullName}'s maternal grandmother are siblings.`);
-                    return `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    console.log(`${person1FullName}'s maternal grandmother and ${person2FullName}'s maternal grandfather are siblings.`);
-                    return `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    console.log(`${person1FullName}'s maternal grandmother and ${person2FullName}'s maternal grandmother are sisters.`);
-                    return `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-              }
-            }
-            
-          }
-
-          // Still : (0,4) - (4,0) - (3-1) - (1-3) - (1-4) - (4-1) - (4-2) - (2-4) - (3-4) - (4-3) - (4-4)  
-        }
-      }
-    }
-    console.log('No direct relation found.');
-    return 'No direct relation found';
-  } catch (error) {
-    console.error('Error in relationship lookup:', error);
-    return 'Error in relationship lookup';
-  }
-};
-
-const getGender = async (personID) => {
-  const session = driver.session(); // Open a session
-
-  try {
-    const result = await session.run(
-      `MATCH (p:Person) 
-      WHERE id(p) = $personID
-      
-      RETURN p.gender AS gender`,
-      { personID }
-    );
-    
-    if (result.records.length > 0) {
-      const gender = result.records[0].get('gender');
-      return gender; // Return the gender value
-    } else {
-      console.log(`No person found with the ID ${personID}`);
-      return null; // Return null when no person is found
-    }
-  } catch (error) {
-    console.error('Error retrieving gender:', error);
-    return null; // Return null in case of an error
-  } finally {
-    await session.close(); // Always close the session after the query
-  }
-};
-
-const getAncestorFullName = (personAncestors, level) => {
-  // Check if the ancestor exists at the given level
-  if (!personAncestors[level - 1] || !personAncestors[level - 1].properties) {
-    return `Unknown (Level: ${level})`;
-  }
-
-  const ancestor = personAncestors[level - 1].properties;
-  const name = ancestor.name || "Unknown"; // Default to "Unknown" if name is missing
-  const lastName = ancestor.lastName || "Unknown"; // Default to "Unknown" if lastName is missing
-
-  return `${name} ${lastName}`;
-};
 
 export const translateName = (fullName, language = true) => {
   const nameParts = fullName.split(' ');
@@ -593,26 +122,18 @@ export const translateName = (fullName, language = true) => {
   return translatedParts.join(' ');
 };
 
-
 const RelationPage = () => {
   const [person1, setPerson1] = useState('');
   const [person2, setPerson2] = useState('');
   const [relationship, setRelationship] = useState('');
   const [duplicates, setDuplicates] = useState({ person1: [], person2: [] });
-  const relationTypes = ["Blood"]; // or ["In-Law", "Marriage"]
-  const explanation = "You both share the same grandfather. This makes you close relatives (blood relation).";
-  function getArabicClosenessLabel(score) {
-    if (score >= 95) return "صلة قرابة شديدة جدًا";
-    if (score >= 85) return "صلة قرابة قوية";
-    if (score >= 70) return "صلة قرابة متوسطة";
-    if (score >= 50) return "صلة بعيدة نسبياً";
-    if (score > 0) return "صلة ضعيفة جدًا";
-    return "لا توجد صلة واضحة";
-  }
+  const [error, setError] = useState(null);
+  const [ancestorName, setAncestorName] = useState('');
+  const [ancestorLastName, setAncestorLastName] = useState('');
+
   const fetchRelationship = async (name1, name2) => {
     
     const relationshipResult = await getRelationship(name1, name2);
-    console.log(relationshipResult);
     return relationshipResult;
   };
 
@@ -629,6 +150,421 @@ const RelationPage = () => {
       setRelationship(result);
     }
   };
+  
+  const getRelationship = async (person1FullName, person2FullName) => {
+    const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
+    let translatedName1, translatedName2;
+  
+    if (isArabic(person1FullName)){
+      translatedName1 = translateName(person1FullName, false);
+    }
+    else{
+      translatedName1 = person1FullName;
+    }
+    if (isArabic(person2FullName)){
+      translatedName2 = translateName(person2FullName, false);
+    }
+    else{
+      translatedName2 = person2FullName;
+    }
+    
+    const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(translatedName1);
+    const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(translatedName2);
+    const errorContainer = document.getElementById('error-container');
+    try {
+      const person1Matches = await getPersonMatches(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
+      if (person1Matches.length === 0) {
+        throw new Error(`لا يوجد أشخاص بإسم ${person1FullName} الرجاء التثبت في الإسم جيدا`);
+      }
+  
+      const person2Matches = await getPersonMatches(person2Name, person2FatherName, person2GrandfatherName, person2LastName);
+      if (person2Matches.length === 0) {
+        throw new Error(`لا يوجد أشخاص بإسم ${person2FullName} الرجاء التثبت في الإسم جيدا`);
+      }
+  
+      console.log("P1 matches : ", person1Matches);
+      console.log("P2 matches : ", person2Matches);
+  
+      let person1ID, person2ID;
+      if (person1Matches.length > 1 || person2Matches.length > 1) {
+        return {
+          error: 'non-unique-name',
+          message: 'تم العثور على عدة أشخاص بنفس الاسم. الرجاء اختيار الصحيح.',
+          duplicates: {
+            person1: person1Matches.length > 1 ? person1Matches : [],
+            person2: person2Matches.length > 1 ? person2Matches : []
+          }
+        };
+      }
+      else{
+        person1ID = person1Matches[0].id;
+        person2ID = person2Matches[0].id;
+      }
+      // Function that return the ancestors of a given person starting with the person itself and going up to the root.
+      const getAncestors = async (person1ID, person2ID) => {
+        const result = await session.run(`
+          MATCH path1 = (common:Person)-[:FATHER_OF|MOTHER_OF*0..4]->(p1:Person)
+          WHERE id(p1) = $person1ID
+      
+          MATCH path2 = (common)-[:FATHER_OF|MOTHER_OF*0..4]->(p2:Person)
+          WHERE id(p2) = $person2ID
+            AND id(p1) <> id(p2)
+      
+          WITH common, path1, path2, length(path1) AS level1, length(path2) AS level2
+          ORDER BY (level1 + level2) ASC
+          LIMIT 1
+      
+          RETURN 
+            common.name AS commonAncestorName,
+            common.lastName AS commonAncestorLastName,
+            id(common) AS commonAncestorID,
+            common.gender AS commonAncestorGender,
+            level1 AS generationsFromP1,
+            level2 AS generationsFromP2,
+            [n IN nodes(path1) | { id: id(n), name: n.name, lastName: n.lastName, gender: n.gender }] AS pathToP1,
+            [n IN nodes(path2) | { id: id(n), name: n.name, lastName: n.lastName, gender: n.gender }] AS pathToP2
+        `, { person1ID, person2ID });
+      
+        if (result.records.length === 0) {
+          throw new Error('Person not found or no ancestors available.');
+        }    
+        const record = result.records[0];
+      
+        return {
+            id: record.get('commonAncestorID').toNumber(),
+            name: record.get('commonAncestorName'),
+            lastName: record.get('commonAncestorLastName'),
+            gender: record.get('commonAncestorGender'),
+            levelFromP1: record.get('generationsFromP1').toNumber(),
+            levelFromP2: record.get('generationsFromP2').toNumber(),
+            pathFromAncestorToP1: record.get('pathToP1'),
+            pathFromAncestorToP2: record.get('pathToP2')
+        };
+      };
+      
+      let relationRecord = await getAncestors(person1ID, person2ID);
+      let ancestorID, ancestorName, ancestorLastName, ancestorGender;
+      let levelFromP1, levelFromP2, pathFromAncestorToP1, pathFromAncestorToP2;
+
+      ({ 
+        ancestorID, 
+        ancestorName, 
+        ancestorLastName, 
+        ancestorGender, 
+        levelFromP1, 
+        levelFromP2, 
+        pathFromAncestorToP1, 
+        pathFromAncestorToP2 
+      } = relationRecord);
+
+      console.log(ancestorName, ancestorLastName);
+      const pathToP1 = pathFromAncestorToP1;
+      const pathToP2 = pathFromAncestorToP2;
+      console.log(pathFromAncestorToP1);
+  
+      console.log(pathFromAncestorToP1.reverse().map(a => a.name).join(" ben "));
+      console.log(pathFromAncestorToP2.reverse().map(a => a.name).join(" ben "));
+  
+  
+      var p1Level = levelFromP1;
+      var p2Level = levelFromP2;
+            
+      const translatedName1 = translateName(person1FullName);
+      const translatedName2 = translateName(person2FullName);
+  
+      const gender1 = pathToP1[0].gender;
+      const gender2 = pathToP2[0].gender;
+  
+      console.log(`Level: (${p1Level}, ${p2Level})`);
+  
+      if (p1Level === 0 && p2Level === 1) {
+        if (gender1 === 'Male'){
+          return `${translatedName1} هو والد ${translatedName2}`;
+        }
+        else{
+          return `${translatedName1} هي والدة ${translatedName2}`;
+        }
+      }
+  
+      else if (p1Level === 1 && p2Level === 0) {
+        if (gender1 === 'Male'){
+          console.log(`${translatedName1} هو ابن ${translatedName2}`);
+          return `${translatedName1} هو ابن ${translatedName2}`;
+        }
+        else{
+          console.log(`${translatedName1} هي إبنة ${person2FullName}`);
+          return `${translatedName1} هي إبنة ${translatedName2}`;
+        }
+      } 
+  
+      else if (p1Level === 2 && p2Level === 0) {
+        if (gender1 === 'Male'){
+          return `${translatedName1} هو حفيد ${translatedName2}`;
+        }
+        else{
+          return `${translatedName1} هي حفيدة ${translatedName2}`;
+        }
+      }
+  
+      else if (p1Level === 0 && p2Level === 2) {
+        if (gender1 === 'Male'){
+          return `${translatedName1} هو جدّ ${translatedName2}`;
+        }
+        else{
+          return `${translatedName1} هي جدّة ${translatedName2}`;
+        }
+      }
+  
+      else if (p1Level === 3 && p2Level === 0) {
+        if (gender1 === 'Male'){
+          return `${translatedName1} هو إبن حفيد ${translatedName2}`;
+        }
+        else{
+          return `${translatedName1} هي إبنة حفيدة ${translatedName2}`;
+        }
+      }
+  
+      else if (p1Level === 0 && p2Level === 3) {
+        if (gender1 === 'Male'){
+          return `${translatedName1} و جد والد ${translatedName2}`;
+        }
+        else{
+          return `${translatedName1} هي جدة والدة ${translatedName2}`;
+        }
+      } 
+      
+      else if (p1Level === 1 && p2Level === 1) {
+        if (gender1 === 'Male' && gender2 === 'Male'){
+          return `${translatedName1} و ${translatedName2} إخوة`;
+        }
+        else if (gender1 === 'Female' && gender2 === 'Female'){
+          return `${translatedName1} و ${translatedName2} أخوات`;
+        }
+        else{
+          return `${translatedName1} و ${translatedName2} إخوة`;
+        }
+      } 
+      
+      else if (p1Level === 2 && p2Level === 1) {
+        if (gender1 === 'Male'){
+          return `${translatedName1} هو ابن أخ ${translatedName2}`;
+        }
+        else{
+          return `${translatedName1} هي إبن أخ ${translatedName2}`;
+        }
+      } 
+      
+      else if (p1Level === 1 && p2Level === 2) {
+        if (gender1 === 'Male'){
+          return `${translatedName1} هو عم ${translatedName2}'`;
+        }
+        else{
+          return `${translatedName1} هي عمّة ${translatedName2}`;
+        }
+      }
+  
+      else if (p1Level === 2 && p2Level === 2) {
+        console.log(`${translatedName1} و ${translatedName2} أولاد العم.`);
+    
+        const p1AncestorGender = pathToP1[1].gender;
+        const p2AncestorGender = pathToP2[1].gender;
+  
+        if (gender1 === 'Male') { 
+          if (p2AncestorGender === 'Male') { 
+            if (p1AncestorGender === 'Male'){  // ولد عمه
+              return `${translatedName1} إبن عم ${translatedName2}`;
+            }
+            else{ // ولد عمته
+              return `${translatedName1} هو إبن عمّة ${translatedName2}`;
+            }
+          } 
+          else {  
+            if (p1AncestorGender === 'Male'){  // ولد خاله
+              return `${translatedName1} هو إبن خال ${translatedName2}`;
+            }
+            else{ // ولد خالته
+              return `${translatedName1} هو إبن خالة ${translatedName2}`;
+            }
+          }
+        }
+        else {
+          if (p1AncestorGender === 'Male') { 
+            if (p2AncestorGender === 'Male'){  // بنت عمه
+              return `${translatedName1} هي إبنة عمّ ${translatedName2}`;
+            }
+            else{ // بنت عمته
+              return `${translatedName1} هي إبنة عمّة ${translatedName2}`;
+            }
+          } 
+          else {  
+            if (p2AncestorGender === 'Male'){  // بنت خاله
+              return `${translatedName1} هي إبنة خال ${translatedName2}`;
+            }
+            else{ // بنت خالته
+              return `${translatedName1} هي إبنة خالة ${translatedName2}`;
+            }
+          }
+        }
+      }
+  
+      else if (p1Level === 2 && p2Level === 3) {         
+  
+        const p1AncestorGender = pathToP1[1].gender;
+        const p2AncestorGender = pathToP2[1].gender;
+        console.log(p1AncestorGender, p2AncestorGender);
+        if (gender1 === 'Male') { 
+          if (p1AncestorGender === 'Male') {  // father's side
+            if (p2AncestorGender === 'Male') {  // father's brother's son
+              return `${translatedName1} هو إبن عم والد ${translatedName2}`;
+            } else { 
+              return `${translatedName1} هو إبن عم والدة ${translatedName2}`;
+            }
+          } else {  // mother's side
+            if (p2AncestorGender === 'Male') {  // mother's brother's son
+              return `${translatedName1} هو إبن عمة والدة ${translatedName2}.`;
+            } else {  // mother's brother's daughter
+              return `${translatedName1} هو إبن عمّة والدة ${translatedName2}`;
+            }
+          }
+        } 
+        else {  // If person1 is female
+          if (p1AncestorGender === 'Male') {  // father's side
+            if (p2AncestorGender === 'Male') {  // father's brother's son
+              return `${translatedName1} هي إبنة عم والد ${translatedName2}`;
+            } else {  // father's brother's daughter
+              return `${translatedName1} هي إبنة عم والدة ${translatedName2}`;
+            }
+          } else {  // mother's side
+            if (p2AncestorGender === 'Male') {  // mother's brother's son
+              return `${translatedName1} هي إبنة عمة والد ${translatedName2}`;
+            } else {  // mother's brother's daughter
+              return `${translatedName1} هي إبنة عمة والدة ${translatedName2}`;
+            }
+          }
+        }
+      }
+      
+      else if (p1Level === 3 && p2Level === 2) {          
+        const p1AncestorGender = pathToP1[1].gender;
+        const p2AncestorGender = pathToP2[1].gender;
+        console.log(p1AncestorGender, p2AncestorGender);
+        if (p1AncestorGender === 'Male') {  // father's side
+          if (p2AncestorGender === 'Male') {  // father's brother's son
+            return `والد ${translatedName1} هو إبن عم ${translatedName2}`;
+          } else { 
+            return `والد ${translatedName1} هو إبن خال ${translatedName2}`;
+          }
+        } 
+        else {  // mother's side
+          if (p2AncestorGender === 'Male') {  // mother's brother's son
+            return `والدة ${translatedName1} هي إبنة عم ${translatedName2}`;
+          } else {  // mother's brother's daughter
+            return `والدة ${translatedName1} هي إبنة خال  ${translatedName2}`;
+          }
+        }
+      }
+      else if (p1Level === 3 && p2Level === 3) {          
+        
+        const p1AncestorGender = pathToP1[1].gender;
+        const p2AncestorGender = pathToP2[1].gender;
+        const p1GreatAncestorGender = pathToP1[2].gender;
+        const p2GreatAncestorGender = pathToP2[2].gender;
+
+        if (p1AncestorGender === 'Male') { 
+          if (p2AncestorGender === 'Male'){
+            if (p1GreatAncestorGender === 'Male'){
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
+              }
+              else{
+                return `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
+              }
+            }
+            else {
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّة ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
+              }
+              else{
+                return `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
+              }
+            }
+          }
+          else {
+            if (p1GreatAncestorGender === 'Male'){
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأم إخوة.`;
+              }
+              else{
+                return `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
+              }
+            }
+            else {
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّة ${translatedName1} من الأب و جد${translatedName2} من الأم إخوة.`;
+              }
+              else{
+                return `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
+              }
+            }
+          }
+        }
+        else {
+          if (p2AncestorGender === 'Male'){
+            if (p1GreatAncestorGender === 'Male'){
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّ ${translatedName1} من الأم و جد${translatedName2} من الأب إخوة.`;
+              }
+              else{
+                return `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
+              }
+            }
+            else {
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّة ${translatedName1} من الأم و جد ${translatedName2} من الأب إخوة.`;
+              }
+              else{
+                return `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب أخوات.`;
+              }
+            }
+          }
+          else {
+            if (p1GreatAncestorGender === 'Male'){
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّ ${translatedName1} من الأم و جد ${translatedName2} من الأم إخوة.`;
+              }
+              else{
+                return `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
+              }
+            }
+            else {
+              if (p2GreatAncestorGender === 'Male'){
+                return `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
+              }
+              else{
+                return `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
+              }
+            }
+          }
+        }
+      }
+  
+      console.log('No direct relation found.');
+      errorContainer.innerText = 'لا يوجد قرابة مباشرة.';
+      return '';
+    } catch (error) {
+      console.error('Error in relationship lookup:', error);
+    
+      // Correctly use 'error' here instead of 'err'
+      setError(`❌ خطأ: ${error.message || error}`);
+    
+      // Show the error message in the error container
+      if (errorContainer) {
+        errorContainer.innerText = `❌ خطأ: ${error.message || error}`;
+      }
+      return '';
+    }
+  };
+  const { ancName, ancLastName } = {ancestorName, ancestorLastName};
 
   return (
     <div className="relation-page">
@@ -662,55 +598,91 @@ const RelationPage = () => {
         )}
       </aside>
     )}
-  
+    { /* Panel for signaling errors  */}
+    
     {/* Main Panel: Form + Result */}
     <main className="main-panel">
       <section className="relation-form-section">
-        <h2>ماهي العلاقة بينهما؟</h2>
+        <h2 className="section-title">ماهي العلاقة بينهما؟</h2>
+        <p id="DescriptionZone">
+          الهدف من هذه الصفحة هو تحديد صلة القرابة بين شخصين بناءًا على اسمهم. كل ماعليك فعله
+          هو ادخال الاسم للشخص الاول والثاني وثم النقر على "التحقق من العلاقة" ستظهر لك النتيجة في اسهل الصفحة
+          والتي يتوضح لك نوع العلاقة ومدى قرابتها؟ في حال وجود اي تشابهات او تكرارات في الاسماء سيم توفير خيارات لتحديد الشخص الصحيح
+        </p>
         <form onSubmit={FetchRelationship} className="relation-form">
-          <input
-            type="text"
-            placeholder="الإسم الكامل الأول"
-            value={person1}
-            onChange={(e) => setPerson1(e.target.value)}
-          />
-          <input
-            type="text"
-            placeholder="الإسم الكامل الثاني"
-            value={person2}
-            onChange={(e) => setPerson2(e.target.value)}
-          />
-          <button type="submit">تحقق من العلاقة</button>
+          <div className="input-group">
+            <input
+              type="text"
+              placeholder="الإسم الكامل الأول"
+              value={person1}
+              onChange={(e) => setPerson1(e.target.value)}
+              className="inputNames"
+            />
+          </div>
+          <div className="input-group">
+            <input
+              type="text"
+              placeholder="الإسم الكامل الثاني"
+              value={person2}
+              onChange={(e) => setPerson2(e.target.value)}
+              className="inputNames"
+            />
+          </div>
+          <div className='ButtonSection'>
+            <button type="submit" className="checkButton">تحقق من العلاقة</button>
+            <button type="reset" className='resetButton'>إلغاء</button>
+          </div>
+          
         </form>
       </section>
+
   
       {/* Result */}
-      {relationship && (
+      {error && <div className="error-message">{error}</div>} {/* Show the error message */}
+
+      {relationship && !error  && (
         <section className="relationship-result">
-          <h2>نتيجة العلاقة</h2>
+          <h2 id="resultTitle">نتيجة العلاقة</h2>
           <p className="relationText">{relationship}</p>
   
-          <div className="scoreDisplay">
-            <div className="scoreCircle">{score}%</div>
-            <p className="scoreLabel">{getArabicClosenessLabel(score)}</p>
+          <div class="result-details">
+            <table class="result-table">
+              <tbody>
+                <tr>
+                  <th>درجة العلاقة</th>
+                  <td class="score-cell">
+                    <div class="score-bar-wrapper">
+                      <div class="score-bar-fill" style={{width: '80%'}}></div>
+                    </div>
+                    <div class="score-meta">
+                      <span class="score-value">80%</span>
+                      <span class="score-category high">قوية</span>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <th>نوع العلاقة</th>
+                  <td class="relationship-tag"><span class="tag blood">دم</span></td>
+                </tr>
+                <tr>
+                  <th>تفسير إضافي</th>
+                  <td class="relation-explanation">
+                    هؤلاء الشخصين مرتبطين عن طريق الأبناء والأجداد.
+                  </td>
+                </tr>
+                <tr>
+                  <th>عدد الأجيال بينهما</th>
+                  <td class="generation-distance"><span id="numGen">5</span> أجيال</td>
+                </tr>
+                <tr>
+                  <th>أقرب جد مشترك</th>
+                  {/* <td class="common-ancestor"> {translateName(ancName)} {translateName(ancLastName)}</td> */}
+                </tr>
+              </tbody>
+            </table>
           </div>
-  
-          <div className="scoreBarContainer">
-            <label>مستوى القرب</label>
-            <div className="scoreBarWrapper">
-              <div className="scoreBarFill" style={{ width: `${score}%` }} />
-            </div>
-          </div>
-  
-          <div className="relationTags">
-            {/* {relationTypes.map((type, index) => (
-              <span key={index} className={`tag ${type.toLowerCase()}`}>
-                {relationTypes(type)}
-              </span>
-            ))} */}
-          </div>
-  
-          {/* <p className="relationExplanation">{explanation}</p> */}
+
+
         </section>
       )}
     </main>
