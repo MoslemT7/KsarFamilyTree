@@ -402,3 +402,49 @@
   visibility: visible;
   opacity: 1;
 }
+
+
+.tree-wrapper {
+  margin-top: 30px;
+  padding: 20px;
+  border: 1px solid #ccc;
+  background-color: #fefefe;
+  border-radius: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tree-container {
+  width: 100%;
+  height: 100%; /* Try increasing this from 500px */
+  position: relative;
+}
+
+.loading-message {
+  display: flex;
+  gap: 10px;
+  font-size: 18px;
+  color: #007bff;
+  padding: 10px;
+  text-align: center;
+
+}
+
+.loading-message .spinner {
+  border: 4px solid #e3e3e3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  text-align: center;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-message p {
+  margin: 0;
+}

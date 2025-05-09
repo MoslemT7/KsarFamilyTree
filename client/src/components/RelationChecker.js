@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Tree from 'react-d3-tree';
 import './RelationChecker.css';
 const translations = require('./translation.json');
 require('dotenv').config();
@@ -92,9 +93,14 @@ const RelationPage = () => {
   const [relationship, setRelationship] = useState('');
   const [duplicates, setDuplicates] = useState({ person1: [], person2: [] });
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   const fetchRelationship = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError(false);
+    setLoadingMessage("بداية البحث عن العلاقة...");
 
     try {
       const result = await getRelationship(person1, person2);
@@ -107,20 +113,26 @@ const RelationPage = () => {
         setRelationship({
           relationshipDescription: result.relation,
           relationshipScore: result.score,
+          relationshipLevels: result.levelsTuple,
           relationshipGenerationGap: result.generation,
           relationshipExplanationType: result.explanation.type,
-          relationshipExplanationDesc: result.explanation.explanation
-
+          relationshipExplanationDesc: result.explanation.explanation,
+          commonAncestor: result.ancestor,
+          ancestorstreeData: result.treeData,
+          person1ID: result.person1ID,
+          person2ID: result.person2ID
         });
       }
     } catch (error) {
       console.error('Error fetching relationship:', error);
       setRelationship({ relationshipDescription: 'An error occurred', relationshipScore: null });
+      setError(true);
+    } finally{
+      setLoading(false);
     }
   };
 
-  
-  
+
   const getPersonMatches = async (personName, fatherName = "", grandfatherName = "", familyName) => {
 
     let cypherQuery = ``;
@@ -277,9 +289,7 @@ const RelationPage = () => {
     }
     
     const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(translatedName1);
-    console.log(person1Name,person1FatherName,person1GrandfatherName,person1LastName);
     const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(translatedName2);
-    console.log(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
     const errorContainer = document.getElementById('error-container');
     try {
       const person1Matches = await getPersonMatches(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
@@ -290,10 +300,11 @@ const RelationPage = () => {
       if (person2Matches.length === 0) {
         throw new Error(`لا يوجد أشخاص بإسم ${person2FullName} الرجاء التثبت في الإسم جيدا`);
       }
-  
+      setLoadingMessage("جاري البحث عن الأشخاص");
+
       console.log("P1 matches : ", person1Matches);
       console.log("P2 matches : ", person2Matches);
-  
+      
       let person1ID, person2ID;
       if (person1Matches.length > 1 || person2Matches.length > 1) {
         return {
@@ -310,7 +321,9 @@ const RelationPage = () => {
         person2ID = person2Matches[0].id;
       }
       // Function that return the ancestors of a given person starting with the person itself and going up to the root.
+      
       const getAncestors = async (person1ID, person2ID) => {
+        setLoadingMessage("جاري البحث عن الأجداد المشتركة");
         const result = await session.run(`
           MATCH path1 = (common:Person)-[:FATHER_OF|MOTHER_OF*0..4]->(p1:Person)
           WHERE id(p1) = $person1ID
@@ -320,11 +333,15 @@ const RelationPage = () => {
             AND id(p1) <> id(p2)
       
           WITH common, path1, path2, length(path1) AS level1, length(path2) AS level2
+          OPTIONAL MATCH (cGF:Person)-[:FATHER_OF]->(cF:Person)-[:FATHER_OF]->(common)
+
           ORDER BY (level1 + level2) ASC
           LIMIT 1
       
           RETURN 
             common.name AS commonAncestorName,
+            cF.name AS commonAncestorFatherName,
+            cGF.name AS commonAncestorGrandFatherName,
             common.lastName AS commonAncestorLastName,
             id(common) AS commonAncestorID,
             common.gender AS commonAncestorGender,
@@ -340,6 +357,8 @@ const RelationPage = () => {
             id: record.get('commonAncestorID').toNumber(),
             name: record.get('commonAncestorName'),
             lastName: record.get('commonAncestorLastName'),
+            fatherName: record.get('commonAncestorFatherName'),
+            grandfatherName: record.get('commonAncestorGrandFatherName'),
             gender: record.get('commonAncestorGender'),
             levelFromP1: record.get('generationsFromP1').toNumber(),
             levelFromP2: record.get('generationsFromP2').toNumber(),
@@ -349,29 +368,51 @@ const RelationPage = () => {
       };
       
       let relationRecord = await getAncestors(person1ID, person2ID);
-      let ancestorID, ancestorName, ancestorLastName, ancestorGender;
+      const ancestorID = relationRecord.id;
+      const ancestorName = translateName(relationRecord.name);
+      const ancestorLastName = translateName(relationRecord.lastName);
+      const ancestorFatherName = translateName(relationRecord.fatherName);
+      const ancestorGrandFatherName = translateName(relationRecord.grandfatherName);
+      const ancestorGender = relationRecord.gender;
       let levelFromP1, levelFromP2, pathFromAncestorToP1, pathFromAncestorToP2;
+      const ancestor = {ancestorID, 
+                      ancestorName, ancestorFatherName, ancestorGrandFatherName, ancestorLastName, ancestorGender};
 
-      ({ 
-        ancestorID, 
-        ancestorName, 
-        ancestorLastName, 
-        ancestorGender, 
+      ({
         levelFromP1, 
         levelFromP2, 
         pathFromAncestorToP1, 
         pathFromAncestorToP2 
       } = relationRecord);
-
       const pathToP1 = pathFromAncestorToP1;
       const pathToP2 = pathFromAncestorToP2;
-  
+      function buildTreePath(path) {
+        return path.reduceRight((acc, person) => {
+          return {
+            id: (person.id).toNumber(),
+            name: `${person.name} ${person.lastName}`,
+            children: acc ? [acc] : []
+          };
+        }, null);
+      }
+
+      function mergePaths(pathToP1, pathToP2) {
+        const ancestor = pathToP1[0]; // guaranteed same
+        const branch1 = pathToP1.slice(1);
+        const branch2 = pathToP2.slice(1);
+
+        return {
+          id: (ancestor.id).toNumber(),  // Include the ancestor's ID here
+          name: `${ancestor.name} ${ancestor.lastName}`,
+          children: [buildTreePath(branch1), buildTreePath(branch2)]
+        };
+      }
+      const treeData = mergePaths(pathToP1, pathToP2);
       console.log(pathFromAncestorToP1.reverse().map(a => a.name).join(" ben "));
       console.log(pathFromAncestorToP2.reverse().map(a => a.name).join(" ben "));
   
       var p1Level = levelFromP1;
       var p2Level = levelFromP2;
-            
       const translatedName1 = translateName(person1FullName);
       const translatedName2 = translateName(person2FullName);
   
@@ -410,7 +451,7 @@ const RelationPage = () => {
       ];
       
       console.log(`Level: (${p1Level}, ${p2Level})`);
-  
+      setLoadingMessage("جاري البحث عن العلاقة بين الشخصين");
       if (p1Level === 0 && p2Level === 1) {
         if (gender1 === 'Male'){
           relation = `${translatedName1} هو والد ${translatedName2}`;
@@ -712,15 +753,22 @@ const RelationPage = () => {
       }
       
       else {
+        setLoading(false);
         console.log('No direct relation found.');
         errorContainer.innerText = 'لا يوجد قرابة مباشرة.';
         return '';
       }
 
       if (relation != ''){
+        setLoading(false);
         return {relation, score, 
                 generation:Math.abs(p1Level-p2Level), 
-                explanation: relationshipExplanation[0]};
+                levelsTuple: {levelFromP1, levelFromP2},
+                explanation: relationshipExplanation[0],
+                ancestor,
+                treeData,
+                person1ID,
+                person2ID};
       }
       
     } catch (error) {
@@ -733,6 +781,7 @@ const RelationPage = () => {
       if (errorContainer) {
         errorContainer.innerText = `❌ خطأ: ${error.message || error}`;
       }
+      setLoading(false);
       return '';
     }
   };
@@ -767,9 +816,7 @@ const RelationPage = () => {
           </section>
         )}
       </aside>
-    )}
-    { /* Panel for signaling errors  */}
-    
+    )}    
     {/* Main Panel: Form + Result */}
     <main className="main-panel">
       <section className="relation-form-section">
@@ -807,8 +854,14 @@ const RelationPage = () => {
       </section>
 
       {error && <div className="error-message">{error}</div>} {/* Show the error message */}
+      {loading && (
+        <div className="loading-message">
+          <div className="spinner"></div>
+          <p>{loadingMessage}</p>
+        </div>
+      )}
 
-      {relationship && !error  && (
+      {!loading && relationship && !error  && (
         <section className="relationship-result">
           <h2 id="resultTitle">نتيجة العلاقة</h2>
           <p className="relationText">{relationship.relationshipDescription}</p>
@@ -857,7 +910,7 @@ const RelationPage = () => {
                   </td>
                 </tr>
                 <tr>
-                  <th>عدد الأجيال بينهما</th>
+                  <th>عدد الأجيال بينهما حسب الجد المشترك</th>
                   <td className="generation-distance">
                     <div className="tooltip-container">
                       <span id="numGen">{relationship.relationshipGenerationGap}</span> أجيال
@@ -867,8 +920,86 @@ const RelationPage = () => {
                     </div>
                   </td>
                 </tr>
+                <tr>
+                  <th>
+                    <div className="tooltip-container">
+                      الجد المشترك
+                      <span className="custom-tooltip">
+                        عدد الأجيال هو عدد الأشخاص الفاصلين في شجرة العائلة بين الشخصين.
+                      </span>
+                    </div>
+                  </th>
+                  <td className="generation-distance">
+                    {relationship.commonAncestor.ancestorName} بن {relationship.commonAncestor.ancestorFatherName} بن {relationship.commonAncestor.ancestorGrandFatherName} {relationship.commonAncestor.ancestorLastName}
+                  </td>
+                </tr>
               </tbody>
             </table>
+            <div className="tree-wrapper" style={{ height: `${((Math.max((relationship.relationshipLevels.levelFromP1),(relationship.relationshipLevels.levelFromP2)))+1)*100}px` }}>
+                <div className='titleTree'>
+                </div>
+                {relationship.ancestorstreeData && (
+                <div className="tree-container">
+                  <Tree
+                    data={relationship.ancestorstreeData}
+                    orientation="vertical"
+                    pathFunc="step"
+                    nodeSize={{ x: 50, y: 90 }}
+                    separation={{ siblings: 3, nonSiblings: 3 }}
+                    translate={{ x: 325, y: 27 }} 
+                    renderCustomNodeElement={({ nodeDatum }) => (
+                     <g className="tree-node">
+                        <title>{nodeDatum.id}</title>
+                        <rect
+                          className="tree-node-rect"
+                          x="-50"
+                          y="-20"
+                          width="100"
+                          
+                          height="40"
+                          style={{
+                            fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                              ? '#d3f9d8'  // Leaf node color (light green)
+                              : nodeDatum.id === relationship.commonAncestor.ancestorID
+                              ? '#ffe4b5'  // Ancestor node color (light yellow)
+                              : '#ffffff', // Default color for other nodes
+                            stroke: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                              ? '#4caf50'  // Leaf node border (green)
+                              : nodeDatum.id === relationship.commonAncestor.ancestorID
+                              ? '#ffa500'  // Ancestor node border (orange)
+                              : '#4a90e2', // Default border color
+                            strokeWidth: '2.5px',
+                            rx: '10',  // Rounded corners
+                            ry: '10',  // Rounded corners
+                          }}
+                        />
+                        <text
+                          className="tree-node-text"
+                          x="0"
+                          y="5"
+                          style={{
+                            fontSize: '16px',
+                            fontFamily: 'Cairo',
+                            fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                              ? '#388e3c'  // Leaf node text color (dark green)
+                              : nodeDatum.id === relationship.commonAncestor.ancestorID
+                              ? '#ff9800'  // Ancestor node text color (orange)
+                              : '#333',    // Default text color (dark gray)
+                            textAnchor: 'middle',
+                            dominantBaseline: 'middle',
+                            letterSpacing: '1px',
+                            strokeWidth: '1px',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          {translateName(nodeDatum.name)}
+                        </text>
+                      </g>
+                    )}
+                  />
+                </div>
+              )}
+               </div>
           </div>
         </section>
       )}
