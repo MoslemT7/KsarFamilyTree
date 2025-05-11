@@ -188,117 +188,173 @@ const RelationPage = () => {
         return record.length === 0 ? {areMarried : false} : {areMarried : true, P1, P2};
   };
 
-  async function getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1) {
-    const basicQueryResult = await session.run(`
-      MATCH (P1:Person), (P2:Person)
-      WHERE id(P1) = $p1Id AND id(P2) = $p2Id
+async function getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2) {
+  console.log('🔍 Checking marriage-based relationship between', translatedName1, 'and', translatedName2);
 
-      OPTIONAL MATCH (P1)-[:HUSBAND_OF|:WIFE_OF]->(P1Spouse:Person)
-      OPTIONAL MATCH (P1SpouseFather:Person)-[:FATHER_OF]->(P1Spouse)
-      OPTIONAL MATCH (P1SpouseMother:Person)-[:MOTHER_OF]->(P1Spouse)
-      OPTIONAL MATCH (P1SpouseSibling:Person)
-      WHERE (P1SpouseFather)-[:FATHER_OF]->(P1SpouseSibling) AND P1SpouseSibling <> P1Spouse
+  // Step 1: Person's own family
+  const ownFamilyQuery = `
+    MATCH (P:Person)
+    WHERE id(P) = $personId
 
-      OPTIONAL MATCH (P2)-[:HUSBAND_OF|:WIFE_OF]->(P2Spouse:Person)
-      OPTIONAL MATCH (P2SpouseFather:Person)-[:FATHER_OF]->(P2Spouse)
-      OPTIONAL MATCH (P2SpouseMother:Person)-[:MOTHER_OF]->(P2Spouse)
-      OPTIONAL MATCH (P2SpouseSibling:Person)
-      WHERE (P2SpouseFather)-[:FATHER_OF]->(P2SpouseSibling) AND P2SpouseSibling <> P2Spouse
+    // Person's Father and Mother
+    OPTIONAL MATCH (Father:Person)-[:FATHER_OF]->(P)
+    OPTIONAL MATCH (Mother:Person)-[:MOTHER_OF]->(P)
 
-      WITH
-        id(P1SpouseFather) AS p1FatherId,
-        id(P1SpouseMother) AS p1MotherId,
-        collect(DISTINCT id(P1SpouseSibling)) AS p1Siblings,
-        id(P2SpouseFather) AS p2FatherId,
-        id(P2SpouseMother) AS p2MotherId,
-        collect(DISTINCT id(P2SpouseSibling)) AS p2Siblings,
-        id(P1) AS p1Id,
-        id(P2) AS p2Id
+    // Person's Siblings
+    OPTIONAL MATCH (Father)-[:FATHER_OF]->(Sibling:Person)
+    WHERE Sibling <> P
 
-      RETURN CASE
-        WHEN p2Id = p1FatherId OR p2Id = p1MotherId THEN 0
-        WHEN p2Id IN p1Siblings THEN 1
-        WHEN p1Id = p2FatherId OR p1Id = p2MotherId THEN 2
-        WHEN p1Id IN p2Siblings THEN 3
-        ELSE null
-      END AS relationshipLevel
-    `, { p1Id: person1ID, p2Id: person2ID });
+    // Spouses of Siblings
+    OPTIONAL MATCH (Sibling)-[:HUSBAND_OF|:WIFE_OF]->(SiblingSpouse:Person)
 
-    const level1 = basicQueryResult.records[0]?.get("relationshipLevel").toNumber();
+    // Person's Children
+    OPTIONAL MATCH (P)-[:MOTHER_OF|:FATHER_OF]->(Child:Person)
+
+    // Spouses of Children
+    OPTIONAL MATCH (Child)-[:HUSBAND_OF|:WIFE_OF]->(ChildSpouse:Person)
+
+    RETURN 
+      id(Father) AS fatherId,
+      id(Mother) AS motherId,
+      collect(DISTINCT id(Sibling)) AS siblingIds,
+      collect(DISTINCT id(SiblingSpouse)) AS siblingSpouseIds,
+      collect(DISTINCT id(Child)) AS childIds,
+      collect(DISTINCT id(ChildSpouse)) AS childSpouseIds
+  `;
+
+  const ownResult = await session.run(ownFamilyQuery, { personId: person1ID });
+  const ownRecord = ownResult.records[0];
+
+  const fatherId = ownRecord.get("fatherId")?.toNumber() ?? null;
+  const motherId = ownRecord.get("motherId")?.toNumber() ?? null;
+  const siblingIds = (ownRecord.get("siblingIds") ?? []).map(id => id.toNumber());
+  const siblingSpouseIds = (ownRecord.get("siblingSpouseIds") ?? []).map(id => id.toNumber());
+  const childIds = (ownRecord.get("childIds") ?? []).map(id => id.toNumber());
+  const fchildrenSpouseIds = (ownRecord.get("childSpouseIds") ?? []).map(id => id.toNumber());
+
+  console.log('👨‍👩‍👧 Own Family:');
+  console.log('Father ID:', fatherId);
+  console.log('Mother ID:', motherId);
+  console.log('Sibling IDs:', siblingIds);
+  console.log('Sibling Spouse IDs:', siblingSpouseIds);
+  console.log('Childs IDs:', childIds);
+  console.log('Children Spouse IDs:', fchildrenSpouseIds);
+
+  // Step 2: Spouse's family
+  const spouseFamilyQuery = `
+    MATCH (P:Person)-[:HUSBAND_OF|:WIFE_OF]->(Spouse:Person)
+    WHERE id(P) = $personId
+
+    OPTIONAL MATCH (SFather:Person)-[:FATHER_OF]->(Spouse)
+    OPTIONAL MATCH (SMother:Person)-[:MOTHER_OF]->(Spouse)
+    OPTIONAL MATCH (SFather)-[:FATHER_OF]->(SSibling:Person)
+    WHERE SSibling <> Spouse
+
+    OPTIONAL MATCH (SSibling)-[:HUSBAND_OF|:WIFE_OF]->(SSiblingSpouse:Person)
+
+    // Get children of the spouse
+    OPTIONAL MATCH (Spouse)-[:MOTHER_OF|:FATHER_OF]->(Child:Person)
+    OPTIONAL MATCH (Child)-[:HUSBAND_OF|:WIFE_OF]->(ChildSpouse:Person)
+
+    RETURN 
+      id(SFather) AS sFatherId,
+      id(SMother) AS sMotherId,
+      collect(DISTINCT id(SSibling)) AS sSiblingIds,
+      collect(DISTINCT id(SSiblingSpouse)) AS sSiblingSpouseIds,
+      collect(DISTINCT id(Child)) AS childIds,
+      collect(DISTINCT id(ChildSpouse)) AS childSpouseIds
+  `;
+
+  const spouseResult = await session.run(spouseFamilyQuery, { personId: person1ID });
+  const spouseRecord = spouseResult.records[0];
+
+  const sFatherId = spouseRecord?.get("sFatherId")?.toNumber() ?? null;
+  const sMotherId = spouseRecord?.get("sMotherId")?.toNumber() ?? null;
+  const sSiblingIds = (spouseRecord?.get("sSiblingIds") ?? []).map(id => id.toNumber());
+  const sSiblingSpouseIds = (spouseRecord?.get("sSiblingSpouseIds") ?? []).map(id => id.toNumber());
+  const childrenSpouseIds = (spouseRecord?.get("childSpouseIds") ?? []).map(id => id.toNumber());
+
+  console.log('🧑‍🤝‍🧑 Spouse Family:');
+  console.log('Spouse Father ID:', sFatherId);
+  console.log('Spouse Mother ID:', sMotherId);
+  console.log('Spouse Sibling IDs:', sSiblingIds);
+  console.log('Spouse Sibling Spouse IDs:', sSiblingSpouseIds);
+  console.log('Children Spouse IDs:', childrenSpouseIds);
+
+  // Step 3: Matching
+  const match = (id) => {
+    return id !== null && id === person2ID;
+  };
+
+  const isIn = (list) => {
+    const result = list.some(id => id === person2ID);
+    return result;
+  };
+
+
+  // Sibling check
+  if (isIn(sSiblingIds)) {
+    console.log('✅ Match: Sibling');
     if (gender1 === 'Male') {
-      console.log(level1);
-      if (level1 !== null) {
-        switch (level1) {
-          case 0: return `${translatedName1} هو أب زوجة ${translatedName2}`;
-          case 1: return `${translatedName1} هو أخ زوجة ${translatedName2}`;
-          case 2: return `${translatedName1} هو زوج ابنة ${translatedName2}`;
-          case 3: return `${translatedName1} هو زوج أخت ${translatedName2}`;
-        }
-      } else {
-        switch (level1) {
-          case 0: return `${translatedName1} هي أم زوجة ${translatedName2}`;
-          case 1: return `${translatedName1} هي زوجة اخت ${translatedName2}`;
-        }
-      }
+      return `${translatedName1} هو زوج اخت ${translatedName2}`;
+    } else {
+      return `${translatedName1} هي زوجة اخ ${translatedName2}`;
     }
-    else{
-      const extendedQueryResult = await session.run(`
-        MATCH (P1:Person), (P2:Person)
-        WHERE id(P1) = $p1Id AND id(P2) = $p2Id
+  }
 
-        OPTIONAL MATCH (P1)-[:HUSBAND_OF|:WIFE_OF]->(P1Spouse:Person)
-        OPTIONAL MATCH (P1SpouseFather:Person)-[:FATHER_OF]->(P1Spouse)
-        OPTIONAL MATCH (P1SpouseMother:Person)-[:MOTHER_OF]->(P1Spouse)
-        OPTIONAL MATCH (P1SpouseFather)-[:FATHER_OF]->(P1SpouseSibling:Person)
-        WHERE P1SpouseSibling <> P1Spouse
-
-        OPTIONAL MATCH (P2)-[:HUSBAND_OF|:WIFE_OF]->(P2Spouse:Person)
-        OPTIONAL MATCH (P2SpouseFather:Person)-[:FATHER_OF]->(P2Spouse)
-        OPTIONAL MATCH (P2SpouseMother:Person)-[:MOTHER_OF]->(P2Spouse)
-        OPTIONAL MATCH (P2SpouseFather)-[:FATHER_OF]->(P2SpouseSibling:Person)
-        WHERE P2SpouseSibling <> P2Spouse
-
-        WITH
-          id(P1) AS p1Id,
-          id(P2) AS p2Id,
-          id(P1Spouse) AS p1SpouseId,
-          id(P2Spouse) AS p2SpouseId,
-          id(P1SpouseFather) AS p1SpouseFatherId,
-          id(P1SpouseMother) AS p1SpouseMotherId,
-          collect(DISTINCT id(P1SpouseSibling)) AS p1SpouseSiblings,
-          id(P2SpouseFather) AS p2SpouseFatherId,
-          id(P2SpouseMother) AS p2SpouseMotherId,
-          collect(DISTINCT id(P2SpouseSibling)) AS p2SpouseSiblings
-
-        RETURN CASE
-          WHEN p2Id = p1SpouseFatherId OR p2Id = p1SpouseMotherId THEN 0
-          WHEN p2Id IN p1SpouseSiblings THEN 1
-          WHEN p1Id = p2SpouseFatherId OR p1Id = p2SpouseMotherId THEN 2
-          WHEN p1Id IN p2SpouseSiblings THEN 3
-          WHEN p1SpouseId IN p2SpouseSiblings THEN 4
-          WHEN p2Id IN p1SpouseSiblings THEN 5
-          WHEN p1Id = p2SpouseFatherId THEN 6
-          WHEN p1Id = p2SpouseMotherId THEN 7
-          WHEN p1Id = p2SpouseId THEN 8
-          ELSE null
-        END AS relationshipLevel
-      `, { p1Id: person1ID, p2Id: person2ID });
-
-      const level2 = extendedQueryResult.records[0]?.get("relationshipLevel").toNumber();
-      console.log(level2);
-      switch (level2) {
-        case 0: return `${translatedName1} هو ${gender1 === 'Male' ? 'أب' : 'أم'} زوجة ${translatedName2}`;
-        case 1: return `${translatedName1} هو ${gender1 === 'Male' ? 'أخ' : 'أخت'} زوجة ${translatedName2}`;
-        case 2: return `${translatedName1} هو زوج ابنة ${translatedName2}`;
-        case 3: return `${translatedName1} ${gender1 === 'Male' ? 'هو اخ زوج' : '(حماتها) هي اخت زوج'} ${translatedName2}`;
-        case 4: return `${translatedName1} هو زوج أخت زوجة ${translatedName2}`;
-        case 5: return `${translatedName1} هي زوجة أخ ${translatedName2}`;
-        case 6: return `${translatedName1} هو والد زوج ${translatedName2}`;
-        case 7: return `${translatedName1} هي والدة زوج ${translatedName2}`;
-        default: return `لا توجد علاقة زواج مباشرة بين ${translatedName1} و ${translatedName2}`;
+  // Sibling Spouse check
+  if (isIn(siblingSpouseIds)) {
+    console.log('✅ Match: Spouse Siblings');
+    // Male person with male sibling-in-law (spouse of the sibling)
+    if (gender1 === 'Male') {
+      if(gender2 === 'Male'){
+        return `${translatedName1} هو اخ زوجة ${translatedName2}`;
+      }
+      else{
+        return `${translatedName1} هو اخ زوج ${translatedName2}`;
+      }
+    } else {
+      // Female person with female sibling-in-law (spouse of the sibling)
+      if(gender2 === 'Male'){
+      return `${translatedName1} هي اخت زوج ${translatedName2}`;
+      }
+      else{
+        return `${translatedName1} هو اخ زوجة ${translatedName2}`;
       }
     }
   }
+
+  // Children Spouses check
+  if (isIn(fchildrenSpouseIds)) {
+    console.log('✅ Match: Children Spouses');
+    if (gender1 === 'Male') {
+      return `${translatedName1} هو أب زوجة ${translatedName2}`;
+    } else {
+      return `${translatedName1} هي أم زوجة ${translatedName2}`;
+    }
+  }
+
+  // Further check for Children Spouses (with childrenSpouseIds mapping and match)
+  if (match(sFatherId) || match(sMotherId)) {
+    console.log('✅ Match: Children Spouses (extended)');
+    if (gender1 === 'Male') {
+      console.log(`${translatedName1} هو زوج ابنة ${translatedName2}`);
+      return `${translatedName1} هو زوج ابنة ${translatedName2}`;
+    } else {
+      console.log(`${translatedName1} هي زوجة ابن ${translatedName2} | ${translatedName1} هي كنة ${translatedName2}`);
+      return `${translatedName1} هي زوجة ابن ${translatedName2} | ${translatedName1} هي كنة ${translatedName2}`;
+    }
+  }
+
+
+return "لا توجد علاقة واضحة";
+}
+
+
+
+
+
+
     
 
   const getAncestors = async (person1ID, person2ID) => {
@@ -569,7 +625,7 @@ const RelationPage = () => {
         if (relationRecord === null){
           // setError("لا يوجد جد مشترك بين هاذان الشخصين.");
           console.log("There's no common ancestor between these.");
-          let relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1);
+          let relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
           console.log(relation);
           if (relation){
             console.log("Relaition found.");
@@ -772,7 +828,7 @@ const RelationPage = () => {
             }
             else{
               if (p1AncestorGender === 'Male'){
-                relation = `${translatedName1} هي ابن أخ ${translatedName2}`;
+                relation = `${translatedName1} هي ابنة أخ ${translatedName2}`;
               }
               else{
                 relation = `${translatedName1} هي ابنة أخت ${translatedName2}`;
