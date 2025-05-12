@@ -1,63 +1,231 @@
 .relation-page {
   display: flex;
   flex-direction: row;
-  max-width: 1100px;
-  margin: 40px auto;
+  flex-wrap: wrap;
+  max-width: 1200px;
+  margin: 30px auto;
   font-family: 'Cairo', sans-serif;
   direction: rtl;
-  gap: 20px;
+  gap: 24px;
+  padding: 0 15px;
 }
 
+/* Panel for Duplicate Names */
 .duplicates-panel {
-  width: 280px;
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  flex: 1 1 360px;
+  background-color: #f4f6f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 25px;
+  min-width: 300px;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
-.duplicates-group h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.duplicates-group ul {
-  list-style: none;
-  padding: 0;
-}
-
-.duplicates-group li {
-  background: white;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 8px;
+/* Title Styling */
+.duplicates-panel h3 {
+  font-size: 1.6rem;
+  color: #1a1a1a;
   font-weight: bold;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  margin: 20px 0 15px;
+  text-align: right;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 8px;
+  letter-spacing: 0.5px;
+  background-color: #fff;
+  padding-right: 10px;
 }
 
+.duplicates-group {
+  margin-bottom: 25px;
+}
+
+.duplicate-button {
+  display: block;
+  background: linear-gradient(135deg, #2980b9, #6dd5fa);
+  border: none;
+  color: white;
+  padding: 14px 20px;
+  margin: 10px 0;
+  width: 100%;
+  text-align: center;
+  font-family: "Cairo", sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.duplicate-button:hover {
+  background: linear-gradient(135deg, #2575fc, #6a11cb);
+  transform: scale(1.03);
+}
+
+.duplicate-button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+li {
+  list-style: none;
+  padding: 5px 0;
+  text-align: right;
+}
+
+section.duplicates-group {
+  background-color: #fff;
+  padding: 18px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.duplicates-group ul:empty {
+  display: none;
+}
+
+ul {
+  padding: 0;
+  margin: 0;
+}
+
+
+/* Main Panel */
 .main-panel {
-  flex: 1;
+  flex: 2;
   display: flex;
   flex-direction: column;
   gap: 30px;
+  min-width: 500px;
 }
 
+/* Form Styling */
 .relation-form-section {
   background: white;
-  padding: 25px;
+  padding: 30px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.ButtonSection{
+/* Input Styling */
+.inputNames {
+  text-align: center;
+  font-size: 18px;
+  font-family: "Cairo";
+  letter-spacing: 1px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.inputNames:focus {
+  border-color: #1d56c7;
+  outline: none;
+}
+
+/* Button Zones */
+.ButtonSection {
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* Unified Button Style */
+.button {
+  padding: 14px 25px;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  width: 180px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+/* Submit Button */
+.checkButton {
+  background: linear-gradient(45deg, #1d56c7, #3f8de1);
+  color: white;
+}
+
+.checkButton:hover {
+  background: linear-gradient(45deg, #3f8de1, #1d56c7);
+}
+
+/* Reset Button */
+.resetButton {
+  background: linear-gradient(45deg, #ba2b12, #e74c3c);
+  color: white;
+}
+
+.resetButton:hover {
+  background: linear-gradient(45deg, #e74c3c, #ba2b12);
+}
+
+/* Swap Button */
+.swapButton {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+  color: white;
+}
+
+.swapButton:hover {
+  background: linear-gradient(45deg, #e67e22, #f39c12);
+}
+
+.foundPersons {
   text-align: center;
 }
 
-.section-title{
-  text-align: center;
-  margin-bottom: 5px;
+.foundPersons h3 {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #333;
 }
 
+.person-card {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+  margin: 2px 6px;
+  display: inline-block;
+  width: 45%; /* 2 cards in one line */
+  vertical-align: top;
+  text-align: right;
+  font-size: 18px;
+  transition: transform 0.3s ease-in-out;
+}
+
+.person-card h4 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.6;
+  color: #555;
+  text-align: center;
+}
+
+.person-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+
+/* Relationship Result Zone */
 #DescriptionZone {
   font-size: 16px;
   line-height: 1.6;
@@ -65,7 +233,7 @@
   text-align: right;
   background-color: #f9fafb;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid #e0e0e0;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
@@ -83,65 +251,6 @@
   transition: all 0.3s ease;
 }
 
-.inputNames{
-  text-align: center;
-  font-size: 18px;
-  font-family: "Cairo";
-  letter-spacing: 1px;
-  width: 100%;
-  padding: 12px 14px;
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-.inputNames:focus{
-  border-color: #1d56c7;
-  outline: none;
-}
-
-.checkButton {
-  background: linear-gradient(45deg, #1d56c7, #3f8de1); /* Gradient from #1d56c7 to #3f8de1 */
-  color: white;
-  padding: 14px 25px;
-  font-size: 18px;
-  font-weight: bold;
-  border: none;
-  margin: 5px 25px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  width: 15%;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.checkButton:hover {
-  background: linear-gradient(45deg, #3f8de1, #1d56c7); /* Reverse the gradient direction on hover */
-  transform: translateY(-2px); /* Slight lift effect on hover */
-}
-
-.resetButton{
-  background: linear-gradient(45deg, #ba2b12, #e74c3c); /* Gradient from #ba2b12 to #e74c3c */
-  color: white;
-  padding: 14px 25px;
-  margin: 5px 25px;
-  font-size: 18px;
-  font-weight: bold;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
-  width: 15%;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-.resetButton:hover {
-  background: linear-gradient(45deg, #e74c3c, #ba2b12); /* Reverse the gradient direction on hover */
-  transform: translateY(-2px); /* Slight lift effect on hover */
-}
-.relation-form button:hover {
-  background-color: #303f9f;
-}
 
 #resultTitle {
   font-size: 28px;
@@ -317,13 +426,13 @@
   margin-right: 8px;
 }
 
-.relationship-tag .tag.blood { background-color: #f39c12; color: #fff; }
-.relationship-tag .tag.in-law { background-color: #3498db; color: #fff; }
-.relationship-tag .tag.marriage { background-color: #9b59b6; color: #fff; }
+.relationship-tag .tag.Blood { background-color: #f39c12; color: #fff; }
+.relationship-tag .tag.Marriage { background-color: #3498db; color: #fff; }
+.relationship-tag .tag.Marriage-related { background-color: #9b59b6; color: #fff; }
 
 .closeness-level {
   font-weight: bold;
-  color: #4caf50; /* Green for "close", customize based on relationship closeness */
+  color: #4caf50;
 }
 
 .relation-explanation {
