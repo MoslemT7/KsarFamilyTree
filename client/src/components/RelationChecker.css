@@ -317,9 +317,9 @@
   margin-right: 8px;
 }
 
-.relationship-tag .tag.blood { background-color: #f39c12; color: #fff; }
-.relationship-tag .tag.in-law { background-color: #3498db; color: #fff; }
-.relationship-tag .tag.marriage { background-color: #9b59b6; color: #fff; }
+.relationship-tag .tag.Blood { background-color: #f39c12; color: #fff; }
+.relationship-tag .tag.Marriage-related { background-color: #3498db; color: #fff; }
+.relationship-tag .tag.Marriage { background-color: #9b59b6; color: #fff; }
 
 .closeness-level {
   font-weight: bold;

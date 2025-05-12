@@ -191,7 +191,7 @@ const FamilyTree = ({ searchQuery }) => {
         pathFunc="step"
         translate={translate}
         nodeSize={{ x: 100, y: 100 }} // Adjust node size if needed
-        separation={{ siblings: 1, nonSiblings: 2 }} // Adjust separation between nodes
+        separation={{ siblings: 1.1, nonSiblings: 1.5 }} // Adjust separation between nodes
         renderCustomNodeElement={({ nodeDatum, hierarchyPointNode }) => {
           const isHusband = nodeDatum.id === husbandId;
 
