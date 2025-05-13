@@ -969,7 +969,7 @@ const StatisticsDashboard = () => {
             <div class="stat-card" id="men"> <h4>عدد الرجال الأحياء</h4> <p class="stat-number">{stats.totalMen}</p> </div>
             <div class="stat-card" id="women"> <h4>عدد النساء الأحياء</h4> <p class="stat-number">{stats.totalWomen}</p> </div>
             <div class="stat-card"> <h4>عدد العائلات المسجلة</h4> <p class="stat-number">{stats.familiesCount}</p> </div>
-            <div class="stat-card"> <h4>نسبة الأحياء مقابل المتوفين</h4> <p class="stat-number">{stats.totalAlivePopulation * 100 / stats.totalPopulation}% أحياء</p> </div>
+            <div class="stat-card"> <h4>نسبة الأحياء مقابل المتوفين</h4> <p class="stat-number">{(stats.totalAlivePopulation * 100 / stats.totalPopulation)}% أحياء</p> </div>
           </div>
         </div>
 

@@ -10,86 +10,55 @@
   padding: 0 15px;
 }
 
-/* Panel for Duplicate Names */
-.duplicates-panel {
-  flex: 1 1 360px;
-  background-color: #f4f6f9;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  padding: 25px;
-  min-width: 300px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-/* Title Styling */
-.duplicates-panel h3 {
-  font-size: 1.6rem;
-  color: #1a1a1a;
-  font-weight: bold;
-  margin: 20px 0 15px;
-  text-align: right;
-  border-bottom: 2px solid #ccc;
-  padding-bottom: 8px;
-  letter-spacing: 0.5px;
-  background-color: #fff;
-  padding-right: 10px;
-}
-
-.duplicates-group {
-  margin-bottom: 25px;
-}
-
-.duplicate-button {
-  display: block;
-  background: linear-gradient(135deg, #2980b9, #6dd5fa);
-  border: none;
-  color: white;
-  padding: 14px 20px;
-  margin: 10px 0;
+.person-info-table {
   width: 100%;
-  text-align: center;
-  font-family: "Cairo", sans-serif;
-  font-size: 18px;
+  border-collapse: collapse; /* Ensures table borders collapse into one */
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.label {
   font-weight: bold;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
 }
 
-.duplicate-button:hover {
-  background: linear-gradient(135deg, #2575fc, #6a11cb);
-  transform: scale(1.03);
+.duplicate-button{
+  padding: 8px;
+  background-color:#007bff;
+  color: aliceblue;
+  text-align: center;
+  font-family: "Cairo";
+  font-size: 18px;
+  width: 80%;
+  letter-spacing: 1px;
 }
 
-.duplicate-button:disabled {
-  background-color: #bdc3c7;
-  cursor: not-allowed;
+.person-info-table th,
+.person-info-table td {
+  padding: 4px;
+  text-align: center;
+  border: 1px solid #ddd;
 }
 
-li {
-  list-style: none;
-  padding: 5px 0;
-  text-align: right;
+.person-info-table th {
+  background-color: #f2f2f2; /* Light background for headers */
+  font-weight: bold;
 }
 
-section.duplicates-group {
-  background-color: #fff;
-  padding: 18px;
-  border-radius: 8px;
-  margin-bottom: 25px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+.person-info-table .label {
+  text-align: center;
 }
 
-.duplicates-group ul:empty {
-  display: none;
+.person-info-table .value {
+  text-align: center;
+  margin: 2px;
+  padding: 5px 1px;
+  width: 150px;
+  text-align: center;
+  white-space: nowrap;
 }
-
-ul {
-  padding: 0;
-  margin: 0;
-}
-
 
 /* Main Panel */
 .main-panel {
@@ -428,7 +397,7 @@ ul {
 
 .relationship-tag .tag.Blood { background-color: #f39c12; color: #fff; }
 .relationship-tag .tag.Marriage { background-color: #3498db; color: #fff; }
-.relationship-tag .tag.Marriage-related { background-color: #9b59b6; color: #fff; }
+.relationship-tag .tag.Marriage-related { background-color: #3498db; color: #fff; }
 
 .closeness-level {
   font-weight: bold;
