@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import "./SearchPage.css"
 import Tree from 'react-d3-tree';
 const translations = require('./translation.json');
+const compoundNames = require('./compundNames.json');
+
 require('dotenv').config();
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
@@ -19,32 +21,61 @@ function countBenAndBent(str) {
 }
 
 export const translateName = (fullName, language = true) => {
-  const nameParts = fullName.split(' ');
-
-const reverseTranslations = Object.fromEntries(
-  Object.entries(translations).map(([key, value]) => [value, key])
-);
+  const reverseTranslations = Object.fromEntries(
+    Object.entries(translations).map(([key, value]) => [value, key])
+  );
+  const reverseCompound = Object.fromEntries(
+    Object.entries(compoundNames).map(([key, value]) => [value, key])
+  );
 
   const dict = language ? translations : reverseTranslations;
+  const compoundDict = language ? compoundNames : reverseCompound;
 
+  const normalized = fullName.trim().replace(/\s+/g, ' ');
+  if (compoundDict[normalized]) {
+    return compoundDict[normalized];
+  }
+
+  const nameParts = normalized.split(' ');
   const translatedParts = nameParts.map(part => dict[part] || part);
 
   return translatedParts.join(' ');
 };
 
+function isCompoundName(name) {
+  return Object.values(compoundNames).includes(name);
+}
+
 function splitName(fullName) {
-  const parts = fullName.replace(/\s+(ben|bent)\s+/gi, ' ').trim().split(/\s+/);
+  const parts = fullName.replace(/\s*(بن|بنت)\s*/gi, ' ').trim().split(/\s+/);
   const bentCount = countBenAndBent(fullName);
+
+  if (isCompoundName(parts[0] + " " + parts[1])) {
+    console.log("It's a compound name!");
+  }
+  let compundName;
+
   if (parts.length === 2) {
-    if (bentCount === 0){
-      return {
-        personName: parts[0],
-        fatherName: "",
-        grandfatherName: "",
-        familyName: parts[1]
-      };
-    }
-    else if (bentCount === 1){
+    if (bentCount === 0) {
+      if (isCompoundName(parts[0]+ " " + parts[1])){
+        compundName = `${parts[0]} ${parts[1]}`;
+        return {
+          personName: compundName,
+          fatherName: "",
+          grandfatherName: "",
+          familyName: ""
+        };
+      }
+      else{
+        return {
+          personName: parts[0],
+          fatherName: "",
+          grandfatherName: "",
+          familyName: parts[1]
+        };
+      }
+    } 
+    else if (bentCount === 1) {
       return {
         personName: parts[0],
         fatherName: parts[1],
@@ -52,18 +83,40 @@ function splitName(fullName) {
         familyName: ""
       };
     }
-    
   } 
+
   else if (parts.length === 3) {
-    if (bentCount === 1){
-      return {
-        personName: parts[0],
-        fatherName: parts[1],
-        grandfatherName: "",
-        familyName: parts[2]
-      };
+    if (bentCount === 1) {
+      if (isCompoundName(parts[0]+ " " + parts[1])){
+        console.log("COMPUND DETECTED");
+        compundName = `${parts[0]} ${parts[1]}`;
+        return {
+          personName: compundName,
+          fatherName: parts[2],
+          grandfatherName: "",
+          familyName: ""
+        };
+      }
+      else if (isCompoundName(parts[1]+ " " + parts[2])){
+          console.log("COMPUND DETECTED");
+          compundName = `${parts[1]} ${parts[2]}`;
+          return {
+            personName: parts[0],
+            fatherName: compundName,
+            grandfatherName: "",
+            familyName: ""
+          };
+        }
+      else{
+        return {
+          personName: parts[0],
+          fatherName: parts[1],
+          grandfatherName: "",
+          familyName: parts[2]
+        };}
+        
     }
-    else if (bentCount === 2){
+    else if (bentCount === 2) {
       return {
         personName: parts[0],
         fatherName: parts[1],
@@ -71,17 +124,105 @@ function splitName(fullName) {
         familyName: ""
       };
     }
-    
-  } else if (parts.length === 4) {
-    return {
-      personName: parts[0],
-      fatherName: parts[1],
-      grandfatherName: parts[2],
-      familyName: parts[3]
-    };
   }
-  // Default case if structure doesn't match
-  return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] };
+
+  else if (parts.length === 4) {
+    if (bentCount === 1) {
+      if (isCompoundName(parts[0]+ " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: `${parts[2]} ${parts[3]}`,
+          grandfatherName: "",
+          familyName: ""
+        };
+      }
+      if (isCompoundName(parts[0]+ " " + parts[1])){
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: parts[2],
+          grandfatherName: "",
+          familyName: parts[3]
+        };
+      }
+      if (isCompoundName(parts[1]+ " " + parts[2])){
+        return {
+          personName: parts[0],
+          fatherName: `${parts[1]} ${parts[2]}`,
+          grandfatherName: "",
+          familyName: parts[3]
+        };
+      }
+    }
+    else if (bentCount === 2){
+        if (isCompoundName(parts[0]+ " " + parts[1])){
+          return {
+            personName: `${parts[0]} ${parts[1]}`,
+            fatherName: parts[2],
+            grandfatherName: parts[3],
+            familyName: ""
+          };
+        }
+        if (isCompoundName(parts[1] + " " + parts[2])){
+          return {
+            personName: parts[0],
+            fatherName: `${parts[1]} ${parts[2]}`,
+            grandfatherName: parts[3],
+            familyName: ""
+          };
+        }
+    }
+  }
+  else if (parts.length === 5) {
+    if (bentCount === 2){
+      if (isCompoundName(parts[0]+ " " + parts[1])){
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: parts[2],
+          grandfatherName: parts[3],
+          familyName: parts[4]
+        };
+      }
+      if (isCompoundName(parts[1] + " " + parts[2])){
+        return {
+          personName: parts[0],
+          fatherName: `${parts[1]} ${parts[2]}`,
+          grandfatherName: parts[3],
+          familyName: parts[4]
+        };
+      }
+      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: `${parts[2]} ${parts[3]}`,
+          grandfatherName: parts[4],
+          familyName: ""
+        };
+      }
+    }
+  }
+  else if (parts.length === 6) {
+    if (bentCount === 2){
+      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3]) && isCompoundName(parts[4]+ " " + parts[5])){
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: `${parts[2]} ${parts[3]}`,
+          grandfatherName: `${parts[4]} ${parts[5]}`,
+          familyName: ""
+        };
+      }
+    }
+  }
+  else if (parts.length === 7) {
+      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3]) && isCompoundName(parts[4]+ " " + parts[5])){
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: `${parts[2]} ${parts[3]}`,
+          grandfatherName: `${parts[4]} ${parts[5]}`,
+          familyName: parts[6]
+        };
+      }
+  }
+  return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] || "" };
 }
 
 const SearchPage = () => {
@@ -188,7 +329,6 @@ const SearchPage = () => {
 
   const searchPerson = async (searchText) => {
     let translatedInputName = translateName(searchText, false);
-    console.log(translatedInputName);
     const { personName, fatherName, grandfatherName, familyName } = splitName(translatedInputName);
 
     let cypherQuery = ``;
@@ -512,7 +652,9 @@ const SearchPage = () => {
   </div>
 ) : personDetails ? (
   <div className="person-details">
-    <h2>تفاصيل الشخص :</h2>
+    <h2>تفاصيل الشخص : <p id="idPerson"> الرقم التسلسلي : {personDetails.personID}</p></h2>
+
+    
     <h3>
       {translateName(personDetails?.personName ?? "غير معروف")}
       {personDetails?.fatherName

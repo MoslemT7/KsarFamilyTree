@@ -327,9 +327,9 @@ h3:hover {
   /* General Styles for Search Page */
   .search-page {
     max-width: 100%;
-    margin: 20px;
-    padding: 14px;
-    font-size: 14px; /* Adjust font size for readability on smaller screens */
+    margin: 2px;
+    padding: 6px;
+    font-size: 12px; /* Adjust font size for readability on smaller screens */
   }
 
   /* Header Section */
@@ -341,7 +341,7 @@ h3:hover {
   /* Search Button */
   .search-button {
     padding: 8px 4px; /* Smaller padding */
-    font-size: 20px; /* Adjust font size */
+    font-size: 18px; /* Adjust font size */
   }
 
   /* Search Bar */
@@ -465,6 +465,10 @@ h3:hover {
   .header h1 {
     font-size: 22px; /* Adjust title size for mobile */
     margin-left: 45px; /* Shift title to the right to make room for the menu icon */
+  }
+
+  #childrenButton{
+    font-size: 8px;
   }
 }
 

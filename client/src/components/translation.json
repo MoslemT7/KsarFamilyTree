@@ -3,7 +3,6 @@
   "bent": "بنت",
   "Houssem": "حسام",
   "Hamid": "حميد",
-  "Abd El-Hak": "عبد الحق",
   "Mourad": "مراد",
   "Monia": "منية",
   "Sana": "سناء",
@@ -47,7 +46,7 @@
   "Akram": "أكرم",
   "Salim": "سليم",
   "Jihed": "جهاد",
-  "Abd El-Wahed": "عبد الواحد",
+  "El-Wahed": "الواحد",
   "Layan": "ليان",
   "Ilem": "إيلام",
   "Mariem": "مريم",
@@ -61,7 +60,7 @@
   "Roukaya": "رقية",
   "Soufian": "سفيان",
   "Mounir": "منير",
-  "Abd El-Nour": "عبد النور",
+  "El-Nour": "النور",
   "Salima": "سليمة",
   "Alaa": "آلاء",
   "Salma": "سالمة",
@@ -79,8 +78,8 @@
   "Fatma": "فاطمة",
   "Farhati": "الفرحاتي",
   "Aicha": "عائشة",
-  "Abdelaziz": "عبدالعزيز",
   "Radhwan": "رضوان",
   "Ghassen": "غسان",
-  "Mostafa": "مصطفى"
+  "Mostafa": "مصطفى",
+  "Nassim": "نسيم"
 }
