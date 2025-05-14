@@ -71,13 +71,38 @@
   transition: transform 0.3s ease, background 0.3s ease; /* Smooth transition for hover effect */
 }
 
-.loading-text {
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 6px solid #f3f3f3;
+  border-top: 6px solid #d13a10;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+.loading-message {
   font-size: 18px;
   font-weight: bold;
-  color: #d13a10; /* You can change the color to match your theme */
-  text-align: center;
-  animation: loading-animation 2s infinite;
+  color: #d13a10;
+  font-family: 'Cairo', sans-serif;
+  letter-spacing: 1px;
 }
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 
 @keyframes loading-animation {
   0% {
@@ -639,6 +664,61 @@
   }
 }
 
+body.dark-mode .stat-card,
+body.dark-mode .stat-card.average-marriage-card,
+body.dark-mode .charts,
+body.dark-mode .chart-container,
+body.dark-mode .fun-fact{
+  background-color: #333;
+  color: white;
+
+}
+body.dark-mode h4,
+body.dark-mode #funcFacts .dashboard-title{
+  color: white;
+}
+
+body.dark-mode .stat-card.average-marriage-card{
+  background-color: #333;
+  color: white;
+
+}
+
+body.dark-mode #funFacts{
+  background-color: #263238;
+}
+
+body.dark-mode .average-marriage-card{
+    background: linear-gradient(135deg, #1f1f20, #222a34);
+}
+
+body.dark-mode .engagement-panel{
+    background: linear-gradient(135deg, #1f1f20, #222a34);
+}
+
+body.dark-mode .important-info{
+    background: linear-gradient(145deg, #573f49, #2a3542); /* Warm gradient background for emphasis */
+
+}
+
+body.dark-mode .population-overview {
+  border-right: 8px solid #3498db;
+  background: linear-gradient(145deg, #505356, #35393c);
+}
+
+body.dark-mode .demographics {
+  border-right: 8px solid #e67e22;
+  background: linear-gradient(145deg, #45423f, #47403b);
+}
+
+body.dark-mode .family-structure {
+  border-right: 8px solid #27ae60;
+  background: linear-gradient(145deg, #494f4c, #39423e);
+}
+body.dark-mode .category-title{
+  background-color: #333;
+  color: whitesmoke;
+}
 /* ====== Breakpoint: Mobile Phones ====== */
 @media (max-width: 480px) {
   .stats-dashboard{
