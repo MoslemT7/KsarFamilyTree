@@ -1,12 +1,16 @@
 const neo4j = require('neo4j-driver');
 const { type } = require('os');
 const readline = require('readline');
+require('dotenv').config();
 
-const driver = neo4j.driver(
-  'neo4j+s://2cd0ce39.databases.neo4j.io',  // URI of the Neo4j server
-  neo4j.auth.basic('neo4j', 'nW1azrzTK-lrTOO5G1uOkUVFwelcQlEmKPHggPUB7xQ')
+const neo4jURI = process.env.REACT_APP_NEO4J_URI;
+const neo4jUser = process.env.REACT_APP_NEO4J_USER;
+const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;
+
+const driver = require('neo4j-driver').driver(
+    neo4jURI,
+    require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
-
 const session = driver.session();
 
 const createFatherChildRelationship = async (fatherFullName, childFullName) => {

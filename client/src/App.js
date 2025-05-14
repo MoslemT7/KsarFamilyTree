@@ -5,15 +5,18 @@ import RelationPage from './components/RelationChecker'; // Correct import
 import StatisticsDashboard from './components/StatisticsDashboard'; // Correct import
 import SearchPage from './components/SearchPage'; // Correct import
 import WeddingPage from './components/weddings';
+import CommingSoon from './index';
 import MainPage from './components/mainPage';
 import './styles.css';  // Import styles
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const App = () => {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const toggleMenu = () => setMenuOpen(!menuOpen);
   useEffect(() => {
     // Load theme from localStorage on mount
     const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
+    if (savedTheme === "light") {
       document.body.classList.add("dark-mode");
     }
   }, []);
@@ -29,6 +32,7 @@ const App = () => {
       <Router>
       <header className="header">
         <div className="header-top">
+          <button className="menu-toggle" onClick={toggleMenu}>☰</button>
           <div className="logo">
             {/* Optional: Insert <img src="/logo.png" alt="Logo" /> here */}
           </div>
@@ -45,7 +49,7 @@ const App = () => {
           </div>
         </div>
 
-        <nav className="sidebar">
+        <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
           <ul>
             <li><Link to="/main">الرئيسية</Link></li>
             <li><Link to="/familyTree">شجرة العائلة</Link></li>

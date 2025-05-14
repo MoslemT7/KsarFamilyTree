@@ -3,10 +3,9 @@ import Tree from 'react-d3-tree';
 import './FamilyTree.css';
 import neo4j from 'neo4j-driver';
 
-require('dotenv').config();
-
 const translations = require('./translation.json');
 const compundNames = require('./compundNames.json');
+
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
 const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;

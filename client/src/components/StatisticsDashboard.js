@@ -2,9 +2,7 @@ import { useEffect, useState } from 'react';
 import React, { useRef } from 'react';
 import './StatisticsDashboard.css';
 import Chart from 'chart.js/dist/chart.js';
-
 const translations = require('./translation.json');
-require('dotenv').config();
 
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
@@ -15,6 +13,7 @@ const driver = require('neo4j-driver').driver(
     neo4jURI,
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
+
 const totalPopulation = async () => {
   const session = driver.session();
   try {

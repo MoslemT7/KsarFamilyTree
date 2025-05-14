@@ -3,7 +3,6 @@ import Tree from 'react-d3-tree';
 import './RelationChecker.css';
 const translations = require('./translation.json');
 const compoundNames = require('./compundNames.json');
-require('dotenv').config();
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;

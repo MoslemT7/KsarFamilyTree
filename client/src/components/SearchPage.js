@@ -4,7 +4,6 @@ import Tree from 'react-d3-tree';
 const translations = require('./translation.json');
 const compoundNames = require('./compundNames.json');
 
-require('dotenv').config();
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -258,6 +257,7 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
+  
   const getChildrenOfFather = async (fatherId) => {
     const session = driver.session();
     try {
@@ -352,7 +352,9 @@ const SearchPage = () => {
     }
     await searchPerson(searchQuery.trim());
   };
-
+  const handleResetPerson = async () => {
+    setSearchQuery('');
+  };
   const searchPerson = async (searchText) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
     let translatedInputName = translateName(searchText, false);
@@ -677,7 +679,7 @@ const SearchPage = () => {
         />
         <div className='buttons'>
           <button className="search-button" onClick={handleSearchSubmit}>ابحث</button>
-          <button className='reset-button'>إلغاء</button>
+          <button className='reset-button' onClick={handleResetPerson}>إلغاء</button>
         </div>
         
       </header>
