@@ -159,12 +159,6 @@ table {
   text-align: center;
 }
 
-.foundPersons h3 {
-  font-size: 24px;
-  margin-bottom: 10px;
-  color: #333;
-}
-
 .person-card {
   background-color: #f9f9f9;
   border: 1px solid #ddd;
@@ -231,7 +225,7 @@ table {
   text-transform: uppercase;
   letter-spacing: 1px;
   border-bottom: 3px solid #1d56c7;
-  max-width: 250px;
+  max-width: 50%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -274,9 +268,9 @@ table {
 .result-details {
   background-color: #fff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-width: 800px;
+  max-width: 85%;
   margin: 0 auto;
   text-align: right; /* Right-to-left alignment for Arabic text */
 }
@@ -425,7 +419,6 @@ table {
 .generation-distance {
   font-weight: bold;
   color: #2b4e8c;
-  background-color: #eef3fd;
   padding: 8px 12px;
   border-radius: 6px;
   text-align: center;
@@ -518,6 +511,15 @@ table {
   animation: spin 1s linear infinite;
 }
 
+.minor-tip {
+  font-size: 14px;
+  color: #666;
+  margin-top: 8px;
+  text-align: center;
+  font-family: 'Cairo', sans-serif;
+  opacity: 0.85;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -525,4 +527,41 @@ table {
 
 .loading-message p {
   margin: 0;
+}
+
+body.dark-mode .relation-form-section{
+  background-color: #333;
+}
+
+body.dark-mode #DescriptionZone,
+body.dark-mode .relationship-result,
+body.dark-mode .result-details,
+body.dark-mode .tree-wrapper {
+  color: whitesmoke;
+  background-color: #333;
+}
+
+body.dark-mode .person-card {
+  background-color: #3a3a3a;
+}
+
+body.dark-mode .person-card h4{
+  color: white;
+
+}
+
+body.dark-mode .relationText{
+  color: white;
+  background-color: #3a3a3a;
+}
+
+body.dark-mode th, 
+body.dark-mode td,
+body.dark-mode .relation-explanation-type{
+    color: white;
+
+}
+
+body.dark-mode .relationship-result h2{
+  color: #7190c8;
 }

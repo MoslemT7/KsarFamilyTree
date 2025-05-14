@@ -45,12 +45,12 @@ const fetchFamilyTree = async () => {
       WHERE id(root) = 17
       CALL {
         WITH root
-        MATCH (root)-[:FATHER_OF*]->(descendant)
+        MATCH (root)-[:FATHER_OF|MOTHER_OF*]->(descendant)
         RETURN collect(DISTINCT descendant) AS allDescendants
       }
       WITH root, allDescendants
       UNWIND [root] + allDescendants AS person
-      OPTIONAL MATCH (person)-[:FATHER_OF]->(child)
+      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF*]->(child)
       WITH person, collect(child) AS children
       RETURN {
         id: id(person),

@@ -20,16 +20,20 @@ function countBenAndBent(str) {
   if (words.length < 3) return 0;
   const interior = words.slice(1, -1);
   return interior.filter(w => w === 'بن' || w === 'بنت').length;
-}
+};
 
 function isCompoundName(name) {
   return Object.values(compoundNames).includes(name);
-}
+};
 
 function splitName(fullName) {
+  if (typeof fullName !== 'string') {
+    console.error("fullName is not a string:", fullName);
+    return [];
+  }
   const parts = fullName.replace(/\s*(بن|بنت)\s*/gi, ' ').trim().split(/\s+/);
   const bentCount = countBenAndBent(fullName);
-
+  console.log(bentCount, parts);
   if (isCompoundName(parts[0] + " " + parts[1])) {
     console.log("It's a compound name!");
   }
@@ -66,7 +70,15 @@ function splitName(fullName) {
   } 
 
   else if (parts.length === 3) {
-    if (bentCount === 1) {
+    if (bentCount === 0) {
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: "",
+          grandfatherName: "",
+          familyName: parts[2]
+        };
+    }
+    else if (bentCount === 1) {
       if (isCompoundName(parts[0]+ " " + parts[1])){
         console.log("COMPUND DETECTED");
         compundName = `${parts[0]} ${parts[1]}`;
@@ -93,8 +105,9 @@ function splitName(fullName) {
           fatherName: parts[1],
           grandfatherName: "",
           familyName: parts[2]
-        };}
-        
+        };
+      }
+
     }
     else if (bentCount === 2) {
       return {
@@ -105,7 +118,6 @@ function splitName(fullName) {
       };
     }
   }
-
   else if (parts.length === 4) {
     if (bentCount === 1) {
       if (isCompoundName(parts[0]+ " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
@@ -148,6 +160,14 @@ function splitName(fullName) {
             fatherName: `${parts[1]} ${parts[2]}`,
             grandfatherName: parts[3],
             familyName: ""
+          };
+        }
+        else if(!isCompoundName(parts[0]+ " " + parts[1]) && !isCompoundName(parts[1] + " " + parts[2])) {
+          return {
+            personName: parts[0],
+            fatherName: parts[1],
+            grandfatherName: parts[2],
+            familyName: parts[3]
           };
         }
     }
@@ -203,10 +223,9 @@ function splitName(fullName) {
       }
   }
   return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] || "" };
-}
+};
 
 function buildTreePath(path) {
-  // Handle case where the path is empty
   if (path.length === 0) return null;
 
   return path.reduceRight((acc, person) => {
@@ -216,17 +235,14 @@ function buildTreePath(path) {
       children: acc ? [acc] : []
     };
   }, null);
-}
+};
 
 function mergePaths(pathToP1, pathToP2) {
-  // Handle empty paths by returning null or an empty object
   if (pathToP1.length === 0 && pathToP2.length === 0) return null;
-
-  const ancestor = pathToP1[0]; // Assuming both paths share the same ancestor
+  const ancestor = pathToP1[0]; 
   const branch1 = pathToP1.slice(1);
   const branch2 = pathToP2.slice(1);
 
-  // Check if any of the branches are empty and handle accordingly
   const children = [];
   if (branch1.length > 0) {
     children.push(buildTreePath(branch1));
@@ -234,13 +250,11 @@ function mergePaths(pathToP1, pathToP2) {
   if (branch2.length > 0) {
     children.push(buildTreePath(branch2));
   }
-
-  // Return the merged structure
   return {
     id: (ancestor.id).toNumber(),
     name: `${ancestor.name} ${ancestor.lastName}`,
-    children: children.length > 0 ? children : undefined // Only include children if there are any
-  };
+    children: children.length > 0 ? children : undefined
+  }
 }
 
 export const translateName = (fullName, language = true) => {
@@ -276,11 +290,6 @@ const RelationPage = () => {
   const [selectedPerson2, setSelectedPerson2] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
-  useEffect(() => {
-    if (selectedPerson1) {
-      console.log("Updated selectedPerson1:", selectedPerson1);
-    }
-  }, [selectedPerson1]);
 
   const fetchRelationship = async (e, customPerson1 = person1, customPerson2 = person2) => {
   if (e) e.preventDefault();
@@ -1761,6 +1770,7 @@ const RelationPage = () => {
     let gender1, gender2;
     const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(person1FullName);
     const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(person2FullName);
+    console.log(person1Name +  " + " + person1FatherName + " + " + person1LastName);
     let translatedPerson1Name = isArabic(person1Name) ? translateName(person1Name, false) : person1Name;
     let translatedPerson1FatherName = isArabic(person1FatherName) ? translateName(person1FatherName, false) : person1FatherName;
     let translatedPerson1GrandfatherName = isArabic(person1GrandfatherName) ? translateName(person1GrandfatherName, false) : person1GrandfatherName;
@@ -1785,7 +1795,6 @@ const RelationPage = () => {
       }
       if (person1Matches.length === 1) {
         setSelectedPerson1(person1Matches[0]);
-        console.log(selectedPerson1[0]);
       }
       const person2Matches = await getPersonMatches(
         translatedPerson2Name,
@@ -1843,14 +1852,6 @@ const RelationPage = () => {
       return '';
     }
   };
-
-  useEffect(() => {
-    if (selectedPerson1 && selectedPerson2) {
-      fetchRelationship(null, selectedPerson1, selectedPerson2);
-    }
-  }, [selectedPerson1, selectedPerson2]);
-
-  {console.log(selectedPerson1)}
   return (
     <div className="relation-page">
     
@@ -2012,7 +2013,7 @@ const RelationPage = () => {
       {!loading && relationship && !error  && (
         <section className="relationship-result">
           <div className="foundPersons">
-          <h3>الأشخاص الذين تم البحث عنهم:</h3>
+          <h2 id="resultTitle">الأشخاص الذين تم البحث عنهم:</h2>
           <div className="person-card">
           <h4>
             {translateName(relationship.relationshipPerson1Details?.name ?? '')} 
@@ -2118,6 +2119,8 @@ const RelationPage = () => {
                 </tr>
               </tbody>
             </table>
+              <h2 id="resultTitle">شجرة العائلة الي تجمع الشخصين :</h2>
+
             <div className="tree-wrapper" style={{
               height: `${Math.max(
                 ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
@@ -2144,7 +2147,6 @@ const RelationPage = () => {
                           x="-50"
                           y="-20"
                           width="100"
-                          
                           height="40"
                           style={{
                             fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import "./SearchPage.css"
+import React, {useRef,  useState, useEffect } from 'react';
+import "../styles/SearchPage.css"
 import Tree from 'react-d3-tree';
 const translations = require('./translation.json');
 const compoundNames = require('./compundNames.json');
@@ -16,9 +16,11 @@ const driver = require('neo4j-driver').driver(
 );
 
 function countBenAndBent(str) {
-  const matches = str.match(/\b(ben|bent)\b/gi);
-  return matches ? matches.length : 0;
-}
+  const words = str.trim().split(/\s+/);
+  if (words.length < 3) return 0;
+  const interior = words.slice(1, -1);
+  return interior.filter(w => w === 'بن' || w === 'بنت' || w === 'ben' || w === 'bent').length;
+};
 
 export const translateName = (fullName, language = true) => {
   const reverseTranslations = Object.fromEntries(
@@ -44,12 +46,16 @@ export const translateName = (fullName, language = true) => {
 
 function isCompoundName(name) {
   return Object.values(compoundNames).includes(name);
-}
+};
 
 function splitName(fullName) {
-  const parts = fullName.replace(/\s*(بن|بنت)\s*/gi, ' ').trim().split(/\s+/);
+  if (typeof fullName !== 'string') {
+    console.error("fullName is not a string:", fullName);
+    return [];
+  }
+  const parts = fullName.replace(/\s*(بن|بنت|ben|bent)\s*/gi, ' ').trim().split(/\s+/);
   const bentCount = countBenAndBent(fullName);
-
+  console.log(bentCount, parts);
   if (isCompoundName(parts[0] + " " + parts[1])) {
     console.log("It's a compound name!");
   }
@@ -86,7 +92,15 @@ function splitName(fullName) {
   } 
 
   else if (parts.length === 3) {
-    if (bentCount === 1) {
+    if (bentCount === 0) {
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: "",
+          grandfatherName: "",
+          familyName: parts[2]
+        };
+    }
+    else if (bentCount === 1) {
       if (isCompoundName(parts[0]+ " " + parts[1])){
         console.log("COMPUND DETECTED");
         compundName = `${parts[0]} ${parts[1]}`;
@@ -113,8 +127,9 @@ function splitName(fullName) {
           fatherName: parts[1],
           grandfatherName: "",
           familyName: parts[2]
-        };}
-        
+        };
+      }
+
     }
     else if (bentCount === 2) {
       return {
@@ -125,7 +140,6 @@ function splitName(fullName) {
       };
     }
   }
-
   else if (parts.length === 4) {
     if (bentCount === 1) {
       if (isCompoundName(parts[0]+ " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
@@ -168,6 +182,14 @@ function splitName(fullName) {
             fatherName: `${parts[1]} ${parts[2]}`,
             grandfatherName: parts[3],
             familyName: ""
+          };
+        }
+        else if(!isCompoundName(parts[0]+ " " + parts[1]) && !isCompoundName(parts[1] + " " + parts[2])) {
+          return {
+            personName: parts[0],
+            fatherName: parts[1],
+            grandfatherName: parts[2],
+            familyName: parts[3]
           };
         }
     }
@@ -223,7 +245,7 @@ function splitName(fullName) {
       }
   }
   return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] || "" };
-}
+};
 
 const SearchPage = () => {
   const [treeVisible, setTreeVisible] = useState(false);
@@ -231,7 +253,11 @@ const SearchPage = () => {
   const [personDetails, setPersonDetails] = useState(null);
   const [treeData, setTreeData] = useState(null);
   const [error, setError] = useState('');
-  
+  const containerRef = useRef();
+  const [translate, setTranslate] = useState({ x: 500, y: 0 });
+  const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
+
   const getChildrenOfFather = async (fatherId) => {
     const session = driver.session();
     try {
@@ -328,19 +354,24 @@ const SearchPage = () => {
   };
 
   const searchPerson = async (searchText) => {
+    const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
     let translatedInputName = translateName(searchText, false);
-    const { personName, fatherName, grandfatherName, familyName } = splitName(translatedInputName);
-
+    const { personName: personName, fatherName: fatherName, grandfatherName: grandfatherName, familyName: familyName } = splitName(translatedInputName);
+    let translatedpersonName = isArabic(personName) ? translateName(personName, false) : personName;
+    let translatedfatherNamee = isArabic(fatherName) ? translateName(fatherName, false) : fatherName;
+    let translatedgrandfatherName = isArabic(grandfatherName) ? translateName(grandfatherName, false) : grandfatherName;
+    let translatedfamilyName = isArabic(familyName) ? translateName(familyName, false) : familyName;
     let cypherQuery = ``;
     const queryParamsObject = {};
-
-    if (personName){
+    setLoading(true);
+    setLoadingMessage("جاري البحث عن الشخص ...");
+    if (translatedpersonName){
       
-      if (fatherName) {
+      if (translatedfatherNamee) {
         
-        if (grandfatherName) {
+        if (translatedgrandfatherName) {
           
-          if (familyName) {
+          if (translatedfamilyName) {
             
             cypherQuery += `
               MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
@@ -353,10 +384,10 @@ const SearchPage = () => {
               child.isAlive AS lifeStatus, child.YoD AS YoD
             `;
             
-            queryParamsObject.personName = personName;
-            queryParamsObject.fatherName = fatherName;
-            queryParamsObject.grandfatherName = grandfatherName;
-            queryParamsObject.familyName = familyName;
+            queryParamsObject.personName = translatedpersonName;
+            queryParamsObject.fatherName = translatedfatherNamee;
+            queryParamsObject.grandfatherName = translatedgrandfatherName;
+            queryParamsObject.familyName = translatedfamilyName;
             
           } 
           else {
@@ -368,13 +399,13 @@ const SearchPage = () => {
               RETURN child.name AS childName, father.name AS fatherName, grandfather.name AS grandfatherName, 
               child.YoB AS childYoB, child.gender AS childGender, id(child) AS childID, child.isAlive AS lifeStatus, child.YoD AS YoD`;
             
-            queryParamsObject.personName = personName;
-            queryParamsObject.fatherName = fatherName;
-            queryParamsObject.grandfatherName = grandfatherName;
+            queryParamsObject.personName = translatedpersonName;
+            queryParamsObject.fatherName = translatedfatherNamee;
+            queryParamsObject.grandfatherName = translatedgrandfatherName;
           }
           
         } else {
-          if (familyName){
+          if (translatedfamilyName){
             cypherQuery += `
             MATCH (father:Person)-[:FATHER_OF]->(child:Person)
             WHERE child.name = $personName AND 
@@ -391,9 +422,9 @@ const SearchPage = () => {
                   child.isAlive AS lifeStatus, 
                   child.YoD AS YoD
             `;
-            queryParamsObject.personName = personName;
-            queryParamsObject.fatherName = fatherName;
-            queryParamsObject.familyName = familyName;
+            queryParamsObject.personName = translatedpersonName;
+            queryParamsObject.fatherName = translatedfatherNamee;
+            queryParamsObject.familyName = translatedfamilyName;
           }
           else{
             cypherQuery += `
@@ -412,13 +443,13 @@ const SearchPage = () => {
                    child.isAlive AS lifeStatus,
                    child.YoD AS YoD
             `;
-            queryParamsObject.personName = personName;
-            queryParamsObject.fatherName = fatherName;
+            queryParamsObject.personName = translatedpersonName;
+            queryParamsObject.fatherName = translatedfatherNamee;
           }
           }
       }
       else {
-        if (familyName){
+        if (translatedfamilyName){
           cypherQuery += `
           MATCH (child:Person)
           WHERE child.name = $personName AND child.lastName = $familyName
@@ -435,8 +466,8 @@ const SearchPage = () => {
             child.isAlive AS lifeStatus,
             child.YoD AS YoD
         `;
-        queryParamsObject.personName = personName;
-        queryParamsObject.familyName = familyName;
+        queryParamsObject.personName = translatedpersonName;
+        queryParamsObject.familyName = translatedfamilyName;
         }
         else{
           cypherQuery += `
@@ -455,7 +486,7 @@ const SearchPage = () => {
                   child.YoD AS YoD
 
           `;
-          queryParamsObject.personName = personName;
+          queryParamsObject.personName = translatedpersonName;
         }
       }
     }
@@ -464,11 +495,14 @@ const SearchPage = () => {
     try {
       const result = await session.run(cypherQuery, queryParamsObject);
       if (result.records.length === 0) {
+        setLoading(false);
         setError('هذا الشخص ليس مسجل في الشجرة ، الرجاء التحقق من الإسم.');
         setPersonDetails(null);
         return;
       }
       else if (result.records.length === 1) {
+        setLoading(false);
+        setLoadingMessage("تم إيجاد الشخص ...");
         const record = result.records[0];
         let age;
         let YoB = record.get('childYoB');
@@ -479,9 +513,8 @@ const SearchPage = () => {
         else{
           age = new Date().getFullYear() - YoB;
         }
-        
         const childID = record.get("childID").toNumber();
-
+        setLoadingMessage("جاري التحقق من المعلومات ...");
         const motherQuery = await session.run(`
           OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child:Person)
           WHERE id(child) = $childID
@@ -536,6 +569,7 @@ const SearchPage = () => {
         };
     
         setPersonDetails(personDetails);
+        setLoading(false);
         setError('');
     
       } 
@@ -606,14 +640,17 @@ const SearchPage = () => {
         setError('هناك العديد من الأشخاص يحملون نفس الاسم. الرجاء اختيار الشخص الصحيح.');
       }
        else {
+        setLoading(false);
         setPersonDetails(null);
         setError('لم يتم العثور على شخص مطابق.');
       }
     } catch (err) {
+      setLoading(false);
       console.error('Query Error:', err);
       setError('حدث خطأ أثناء البحث.');
       setPersonDetails(null);
     } finally {
+      setLoading(false);
       await session.close();
     }
     
@@ -622,7 +659,15 @@ const SearchPage = () => {
   return (
     <div className="search-page">
       <header className="search-header">
-        <h1>ابحث عن شخص في شجرة العائلة</h1>
+      <h1>إبحث عن الأفراد في شجرة عائلتك</h1>
+        <p>
+          في هذه المخصصة للبحث عن الأفراد، يمكنك الوصول بسهولة إلى معلومات دقيقة عن أي شخص داخل شجرة العائلة،
+           وذلك عبر إدخال أي تركيبة من الأسماء — سواء الاسم الكامل، أو اسم الأب، أو حتى جزء من الاسم. بمجرد إدخال البيانات،
+           إذا تم العثور على الشخص المطلوب، يتم عرض رقمه التسلسلي في الشجرة،
+           إلى جانب اسمه الكامل، واسم والده، واسم والدته.
+           كما يمكن للمستخدم الاطلاع على تفاصيل إضافية تشمل سنة الميلاد، وسنة الوفاة (إن وجدت)، وعمر الشخص، وعدد أبنائه، وعدد إخوته. هذه الصفحة تتيح تجربة بحث متقدمة ودقيقة تُمكّن كل فرد من التعرف بشكل أعمق على جذوره وروابطه العائلية.
+          </p>
+
         <input
           type="text"
           className="search-bar"
@@ -630,200 +675,237 @@ const SearchPage = () => {
           value={searchQuery}
           onChange={handleSearchChange}
         />
-        <button className="search-button" onClick={handleSearchSubmit}>ابحث</button>
+        <div className='buttons'>
+          <button className="search-button" onClick={handleSearchSubmit}>ابحث</button>
+          <button className='reset-button'>إلغاء</button>
+        </div>
+        
       </header>
 
       {error && <div className="error-message">{error}</div>}
-
+      {loading && (
+            <div className="loading-message">
+              <div className="spinner"></div>
+              <p>{loadingMessage}</p>
+            </div>
+      )}
       {personDetails && personDetails.multipleMatches ? (
-  <div className="multiple-matches">
-    <h2>نتائج متعددة:</h2>
-    {personDetails.multipleMatches.map((person, index) => (
-      <div 
-        key={index} 
-        className="match-item"
-        onClick={() => handlePersonSelect(person)}
-        style={{ cursor: 'pointer' }}
-      >
-       <p className='dupPersonName'>{index + 1}- {translateName(person.personName)} بن {translateName(person.fatherName)} بن {translateName(person.grandfatherName)} {translateName(person.familyName)}</p>
-        <hr />
-      </div>
-    ))}
-  </div>
-) : personDetails ? (
-  <div className="person-details">
-    <h2>تفاصيل الشخص : <p id="idPerson"> الرقم التسلسلي : {personDetails.personID}</p></h2>
-
-    
-    <h3>
-      {translateName(personDetails?.personName ?? "غير معروف")}
-      {personDetails?.fatherName
-        ? ` ${personDetails.gender === 'Female' ? 'بنت' : 'بن'} ${translateName(personDetails.fatherName)}`
-        : ''}
-      {personDetails?.grandfatherName
-        ? ` بن ${translateName(personDetails.grandfatherName)}`
-        : ''}
-      {personDetails?.familyName
-        ? ` ${translateName(personDetails.familyName)}`
-        : ''}
-    </h3>
-    <table className="person-details-table">
-      <thead>
-        <tr>
-          <th className='blankHeader'></th>
-          <th>الإسم</th>
-          <th>إسم الأب</th>
-          <th>إسم الجّد</th>
-          <th>إسم العائلة / اللقب</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>الشخص</strong></td>
-          <td><p className='personDetails'>{translateName(personDetails?.personName ?? '') || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails?.fatherName ?? '') || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails?.grandfatherName ?? '') || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails?.familyName ?? '') || 'غير متوفر'}</p></td>
-        </tr>
-        <tr>
-          <td><strong>الأم</strong></td>
-          <td><p className='personDetails'>{translateName(personDetails?.motherName ?? '') || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails?.motherFatherName ?? '') || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails?.motherGrandFatherName ?? '') || 'غير متوفر'}</p></td>
-          <td><p className='personDetails'>{translateName(personDetails?.motherFamilyName ?? '') || 'غير متوفر'}</p></td>
-        </tr>
-      </tbody>
-    </table>
-    <table className="person-details2-table">
-      <thead>
-        <tr>
-          <th>الجنس</th>
-          <th>العمر</th>
-          <th>الحالة المدنية</th>
-          <th>حالة الحياة</th>
-          <th>عدد الأطفال</th>
-          <th>عدد الإخوة</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>{personDetails.gender === 'Male' ? 'ذكر 👨'  : 'أنثى 👩'}</td>
-          <td
-            dangerouslySetInnerHTML={{
-              __html: personDetails.lifeStatus === true
-                ? personDetails.age !== -1
-                  ? personDetails.age === 1
-                    ? `سنة واحدة (مواليد ${new Date().getFullYear() - personDetails.age})`
-                    : personDetails.age === 2
-                    ? `سنتان (مواليد ${new Date().getFullYear() - personDetails.age})`
-                    : personDetails.age >= 3 && personDetails.age <= 10
-                    ? `${personDetails.age} سنوات (مواليد ${new Date().getFullYear() - personDetails.age})`
-                    : `${personDetails.age} سنة (مواليد ${new Date().getFullYear() - personDetails.age})`
-                  : 'العمر غير معروف'
-                : personDetails.hasOwnProperty('YoD') && personDetails.YoD
-                ? personDetails.age !== -1
-                  ? `مواليد سنة ${new Date().getFullYear() - personDetails.age} <br /> 
-                      عاش ${personDetails.YoD - (new Date().getFullYear() - personDetails.age)} سنة <br /> 
-                      توفي في ${personDetails.YoD}`
-                  : `مواليد ${new Date().getFullYear() - personDetails.age} <br /> 
-                      توفي في سنة ${personDetails.YoD}`
-                : personDetails.hasOwnProperty('YoB') && personDetails.YoB
-                ? `مواليد ${personDetails.YoB} <br /> العمر غير معروف`
-                : 'غير متوفر'
-            }}
-          />
-
-          <td>
-            {personDetails.lifeStatus === true
-              ? personDetails.martialStatus === true
-                ? personDetails.gender === 'Male'
-                  ? 'متزوج'
-                  : 'متزوجة'
-                : personDetails.gender === 'Male'
-                ? 'أعزب'
-                : 'عزباء'
-              : '-'}
-          </td>
-          <td>
-          {personDetails.lifeStatus === true 
-            ? (personDetails.gender === 'Male' ? 'حي' : 'حية') 
-            : (personDetails.gender === 'Male' ? 'متوفى' : 'متوفية')}
-          </td>
-        <td>
-        <button id='childrenButton' 
-        onClick={handleShowChildren}>
-          {personDetails.childrenCount === 0 || personDetails.childrenCount == null
-            ? 'ليس لديه أطفال'
-            : personDetails.childrenCount === 1
-            ? 'طفل واحد'
-            : personDetails.childrenCount === 2
-            ? 'طفلان'
-            : personDetails.childrenCount >= 3 && personDetails.childrenCount <= 10
-            ? `${personDetails.childrenCount} أطفال`
-            : `${personDetails.childrenCount} طفلا`
-          }
-        </button>
-        
-      </td>
-      <td>
-        {personDetails.siblingsCountsRecord === 0 || personDetails.siblingsCountsRecord == null
-          ? 'ليس لديه إخوة'
-          : personDetails.siblingsCountsRecord === 1
-          ? `أخٌ واحدٌ (${2})`
-          : personDetails.siblingsCountsRecord === 2
-          ? `أخوان (${2})`
-          : personDetails.siblingsCountsRecord >= 3 && personDetails.siblingsCountsRecord <= 10
-          ? `${personDetails.siblingsCountsRecord} إخوة`
-          : `${personDetails.siblingsCountsRecord} أخا`}
-      </td>
-
-        </tr>
-      </tbody>
-    </table>
-    <div className="tree-wrapper">
-        <div className='titleTree'>
-
+        <div className="multiple-matches">
+          <h2>نتائج متعددة:</h2>
+          {personDetails.multipleMatches.map((person, index) => (
+            <div 
+              key={index} 
+              className="match-item"
+              onClick={() => handlePersonSelect(person)}
+              style={{ cursor: 'pointer' }}
+            >
+            <p className='dupPersonName'>{index + 1}- {translateName(person.personName)} بن {translateName(person.fatherName)} بن {translateName(person.grandfatherName)} {translateName(person.familyName)}</p>
+              <hr />
+            </div>
+          ))}
         </div>
-      
-      {treeData && (
-        <div className="tree-container">
-          <Tree
-            data={treeData}
-            orientation="vertical"
-            pathFunc="step"
-            nodeSize={{ x: 60, y: 100 }}
-            separation={{ siblings: 2, nonSiblings: 2 }}
-            translate={{ x: 325, y: 27 }} 
-            scaleExtent={{ min: 1, max: 1 }} // Disable zooming
-            renderCustomNodeElement={({ nodeDatum }) => (
-              <g className="tree-node">
-                <title>{nodeDatum.id}</title>
-                <rect
-                  className="tree-node-rect"
-                  x="-50"
-                  y="-20"
-                  width="100"
-                  height="40"
-                />
-                <text className="tree-node-text" x="0" y="5">
-                  {translateName(nodeDatum.name)}
-                </text>
-              </g>
-            )}
-          />
+        ) : personDetails ? (
+        <div className="person-details">
+          <div className='titles'>
+            <h2>تفاصيل الشخص : <p id="idPerson"> الرقم التسلسلي : <span className='highlight-id'>{personDetails.personID}</span></p></h2>
+            <h3>
+              {translateName(personDetails?.personName ?? "غير معروف")}
+              {personDetails?.fatherName
+                ? ` ${personDetails.gender === 'Female' ? 'بنت' : 'بن'} ${translateName(personDetails.fatherName)}`
+                : ''}
+              {personDetails?.grandfatherName
+                ? ` بن ${translateName(personDetails.grandfatherName)}`
+                : ''}
+              {personDetails?.familyName
+                ? ` ${translateName(personDetails.familyName)}`
+                : ''}
+            </h3>
+          </div>
+          <div className='personTables'>
+            <table className="person-details-table">
+              <thead>
+                <tr>
+                  <th className='blankHeader'></th>
+                  <th>الإسم</th>
+                  <th>إسم الأب</th>
+                  <th>إسم الجّد</th>
+                  <th>إسم العائلة / اللقب</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td id="person"><strong>الشخص</strong></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.personName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.fatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.grandfatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.familyName ?? '') || 'غير متوفر'}</p></td>
+                </tr>
+                <tr>
+                  <td id="mother"><strong>الأم</strong></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.motherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.motherFatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.motherGrandFatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{translateName(personDetails?.motherFamilyName ?? '') || 'غير متوفر'}</p></td>
+                </tr>
+              </tbody>
+            </table>
+            <table className="person-details2-table">
+              <thead>
+                <tr>
+                  <th>الجنس</th>
+                  <th>العمر</th>
+                  <th>الحالة المدنية</th>
+                  <th>حالة الحياة</th>
+                  <th>عدد الأطفال</th>
+                  <th>عدد الإخوة</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{personDetails.gender === 'Male' ? 'ذكر 👨'  : 'أنثى 👩'}</td>
+                  <td
+                    dangerouslySetInnerHTML={{
+                      __html: personDetails.lifeStatus === true
+                        ? personDetails.age !== -1
+                          ? personDetails.age === 1
+                            ? `سنة واحدة (مواليد ${new Date().getFullYear() - personDetails.age})`
+                            : personDetails.age === 2
+                            ? `سنتان (مواليد ${new Date().getFullYear() - personDetails.age})`
+                            : personDetails.age >= 3 && personDetails.age <= 10
+                            ? `${personDetails.age} سنوات (مواليد ${new Date().getFullYear() - personDetails.age})`
+                            : `${personDetails.age} سنة (مواليد ${new Date().getFullYear() - personDetails.age})`
+                          : 'العمر غير معروف'
+                        : personDetails.hasOwnProperty('YoD') && personDetails.YoD
+                        ? personDetails.age !== -1
+                          ? `مواليد سنة ${new Date().getFullYear() - personDetails.age} <br /> 
+                              عاش ${personDetails.YoD - (new Date().getFullYear() - personDetails.age)} سنة <br /> 
+                              توفي في ${personDetails.YoD}`
+                          : `مواليد ${new Date().getFullYear() - personDetails.age} <br /> 
+                              توفي في سنة ${personDetails.YoD}`
+                        : personDetails.hasOwnProperty('YoB') && personDetails.YoB
+                        ? `مواليد ${personDetails.YoB} <br /> العمر غير معروف`
+                        : 'غير متوفر'
+                    }}
+                  />
+                  <td>
+                    {personDetails.lifeStatus === true
+                      ? personDetails.martialStatus === true
+                        ? personDetails.gender === 'Male'
+                          ? 'متزوج'
+                          : 'متزوجة'
+                        : personDetails.gender === 'Male'
+                        ? 'أعزب'
+                        : 'عزباء'
+                      : '-'}
+                  </td>
+                  <td>
+                  {personDetails.lifeStatus === true 
+                    ? (personDetails.gender === 'Male' ? 'حي' : 'حية') 
+                    : (personDetails.gender === 'Male' ? 'متوفى' : 'متوفية')}
+                  </td>
+                <td>
+                <button id='childrenButton' 
+                onClick={handleShowChildren}>
+                  {personDetails.childrenCount === 0 || personDetails.childrenCount == null
+                    ? 'ليس لديه أطفال'
+                    : personDetails.childrenCount === 1
+                    ? 'طفل واحد'
+                    : personDetails.childrenCount === 2
+                    ? 'طفلان'
+                    : personDetails.childrenCount >= 3 && personDetails.childrenCount <= 10
+                    ? `${personDetails.childrenCount} أطفال`
+                    : `${personDetails.childrenCount} طفلا`
+                  }
+                </button>
+                
+              </td>
+              <td>
+                {personDetails.siblingsCountsRecord === 0 || personDetails.siblingsCountsRecord == null
+                  ? 'ليس لديه إخوة'
+                  : personDetails.siblingsCountsRecord === 1
+                  ? `أخٌ واحدٌ (${2})`
+                  : personDetails.siblingsCountsRecord === 2
+                  ? `أخوان (${2})`
+                  : personDetails.siblingsCountsRecord >= 3 && personDetails.siblingsCountsRecord <= 10
+                  ? `${personDetails.siblingsCountsRecord} إخوة`
+                  : `${personDetails.siblingsCountsRecord} أخا`}
+              </td>
+
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="tree-wrapper" ref={containerRef}>
+          <div className='titleTree'>
+
+          </div>
+          
+          {treeData && !loading && (
+            <div className="tree-container">
+              <Tree
+                data={treeData}
+                orientation="vertical"
+                pathFunc="step"
+                nodeSize={{ x: 60, y: 100 }}
+                separation={{ siblings: 2, nonSiblings: 2 }}
+                translate={translate}
+                scaleExtent={{ min: 1, max: 1 }} // Disable zooming
+                renderCustomNodeElement={
+                ({ nodeDatum }) => (
+                  <g className="tree-node">
+                    <title>{nodeDatum.id}</title>
+                    <rect
+                      className="tree-node-rect"
+                      x="-50"
+                      y="-20"
+                      width="100"
+                      height="40"
+                      styles={{
+                        fill: "#ffffff",
+                        
+                        rx: '10',
+                        ry: '10',
+                        stroke: '#4a90e2',
+                        strokeWidth: '2.5px'
+                      }}
+                    />
+                    <text className="tree-node-text" x="0" y="5"
+                    style={{
+                      fontSize: '16px',
+                      fontFamily: 'Cairo',
+                      fill: '#333',
+                      textAnchor: 'middle',
+                      dominantBaseline: 'middle',
+                      letterSpacing: '1px',
+                      strokeWidth: '1px',
+                      pointerEvents: 'none',
+                    }}
+                    >
+                      {translateName(nodeDatum.name)}
+                    </text>
+                  </g>
+                )}
+              />
+            </div>
+          )}
+      </div>
+    </div>
+      ) : (
+        <div className="no-results">
         </div>
       )}
-    </div>
-
+  <div>  
   </div>
-) : (
-  <div className="no-results">
-    <p>لا توجد نتائج للبحث.</p>
-  </div>
-)}
-  <div>
-    
-  </div>
+      <div className='tipsFooter'>
+        <p class="minor-tip">💡 يمكنك البحث باستخدام الاسم الكامل أو جزء منه فقط.</p>
+        <p class="minor-tip">🔍 إذا لم تجد الشخص، جرّب كتابة اسم الأب أو الجد أيضاً.</p>
+        <p class="minor-tip">📛 تأكد من عدم وجود أخطاء إملائية في الأسماء المدخلة.</p>
+        <p class="minor-tip">🔒 جميع المعلومات محفوظة ولا تُستخدم إلا لأغراض توثيق العائلة.</p>
+        <p class="minor-tip">🔒 إذا أرّدت إخفاء بعض من معطياتك الشخصية ، عليك فقط التواصل معنا ، اننا نحترم خصوصيتك.</p>
+        <p class="minor-tip">🤝 إذا لاحظت خطأ في المعلومات، ساعدنا بتحديثها عبر التواصل معنا.</p>
+        <p class="minor-tip">📚 هذا الموقع لا يزال قيد التطوير، سيتم إضافة المزيد من الميزات قريباً.</p>
+      </div>
     </div>
   );
 };

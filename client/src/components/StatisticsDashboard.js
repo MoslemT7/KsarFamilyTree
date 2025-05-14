@@ -952,7 +952,12 @@ const StatisticsDashboard = () => {
 
   }, [topFamilies]);
 
-  if (loading) return <p className="loading-text">جاري تحميل الإحصائيات...</p>;
+  if (loading) return (
+    <div className="loading-container">
+      <div className="spinner"></div>
+      <p className="loading-message">جاري تحميل الإحصائيات... الرجاء الانتظار</p>
+    </div>
+  );
   if (!stats) return <p>تعذر تحميل البيانات.</p>;
 
   return (

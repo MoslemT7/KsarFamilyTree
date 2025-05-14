@@ -7,8 +7,23 @@ import SearchPage from './components/SearchPage'; // Correct import
 import WeddingPage from './components/weddings';
 import MainPage from './components/mainPage';
 import './styles.css';  // Import styles
+import { useEffect } from "react";
 
 const App = () => {
+  useEffect(() => {
+    // Load theme from localStorage on mount
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      document.body.classList.add("dark-mode");
+    }
+  }, []);
+
+  const toggleDarkMode = () => {
+    document.body.classList.toggle("dark-mode");
+    const isDark = document.body.classList.contains("dark-mode");
+    localStorage.setItem("theme", isDark ? "light" : "dark");
+  };
+
   return (
     <div className="app-container">
       <Router>
@@ -19,7 +34,14 @@ const App = () => {
           </div>
           <div className="title">
             <h1>موقع قصر أولاد بوبكر</h1>
-            <h2>التاريخ | العلاقات | التقاليد</h2>
+            <div>
+              <h2>التاريخ | العلاقات | التقاليد</h2>
+              <label class="toggle-switch">
+                <input type="checkbox" id="darkModeToggle" onClick={toggleDarkMode}></input>
+                <span class="slider"></span>
+              </label>
+            </div>
+            
           </div>
         </div>
 
@@ -46,7 +68,6 @@ const App = () => {
             <Route path="/statistics" element={<StatisticsDashboard />} />
             <Route path="/relation-checker" element={<RelationPage />} />
             <Route path="/weddingsDates" element={<WeddingPage />} />
-
           </Routes>
         </div>
       </div>
