@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
 import React, { useRef } from 'react';
-import './StatisticsDashboard.css';
+import '../styles/StatisticsDashboard.css';
 import Chart from 'chart.js/dist/chart.js';
-const translations = require('./translation.json');
-
+import * as utils from '../utils/utils';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -308,19 +307,6 @@ const SexCount = async () => {
     }
 };
 
-export const translateName = (fullName, language = true) => {
-  const nameParts = fullName.split(' ');
-
-const reverseTranslations = Object.fromEntries(
-  Object.entries(translations).map(([key, value]) => [value, key])
-);
-
-  const dict = language ? translations : reverseTranslations;
-
-  const translatedParts = nameParts.map(part => dict[part] || part);
-
-  return translatedParts.join(' ');
-};
 
 const totalAlivePopulation = async () => {
     const session = driver.session();
@@ -472,6 +458,7 @@ const familiesNumber = async () => {
       await session.close();
     }
 }
+
 const StatisticsDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -964,7 +951,8 @@ const StatisticsDashboard = () => {
       <section className="statistics-dashboard">
 
         <h2 class="dashboard-title">لوحة الإحصائيات العامة</h2>
-
+        <p>صفحة الإحصائيات هي مصدر شامل يقدم مجموعة متنوعة من البيانات والرسوم البيانية التي تسلط الضوء على مختلف جوانب المجتمع. تشمل الصفحة نظرة عامة عن التعداد السكاني، الهيكل العائلي، التوزيع الجغرافي، والتوجهات الديموغرافية. كما توفر تفاصيل حول نسبة الجنس، متوسط الأعمار، وأنماط الزواج، بالإضافة إلى تحليل مفصل حول الظروف الاقتصادية والاجتماعية. من خلال الرسوم البيانية التفاعلية والمخططات المبتكرة، يتمكن المستخدمون من استكشاف الإحصائيات بسهولة ومعرفة التوجهات التاريخية والمقارنات مع المتوسطات المحلية والعالمية. تُعتبر هذه الصفحة أداة قيمة لفهم التغيرات الاجتماعية والاقتصادية في المجتمع وتتبع التطورات المستقبلية.
+        </p>
         <div class="category-block population-overview">
           <h3 class="category-title">نظرة عامة على السكان</h3>
           <div class="stats-grid">
@@ -983,10 +971,10 @@ const StatisticsDashboard = () => {
           <div className="stat-card">
             <h4>أكبر فرد</h4>
             <p className="stat-number">
-              {translateName(stats.oldestPerson.name || '')}{" "}
-              {translateName(stats.oldestPerson.lastName || '')} بن{" "} 
-              {translateName(stats.oldestPerson.fatherName || '')} بن{" "}
-              {translateName(stats.oldestPerson.grandfatherName || '')}
+              {utils.translateName(stats.oldestPerson.name || '')}{" "}
+              {utils.translateName(stats.oldestPerson.lastName || '')} بن{" "} 
+              {utils.translateName(stats.oldestPerson.fatherName || '')} بن{" "}
+              {utils.translateFamilyName(stats.oldestPerson.grandfatherName || '')}
             </p>
             <p className="stat-note">
               {stats.oldestPerson.age} سنة
@@ -995,10 +983,10 @@ const StatisticsDashboard = () => {
             <div class="stat-card"> 
               <h4>أكبر فرد</h4>
               <p className="stat-number">
-                {translateName(stats.youngestPerson.name || '')}{" "}
-                {translateName(stats.youngestPerson.lastName || '')} بن{" "} 
-                {translateName(stats.youngestPerson.fatherName || '')} بن{" "}
-                {translateName(stats.youngestPerson.grandfatherName || '')}
+                {utils.translateName(stats.youngestPerson.name || '')}{" "}
+                {utils.translateName(stats.youngestPerson.lastName || '')} بن{" "} 
+                {utils.translateName(stats.youngestPerson.fatherName || '')} بن{" "}
+                {utils.translateFamilyName(stats.youngestPerson.grandfatherName || '')}
               </p>
               <p className="stat-note">
                 {stats.youngestPerson.age} سنة
@@ -1014,7 +1002,7 @@ const StatisticsDashboard = () => {
           <h3 class="category-title">بنية العائلة</h3>
           <div class="stats-grid">
             <div class="stat-card"> <h4>متوسط عدد الأطفال لكل عائلة</h4> <p class="stat-number">{stats.averageChildrenPerFamily}</p> </div>
-            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number"> عائلة {translateName(stats.biggestFamily.fatherName)} {translateName(stats.biggestFamily.FatherLastName)}  </p>
+            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number"> عائلة {utils.translateName(stats.biggestFamily.fatherName)} {utils.translateFamilyName(stats.biggestFamily.FatherLastName)}  </p>
             <p className="stat-note"> {stats.biggestFamily.childrenCount} أبناء </p>  </div>
             <div class="stat-card"> <h4>عدد العائلات بـ 6 أطفال أو أكثر</h4> <p class="stat-number">{stats.sixPlusFamilies}</p> </div>
             <div class="stat-card average-marriage-card">
@@ -1077,7 +1065,7 @@ const StatisticsDashboard = () => {
         </div>
         <div class="fun-fact">
           <h2 class="fun-chart">{stats.mostUsedFamilyNameCount.occurences}</h2>
-          <p>{stats.mostUsedFamilyNameCount.occurences} شخص، يحملون لقب <strong>{translateName(stats.mostUsedFamilyNameCount.familyName)}</strong>   كأكثر لقب شائع، ويمثل  
+          <p>{stats.mostUsedFamilyNameCount.occurences} شخص، يحملون لقب <strong>{utils.translateName(stats.mostUsedFamilyNameCount.familyName)}</strong>   كأكثر لقب شائع، ويمثل  
              <strong>{(((stats.mostUsedFamilyNameCount.occurences))*100/stats.totalPopulation).toFixed(1)}% </strong> من السكان.</p>
         </div>
         <div class="fun-fact">
@@ -1095,7 +1083,7 @@ const StatisticsDashboard = () => {
         <div class="fun-fact">
           <h2 class="fun-chart">{stats.topAbroadCountryCount.countryCount}</h2>
           <p>
-          يُقيم <strong>{stats.topAbroadCountryCount.countryCount}</strong> شخصًا من أبناء قصر أولاد بوبكر في <strong>{stats.topAbroadCountryCount.countryName}</strong>، مما يجعلها الوجهة الأجنبية الأكثر استقطابًا لأبناء البلدة في المهجر.
+          يُقيم <strong>{stats.topAbroadCountryCount.countryCount}</strong> شخصًا من أبناء قصر أولاد بوبكر في <strong>{utils.translateCountry(stats.topAbroadCountryCount.countryName)}</strong>، مما يجعلها الوجهة الأجنبية الأكثر استقطابًا لأبناء البلدة في المهجر.
           </p>
         </div>
         <br>

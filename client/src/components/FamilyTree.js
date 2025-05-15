@@ -1,10 +1,8 @@
 import React, { useEffect, useState , useRef, use } from 'react';
 import Tree from 'react-d3-tree';
-import './FamilyTree.css';
+import '../styles/FamilyTree.css';
 import neo4j from 'neo4j-driver';
-
-const translations = require('./translation.json');
-const compundNames = require('./compundNames.json');
+import * as utils from '../utils/utils';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
@@ -15,9 +13,6 @@ const driver = neo4j.driver(
 );
 
 let uniqueKeyCounter = 0;
-export const translateName = (name) => {
-  return translations[name] || compundNames[name] || name;
-};
 
 const renderFamilyTree = (person, parentId = null, level = 0) => {
   const uniqueKey = `${person.name}-${person.lastName}-${parentId}-${level}-${uniqueKeyCounter++}`;
@@ -44,12 +39,12 @@ const fetchFamilyTree = async () => {
       WHERE id(root) = 17
       CALL {
         WITH root
-        MATCH (root)-[:FATHER_OF|MOTHER_OF*]->(descendant)
+        MATCH (root)-[:FATHER_OF*]->(descendant)
         RETURN collect(DISTINCT descendant) AS allDescendants
       }
       WITH root, allDescendants
       UNWIND [root] + allDescendants AS person
-      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF*]->(child)
+      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(child)
       WITH person, collect(child) AS children
       RETURN {
         id: id(person),
@@ -114,7 +109,7 @@ const buildTree = (person, allPeople) => {
     
     return {
       id: person.id,
-      name: translateName(person.name),
+      name: utils.translateName(person.name),
       children: children.length > 0 ? children : undefined,
     };
 };
@@ -209,7 +204,6 @@ const FamilyTree = ({ searchQuery }) => {
   };
 
   const loadFamilyTree = async (rootID) => {
-    
     try {
       setLoading(true);
       const people = await fetchFamilyTree();

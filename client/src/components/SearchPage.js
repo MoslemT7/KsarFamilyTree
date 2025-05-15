@@ -1,9 +1,7 @@
 import React, {useRef,  useState, useEffect } from 'react';
 import "../styles/SearchPage.css"
 import Tree from 'react-d3-tree';
-const translations = require('./translation.json');
-const compoundNames = require('./compundNames.json');
-
+import * as utils from '../utils/utils';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -13,238 +11,6 @@ const driver = require('neo4j-driver').driver(
     neo4jURI,
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
-
-function countBenAndBent(str) {
-  const words = str.trim().split(/\s+/);
-  if (words.length < 3) return 0;
-  const interior = words.slice(1, -1);
-  return interior.filter(w => w === 'بن' || w === 'بنت' || w === 'ben' || w === 'bent').length;
-};
-
-export const translateName = (fullName, language = true) => {
-  const reverseTranslations = Object.fromEntries(
-    Object.entries(translations).map(([key, value]) => [value, key])
-  );
-  const reverseCompound = Object.fromEntries(
-    Object.entries(compoundNames).map(([key, value]) => [value, key])
-  );
-
-  const dict = language ? translations : reverseTranslations;
-  const compoundDict = language ? compoundNames : reverseCompound;
-
-  const normalized = fullName.trim().replace(/\s+/g, ' ');
-  if (compoundDict[normalized]) {
-    return compoundDict[normalized];
-  }
-
-  const nameParts = normalized.split(' ');
-  const translatedParts = nameParts.map(part => dict[part] || part);
-
-  return translatedParts.join(' ');
-};
-
-function isCompoundName(name) {
-  return Object.values(compoundNames).includes(name);
-};
-
-function splitName(fullName) {
-  if (typeof fullName !== 'string') {
-    console.error("fullName is not a string:", fullName);
-    return [];
-  }
-  const parts = fullName.replace(/\s*(بن|بنت|ben|bent)\s*/gi, ' ').trim().split(/\s+/);
-  const bentCount = countBenAndBent(fullName);
-  console.log(bentCount, parts);
-  if (isCompoundName(parts[0] + " " + parts[1])) {
-    console.log("It's a compound name!");
-  }
-  let compundName;
-
-  if (parts.length === 2) {
-    if (bentCount === 0) {
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        compundName = `${parts[0]} ${parts[1]}`;
-        return {
-          personName: compundName,
-          fatherName: "",
-          grandfatherName: "",
-          familyName: ""
-        };
-      }
-      else{
-        return {
-          personName: parts[0],
-          fatherName: "",
-          grandfatherName: "",
-          familyName: parts[1]
-        };
-      }
-    } 
-    else if (bentCount === 1) {
-      return {
-        personName: parts[0],
-        fatherName: parts[1],
-        grandfatherName: "",
-        familyName: ""
-      };
-    }
-  } 
-
-  else if (parts.length === 3) {
-    if (bentCount === 0) {
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: "",
-          grandfatherName: "",
-          familyName: parts[2]
-        };
-    }
-    else if (bentCount === 1) {
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        console.log("COMPUND DETECTED");
-        compundName = `${parts[0]} ${parts[1]}`;
-        return {
-          personName: compundName,
-          fatherName: parts[2],
-          grandfatherName: "",
-          familyName: ""
-        };
-      }
-      else if (isCompoundName(parts[1]+ " " + parts[2])){
-          console.log("COMPUND DETECTED");
-          compundName = `${parts[1]} ${parts[2]}`;
-          return {
-            personName: parts[0],
-            fatherName: compundName,
-            grandfatherName: "",
-            familyName: ""
-          };
-        }
-      else{
-        return {
-          personName: parts[0],
-          fatherName: parts[1],
-          grandfatherName: "",
-          familyName: parts[2]
-        };
-      }
-
-    }
-    else if (bentCount === 2) {
-      return {
-        personName: parts[0],
-        fatherName: parts[1],
-        grandfatherName: parts[2],
-        familyName: ""
-      };
-    }
-  }
-  else if (parts.length === 4) {
-    if (bentCount === 1) {
-      if (isCompoundName(parts[0]+ " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: "",
-          familyName: ""
-        };
-      }
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: parts[2],
-          grandfatherName: "",
-          familyName: parts[3]
-        };
-      }
-      if (isCompoundName(parts[1]+ " " + parts[2])){
-        return {
-          personName: parts[0],
-          fatherName: `${parts[1]} ${parts[2]}`,
-          grandfatherName: "",
-          familyName: parts[3]
-        };
-      }
-    }
-    else if (bentCount === 2){
-        if (isCompoundName(parts[0]+ " " + parts[1])){
-          return {
-            personName: `${parts[0]} ${parts[1]}`,
-            fatherName: parts[2],
-            grandfatherName: parts[3],
-            familyName: ""
-          };
-        }
-        if (isCompoundName(parts[1] + " " + parts[2])){
-          return {
-            personName: parts[0],
-            fatherName: `${parts[1]} ${parts[2]}`,
-            grandfatherName: parts[3],
-            familyName: ""
-          };
-        }
-        else if(!isCompoundName(parts[0]+ " " + parts[1]) && !isCompoundName(parts[1] + " " + parts[2])) {
-          return {
-            personName: parts[0],
-            fatherName: parts[1],
-            grandfatherName: parts[2],
-            familyName: parts[3]
-          };
-        }
-    }
-  }
-  else if (parts.length === 5) {
-    if (bentCount === 2){
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: parts[2],
-          grandfatherName: parts[3],
-          familyName: parts[4]
-        };
-      }
-      if (isCompoundName(parts[1] + " " + parts[2])){
-        return {
-          personName: parts[0],
-          fatherName: `${parts[1]} ${parts[2]}`,
-          grandfatherName: parts[3],
-          familyName: parts[4]
-        };
-      }
-      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: parts[4],
-          familyName: ""
-        };
-      }
-    }
-  }
-  else if (parts.length === 6) {
-    if (bentCount === 2){
-      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3]) && isCompoundName(parts[4]+ " " + parts[5])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: `${parts[4]} ${parts[5]}`,
-          familyName: ""
-        };
-      }
-    }
-  }
-  else if (parts.length === 7) {
-      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3]) && isCompoundName(parts[4]+ " " + parts[5])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: `${parts[4]} ${parts[5]}`,
-          familyName: parts[6]
-        };
-      }
-  }
-  return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] || "" };
-};
 
 const SearchPage = () => {
   const [treeVisible, setTreeVisible] = useState(false);
@@ -357,12 +123,12 @@ const SearchPage = () => {
   };
   const searchPerson = async (searchText) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
-    let translatedInputName = translateName(searchText, false);
-    const { personName: personName, fatherName: fatherName, grandfatherName: grandfatherName, familyName: familyName } = splitName(translatedInputName);
-    let translatedpersonName = isArabic(personName) ? translateName(personName, false) : personName;
-    let translatedfatherNamee = isArabic(fatherName) ? translateName(fatherName, false) : fatherName;
-    let translatedgrandfatherName = isArabic(grandfatherName) ? translateName(grandfatherName, false) : grandfatherName;
-    let translatedfamilyName = isArabic(familyName) ? translateName(familyName, false) : familyName;
+    let translatedInputName = utils.translateName(searchText, false);
+    const { personName: personName, fatherName: fatherName, grandfatherName: grandfatherName, familyName: familyName } = utils.splitName(translatedInputName);
+    let translatedpersonName = isArabic(personName) ? utils.translateName(personName, false) : personName;
+    let translatedfatherNamee = isArabic(fatherName) ? utils.translateName(fatherName, false) : fatherName;
+    let translatedgrandfatherName = isArabic(grandfatherName) ? utils.translateName(grandfatherName, false) : grandfatherName;
+    let translatedfamilyName = isArabic(familyName) ? utils.translateFamilyName(familyName, false) : familyName;
     let cypherQuery = ``;
     const queryParamsObject = {};
     setLoading(true);
@@ -701,7 +467,11 @@ const SearchPage = () => {
               onClick={() => handlePersonSelect(person)}
               style={{ cursor: 'pointer' }}
             >
-            <p className='dupPersonName'>{index + 1}- {translateName(person.personName)} بن {translateName(person.fatherName)} بن {translateName(person.grandfatherName)} {translateName(person.familyName)}</p>
+            <p className='dupPersonName'>{index + 1}- 
+              {utils.translateName(person.personName)} بن 
+              {utils.translateName(person.fatherName)} بن 
+              {utils.translateName(person.grandfatherName)} 
+              {utils.translateFamilyName(person.familyName)}</p>
               <hr />
             </div>
           ))}
@@ -711,15 +481,15 @@ const SearchPage = () => {
           <div className='titles'>
             <h2>تفاصيل الشخص : <p id="idPerson"> الرقم التسلسلي : <span className='highlight-id'>{personDetails.personID}</span></p></h2>
             <h3>
-              {translateName(personDetails?.personName ?? "غير معروف")}
+              {utils.translateName(personDetails?.personName ?? "غير معروف")}
               {personDetails?.fatherName
-                ? ` ${personDetails.gender === 'Female' ? 'بنت' : 'بن'} ${translateName(personDetails.fatherName)}`
+                ? ` ${personDetails.gender === 'Female' ? 'بنت' : 'بن'} ${utils.translateName(personDetails.fatherName)}`
                 : ''}
               {personDetails?.grandfatherName
-                ? ` بن ${translateName(personDetails.grandfatherName)}`
+                ? ` بن ${utils.translateName(personDetails.grandfatherName)}`
                 : ''}
               {personDetails?.familyName
-                ? ` ${translateName(personDetails.familyName)}`
+                ? ` ${utils.translateFamilyName(personDetails.familyName)}`
                 : ''}
             </h3>
           </div>
@@ -737,17 +507,17 @@ const SearchPage = () => {
               <tbody>
                 <tr>
                   <td id="person"><strong>الشخص</strong></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.personName ?? '') || 'غير متوفر'}</p></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.fatherName ?? '') || 'غير متوفر'}</p></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.grandfatherName ?? '') || 'غير متوفر'}</p></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.familyName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateName(personDetails?.personName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateName(personDetails?.fatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateName(personDetails?.grandfatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateFamilyName(personDetails?.familyName ?? '') || 'غير متوفر'}</p></td>
                 </tr>
                 <tr>
                   <td id="mother"><strong>الأم</strong></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.motherName ?? '') || 'غير متوفر'}</p></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.motherFatherName ?? '') || 'غير متوفر'}</p></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.motherGrandFatherName ?? '') || 'غير متوفر'}</p></td>
-                  <td><p className='personDetails'>{translateName(personDetails?.motherFamilyName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateName(personDetails?.motherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateName(personDetails?.motherFatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateName(personDetails?.motherGrandFatherName ?? '') || 'غير متوفر'}</p></td>
+                  <td><p className='personDetails'>{utils.translateFamilyName(personDetails?.motherFamilyName ?? '') || 'غير متوفر'}</p></td>
                 </tr>
               </tbody>
             </table>
@@ -884,7 +654,7 @@ const SearchPage = () => {
                       pointerEvents: 'none',
                     }}
                     >
-                      {translateName(nodeDatum.name)}
+                      {utils.translateName(nodeDatum.name)}
                     </text>
                   </g>
                 )}

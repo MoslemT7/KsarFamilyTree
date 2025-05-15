@@ -1,6 +1,6 @@
 // WeddingDatesPage.jsx
 import React, { useState } from 'react';
-import './wedding.css';
+import '../styles/wedding.css';
 
 const WeddingPage = () => {
   const [weddings, setWeddings] = useState([]);

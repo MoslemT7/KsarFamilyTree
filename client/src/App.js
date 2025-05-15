@@ -7,7 +7,7 @@ import SearchPage from './components/SearchPage'; // Correct import
 import WeddingPage from './components/weddings';
 import CommingSoon from './index';
 import MainPage from './components/mainPage';
-import './styles.css';  // Import styles
+import './styles/app.css';  // Import styles
 import { useEffect, useState } from "react";
 
 const App = () => {

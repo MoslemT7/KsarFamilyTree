@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Tree from 'react-d3-tree';
-import './RelationChecker.css';
-const translations = require('./translation.json');
-const compoundNames = require('./compundNames.json');
+import '../styles/RelationChecker.css';
+import * as utils from '../utils/utils';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -13,271 +12,6 @@ const driver = require('neo4j-driver').driver(
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
 const session = driver.session();
-
-function countBenAndBent(str) {
-  const words = str.trim().split(/\s+/);
-  if (words.length < 3) return 0;
-  const interior = words.slice(1, -1);
-  return interior.filter(w => w === 'بن' || w === 'بنت').length;
-};
-
-function isCompoundName(name) {
-  return Object.values(compoundNames).includes(name);
-};
-
-function splitName(fullName) {
-  if (typeof fullName !== 'string') {
-    console.error("fullName is not a string:", fullName);
-    return [];
-  }
-  const parts = fullName.replace(/\s*(بن|بنت)\s*/gi, ' ').trim().split(/\s+/);
-  const bentCount = countBenAndBent(fullName);
-  console.log(bentCount, parts);
-  if (isCompoundName(parts[0] + " " + parts[1])) {
-    console.log("It's a compound name!");
-  }
-  let compundName;
-
-  if (parts.length === 2) {
-    if (bentCount === 0) {
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        compundName = `${parts[0]} ${parts[1]}`;
-        return {
-          personName: compundName,
-          fatherName: "",
-          grandfatherName: "",
-          familyName: ""
-        };
-      }
-      else{
-        return {
-          personName: parts[0],
-          fatherName: "",
-          grandfatherName: "",
-          familyName: parts[1]
-        };
-      }
-    } 
-    else if (bentCount === 1) {
-      return {
-        personName: parts[0],
-        fatherName: parts[1],
-        grandfatherName: "",
-        familyName: ""
-      };
-    }
-  } 
-
-  else if (parts.length === 3) {
-    if (bentCount === 0) {
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: "",
-          grandfatherName: "",
-          familyName: parts[2]
-        };
-    }
-    else if (bentCount === 1) {
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        console.log("COMPUND DETECTED");
-        compundName = `${parts[0]} ${parts[1]}`;
-        return {
-          personName: compundName,
-          fatherName: parts[2],
-          grandfatherName: "",
-          familyName: ""
-        };
-      }
-      else if (isCompoundName(parts[1]+ " " + parts[2])){
-          console.log("COMPUND DETECTED");
-          compundName = `${parts[1]} ${parts[2]}`;
-          return {
-            personName: parts[0],
-            fatherName: compundName,
-            grandfatherName: "",
-            familyName: ""
-          };
-        }
-      else{
-        return {
-          personName: parts[0],
-          fatherName: parts[1],
-          grandfatherName: "",
-          familyName: parts[2]
-        };
-      }
-
-    }
-    else if (bentCount === 2) {
-      return {
-        personName: parts[0],
-        fatherName: parts[1],
-        grandfatherName: parts[2],
-        familyName: ""
-      };
-    }
-  }
-  else if (parts.length === 4) {
-    if (bentCount === 1) {
-      if (isCompoundName(parts[0]+ " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: "",
-          familyName: ""
-        };
-      }
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: parts[2],
-          grandfatherName: "",
-          familyName: parts[3]
-        };
-      }
-      if (isCompoundName(parts[1]+ " " + parts[2])){
-        return {
-          personName: parts[0],
-          fatherName: `${parts[1]} ${parts[2]}`,
-          grandfatherName: "",
-          familyName: parts[3]
-        };
-      }
-    }
-    else if (bentCount === 2){
-        if (isCompoundName(parts[0]+ " " + parts[1])){
-          return {
-            personName: `${parts[0]} ${parts[1]}`,
-            fatherName: parts[2],
-            grandfatherName: parts[3],
-            familyName: ""
-          };
-        }
-        if (isCompoundName(parts[1] + " " + parts[2])){
-          return {
-            personName: parts[0],
-            fatherName: `${parts[1]} ${parts[2]}`,
-            grandfatherName: parts[3],
-            familyName: ""
-          };
-        }
-        else if(!isCompoundName(parts[0]+ " " + parts[1]) && !isCompoundName(parts[1] + " " + parts[2])) {
-          return {
-            personName: parts[0],
-            fatherName: parts[1],
-            grandfatherName: parts[2],
-            familyName: parts[3]
-          };
-        }
-    }
-  }
-  else if (parts.length === 5) {
-    if (bentCount === 2){
-      if (isCompoundName(parts[0]+ " " + parts[1])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: parts[2],
-          grandfatherName: parts[3],
-          familyName: parts[4]
-        };
-      }
-      if (isCompoundName(parts[1] + " " + parts[2])){
-        return {
-          personName: parts[0],
-          fatherName: `${parts[1]} ${parts[2]}`,
-          grandfatherName: parts[3],
-          familyName: parts[4]
-        };
-      }
-      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: parts[4],
-          familyName: ""
-        };
-      }
-    }
-  }
-  else if (parts.length === 6) {
-    if (bentCount === 2){
-      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3]) && isCompoundName(parts[4]+ " " + parts[5])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: `${parts[4]} ${parts[5]}`,
-          familyName: ""
-        };
-      }
-    }
-  }
-  else if (parts.length === 7) {
-      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3]) && isCompoundName(parts[4]+ " " + parts[5])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: `${parts[4]} ${parts[5]}`,
-          familyName: parts[6]
-        };
-      }
-  }
-  return { personName: parts[0], fatherName: "", grandfatherName: "", familyName: parts[1] || "" };
-};
-
-function buildTreePath(path) {
-  if (path.length === 0) return null;
-
-  return path.reduceRight((acc, person) => {
-    return {
-      id: (person.id).toNumber(),
-      name: `${person.name} ${person.lastName}`,
-      children: acc ? [acc] : []
-    };
-  }, null);
-};
-
-function mergePaths(pathToP1, pathToP2) {
-  if (pathToP1.length === 0 && pathToP2.length === 0) return null;
-  const ancestor = pathToP1[0]; 
-  const branch1 = pathToP1.slice(1);
-  const branch2 = pathToP2.slice(1);
-
-  const children = [];
-  if (branch1.length > 0) {
-    children.push(buildTreePath(branch1));
-  }
-  if (branch2.length > 0) {
-    children.push(buildTreePath(branch2));
-  }
-  return {
-    id: (ancestor.id).toNumber(),
-    name: `${ancestor.name} ${ancestor.lastName}`,
-    children: children.length > 0 ? children : undefined
-  }
-}
-
-export const translateName = (fullName, language = true) => {
-  const reverseTranslations = Object.fromEntries(
-    Object.entries(translations).map(([key, value]) => [value, key])
-  );
-  const reverseCompound = Object.fromEntries(
-    Object.entries(compoundNames).map(([key, value]) => [value, key])
-  );
-
-  const dict = language ? translations : reverseTranslations;
-  const compoundDict = language ? compoundNames : reverseCompound;
-
-  const normalized = fullName.trim().replace(/\s+/g, ' ');
-  if (compoundDict[normalized]) {
-    return compoundDict[normalized];
-  }
-
-  const nameParts = normalized.split(' ');
-  const translatedParts = nameParts.map(part => dict[part] || part);
-
-  return translatedParts.join(' ');
-};
-
 
 const RelationPage = () => {
   const [person1, setPerson1] = useState('');
@@ -291,62 +25,62 @@ const RelationPage = () => {
   const [loadingMessage, setLoadingMessage] = useState("");
 
   const fetchRelationship = async (e, customPerson1 = person1, customPerson2 = person2) => {
-  if (e) e.preventDefault();
+    if (e) e.preventDefault();
 
-  console.log("🚀 fetchRelationship START");
-  console.log("➡️ person1:", customPerson1);
-  console.log("➡️ person2:", customPerson2);
+    console.log("🚀 fetchRelationship START");
+    console.log("➡️ person1:", customPerson1);
+    console.log("➡️ person2:", customPerson2);
 
-  if (!customPerson1 || !customPerson2) {
-    console.error("❌ One of the names is undefined or empty");
-    setError(true);
-    setRelationship({ relationshipDescription: 'أدخل اسمي الشخصين بشكل صحيح', relationshipScore: null });
-    return;
-  }
-
-  setLoading(true);
-  setError(false);
-  setLoadingMessage("🔎 بداية البحث عن العلاقة...");
-
-  try {
-    const result = await getRelationship(customPerson1, customPerson2);
-
-    console.log("✅ Result received:", result);
-
-    if (result.error === 'non-unique-name') {
-      setSelectedPerson1(null);
-      setSelectedPerson2(null);
-      setDuplicates(result.duplicates ?? { person1: [], person2: [] });
-      setRelationship(result.message);
+    if (!customPerson1 || !customPerson2) {
+      console.error("❌ One of the names is undefined or empty");
+      setError(true);
+      setRelationship({ relationshipDescription: 'أدخل اسمي الشخصين بشكل صحيح', relationshipScore: null });
       return;
     }
 
-    setDuplicates({ person1: [], person2: [] });
-    setRelationship({
-      relationshipDescription: result.relation,
-      relationshipPerson1Details: result.person1 ?? null,
-      relationshipPerson2Details: result.person2 ?? null,
-      relationshipScore: result.score ?? null,
-      relationshipLevels: result.levelsTuple ?? null,
-      relationshipGenerationGap: result.generation ?? null,
-      relationshipExplanationType: result.explanation?.type ?? null,
-      relationshipExplanationDesc: result.explanation?.explanation ?? null,
-      relationshipType: result.relationshipType ?? null,
-      commonAncestor: result.ancestor ?? null,
-      ancestorstreeData: result.treeData ?? null,
-      person1ID: result.person1ID ?? null,
-      person2ID: result.person2ID ?? null
-    });
-  } catch (error) {
-    console.error('❌ Error fetching relationship:', error);
-    setRelationship({ relationshipDescription: 'حدث خطأ أثناء البحث', relationshipScore: null });
-    setError(true);
-  } finally {
-    console.log("🛑 fetchRelationship END");
-    setLoading(false);
-  }
-};
+    setLoading(true);
+    setError(false);
+    setLoadingMessage("🔎 بداية البحث عن العلاقة...");
 
+    try {
+      const result = await getRelationship(customPerson1, customPerson2);
+
+      console.log("✅ Result received:", result);
+
+      if (result.error === 'non-unique-name') {
+        setSelectedPerson1(null);
+        setSelectedPerson2(null);
+        setDuplicates(result.duplicates ?? { person1: [], person2: [] });
+        setRelationship(result.message);
+        return;
+      }
+
+      setDuplicates({ person1: [], person2: [] });
+      setRelationship({
+        relationshipDescription: result.relation,
+        relationshipPerson1Details: result.person1 ?? null,
+        relationshipPerson2Details: result.person2 ?? null,
+        relationshipScore: result.score ?? null,
+        relationshipLevels: result.levelsTuple ?? null,
+        relationshipGenerationGap: result.generation ?? null,
+        relationshipExplanationType: result.explanation?.type ?? null,
+        relationshipExplanationDesc: result.explanation?.explanation ?? null,
+        relationshipType: result.relationshipType ?? null,
+        commonAncestor: result.ancestor ?? null,
+        ancestorstreeData: result.treeData ?? null,
+        person1ID: result.person1ID ?? null,
+        person2ID: result.person2ID ?? null
+      });
+    } catch (error) {
+      console.error('❌ Error fetching relationship:', error);
+      setRelationship({ relationshipDescription: 'حدث خطأ أثناء البحث', relationshipScore: null });
+      setError(true);
+    } finally {
+      console.log("🛑 fetchRelationship END");
+      setLoading(false);
+    }
+  };
+ 
   const findRelationship = async (person1ID, person2ID, gender1, gender2, translatedName1, translatedName2, person1Matches, person2Matches) => {
     let relationshipType;
     let relation = '', score = 0;
@@ -383,881 +117,862 @@ const RelationPage = () => {
     ];
 
     let marraigeRecord = await checkMarriage(person1ID, person2ID, gender1, gender2);
-      if (marraigeRecord.areMarried === true){
-        let relation = '';
-        let score = 100;
-        if (gender1 === 'Male'){
-          relation = `${translatedName1} هو زوج ${translatedName2}`;
-        }
-        else{
-          relation = `${translatedName1} هي زوجة ${translatedName2}`;
-        }
-        setLoading(false);
+    if (marraigeRecord.areMarried === true){
+      let relation = '';
+      let score = 100;
+      if (gender1 === 'Male'){
+        relation = `${translatedName1} هو زوج ${translatedName2}`;
+      }
+      else{
+        relation = `${translatedName1} هي زوجة ${translatedName2}`;
+      }
+      setLoading(false);
+      console.log(relation);
+      relationshipType = "Marriage";
+      explanation = relationshipType[4];
+      return {relation, score, relationshipType, explanation, person1: person1Matches[0], person2: person2Matches[0]}
+    } 
+    else {
+      console.log("Checking relations");
+      let relationRecord = await getAncestors(person1ID, person2ID);
+      if (relationRecord === null){
+        console.log("There's no common ancestor between these.");
+        let relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
         console.log(relation);
-        relationshipType = "Marriage";
-        explanation = relationshipType[4];
-        return {relation, score, relationshipType, explanation, person1: person1Matches[0], person2: person2Matches[0]}
-      } 
-      else {
-        console.log("Checking relations");
-        let relationRecord = await getAncestors(person1ID, person2ID);
-        if (relationRecord === null){
-          console.log("There's no common ancestor between these.");
-          let relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
-          console.log(relation);
-          if (relation){
-            console.log("Relaition found.");
-            relationshipType = "Marriage-related";
-            explanation = relationshipType[3];
-            return {relation, relationshipType, explanation, person1: person1Matches[0], person2: person2Matches[0]};
-          }
-          else {
-            setError("لا يوجد اي قاسم مشترك أو علاقة مشتركة بين هاذين الشخصين.");
-            setError(true);
-            return 'لا توجد اي علاقة بين هاذين الشخصين';
-          } 
+        if (relation){
+          console.log("Relaition found.");
+          relationshipType = "Marriage-related";
+          explanation = relationshipType[3];
+          return {relation, relationshipType, explanation, person1: person1Matches[0], person2: person2Matches[0]};
         }
-        else{
-          const ancestorID = relationRecord.id;
-          const ancestorName = relationRecord.name ? translateName(relationRecord.name) : '';
-          const ancestorLastName = relationRecord.lastName ? translateName(relationRecord.lastName) : '';
-          const ancestorFatherName = relationRecord.fatherName ? translateName(relationRecord.fatherName) : '';
-          const ancestorGrandFatherName = relationRecord.grandfatherName ? translateName(relationRecord.grandfatherName) : '';
-          const ancestorGender = relationRecord.gender;
-          let levelFromP1, levelFromP2, pathFromAncestorToP1, pathFromAncestorToP2;
-          let spouseOfAncestor = relationRecord.spouseOfAncestor;
-          const ancestor = {ancestorID, 
-                          ancestorName, ancestorFatherName, ancestorGrandFatherName, ancestorLastName, ancestorGender};
-          console.log(ancestor);
-          ({
-            levelFromP1, 
-            levelFromP2,
-            spouseOfAncestor,
-            pathFromAncestorToP1, 
-            pathFromAncestorToP2 
-          } = relationRecord);
-          let pathToP1 = pathFromAncestorToP1;
-          let pathToP2 = pathFromAncestorToP2;
-          if ((spouseOfAncestor !== null) && (ancestorID !== person1ID) && (ancestorID !== person2ID)) {
-              pathToP1[0] = {
-                  id: spouseOfAncestor.id,
-                  name: spouseOfAncestor.name,
-                  lastName: spouseOfAncestor.lastName,
-                  gender: spouseOfAncestor.gender
-              };
-              pathToP2[0] = {
-                  id: spouseOfAncestor.id,
-                  name: spouseOfAncestor.name,
-                  lastName: spouseOfAncestor.lastName,
-                  gender: spouseOfAncestor.gender
-              };
+        else {
+          setError("لا يوجد اي قاسم مشترك أو علاقة مشتركة بين هاذين الشخصين.");
+          setError(true);
+          return 'لا توجد اي علاقة بين هاذين الشخصين';
+        } 
+      }
+      else{
+        const ancestorID = relationRecord.id;
+        const ancestorName = relationRecord.name ? utils.translateName(relationRecord.name) : '';
+        const ancestorLastName = relationRecord.lastName ? utils.translateName(relationRecord.lastName) : '';
+        const ancestorFatherName = relationRecord.fatherName ? utils.translateName(relationRecord.fatherName) : '';
+        const ancestorGrandFatherName = relationRecord.grandfatherName ? utils.translateName(relationRecord.grandfatherName) : '';
+        const ancestorGender = relationRecord.gender;
+        let levelFromP1, levelFromP2, pathFromAncestorToP1, pathFromAncestorToP2;
+        let spouseOfAncestor = relationRecord.spouseOfAncestor;
+        const ancestor = {ancestorID, 
+                        ancestorName, ancestorFatherName, ancestorGrandFatherName, ancestorLastName, ancestorGender};
+        console.log(ancestor);
+        ({
+          levelFromP1, 
+          levelFromP2,
+          spouseOfAncestor,
+          pathFromAncestorToP1, 
+          pathFromAncestorToP2 
+        } = relationRecord);
+        let pathToP1 = pathFromAncestorToP1;
+        let pathToP2 = pathFromAncestorToP2;
+        if ((spouseOfAncestor !== null) && (ancestorID !== person1ID) && (ancestorID !== person2ID)) {
+            pathToP1[0] = {
+                id: spouseOfAncestor.id,
+                name: spouseOfAncestor.name,
+                lastName: spouseOfAncestor.lastName,
+                gender: spouseOfAncestor.gender
+            };
+            pathToP2[0] = {
+                id: spouseOfAncestor.id,
+                name: spouseOfAncestor.name,
+                lastName: spouseOfAncestor.lastName,
+                gender: spouseOfAncestor.gender
+            };
+        }
+        
+        const treeData = utils.mergePaths(pathToP1, pathToP2);
+        console.log(pathFromAncestorToP1.reverse().map(a => a.name).join(" ben "));
+        console.log(pathFromAncestorToP2.reverse().map(a => a.name).join(" ben "));
+    
+        var p1Level = levelFromP1;
+        var p2Level = levelFromP2;
+        const gender1 = pathToP1[0].gender;
+        const gender2 = pathToP2[0].gender;
+        
+        console.log(`Level: (${p1Level}, ${p2Level})`);
+        setLoadingMessage("جاري البحث عن العلاقة بين الشخصين");
+        /// SIMPLE RELATIONSHIP
+        if (p1Level === 0 && p2Level === 1) {
+          if (gender1 === 'Male'){
+            relation = `${translatedName1} هو والد ${translatedName2}`;
           }
-          
-          const treeData = mergePaths(pathToP1, pathToP2);
-          console.log(pathFromAncestorToP1.reverse().map(a => a.name).join(" ben "));
-          console.log(pathFromAncestorToP2.reverse().map(a => a.name).join(" ben "));
-      
-          var p1Level = levelFromP1;
-          var p2Level = levelFromP2;
-          const gender1 = pathToP1[0].gender;
-          const gender2 = pathToP2[0].gender;
-          
-          console.log(`Level: (${p1Level}, ${p2Level})`);
-          setLoadingMessage("جاري البحث عن العلاقة بين الشخصين");
-          if (p1Level === 0 && p2Level === 1) {
-            if (gender1 === 'Male'){
-              relation = `${translatedName1} هو والد ${translatedName2}`;
-            }
-            else{
-              relation = `${translatedName1} هي والدة ${translatedName2}`;
-            }
-            score = 100;
-            explanation = relationshipType[0];
+          else{
+            relation = `${translatedName1} هي والدة ${translatedName2}`;
           }
-      
-          else if (p1Level === 1 && p2Level === 0) {
-            if (gender1 === 'Male'){
-              relation = `${translatedName1} هو ابن ${translatedName2}`;
-            }
-            else{
-              relation = `${translatedName1} هي إبنة ${translatedName2}`;
-            }
-            score = 100;
-            explanation = relationshipExplanation[0];
-          } 
-      
-          else if (p1Level === 2 && p2Level === 0) {
-            if (gender1 === 'Male'){
-              relation = `${translatedName1} هو حفيد ${translatedName2}`;
-            }
-            else{
-              relation = `${translatedName1} هي حفيدة ${translatedName2}`;
-            }
-            score = 90;
-            explanation = relationshipExplanation[0];
+          score = 100;
+          explanation = relationshipType[0];
+        }
+    
+        else if (p1Level === 1 && p2Level === 0) {
+          if (gender1 === 'Male'){
+            relation = `${translatedName1} هو ابن ${translatedName2}`;
           }
+          else{
+            relation = `${translatedName1} هي إبنة ${translatedName2}`;
+          }
+          score = 100;
+          explanation = relationshipExplanation[0];
+        } 
+        
+        else if (p1Level === 2 && p2Level === 0) {
+          if (gender1 === 'Male'){
+            relation = `${translatedName1} هو حفيد ${translatedName2}`;
+          }
+          else{
+            relation = `${translatedName1} هي حفيدة ${translatedName2}`;
+          }
+          score = 90;
+          explanation = relationshipExplanation[0];
+        }
 
-          else if (p1Level === 0 && p2Level === 2) {
-            if (gender1 === 'Male'){
-              relation = `${translatedName1} هو جدّ ${translatedName2}`;
-            }
-            else{
-              relation = `${translatedName1} هي جدّة ${translatedName2}`;
-            }
-            score = 90;
-            explanation = relationshipExplanation[0];
+        else if (p1Level === 0 && p2Level === 2) {
+          if (gender1 === 'Male'){
+            relation = `${translatedName1} هو جدّ ${translatedName2}`;
           }
-      
-          else if (p1Level === 3 && p2Level === 0) {
-            if (gender1 === 'Male'){
-              relation = `${translatedName1} هو إبن حفيد ${translatedName2}`;
-            }
-            else{
-              relation = `${translatedName1} هي إبنة حفيدة ${translatedName2}`;
-            }
-            score = 75;
-            explanation = relationshipExplanation[1];
+          else{
+            relation = `${translatedName1} هي جدّة ${translatedName2}`;
           }
-      
-          else if (p1Level === 0 && p2Level === 3) {
-            if (gender1 === 'Male'){
-              relation = `${translatedName1} و جد والد ${translatedName2}`;
-            }
-            else{
-              relation = `${translatedName1} هي جدة والدة ${translatedName2}`;
-            }
-            score = 80;
-            explanation = relationshipExplanation[0];
-          } 
-          
-          else if (p1Level === 0 && p2Level === 4){ // ADD FROM MOTHER FROM FATHER GRANDFATHER 
-            const p2GreatAncestorGender = pathToP1[2].gender;
-            if (gender1 === 'Male'){
-              if (p2GreatAncestorGender === 'Male'){
-                relation = `${translatedName1} هو جد جد ${translatedName2}`;
-              }
-              else{
-                relation = `${translatedName1} هو جد جدة ${translatedName2}`;
-              }
-            }
-            else{
-              if (p2GreatAncestorGender === 'Male'){
-                relation = `${translatedName1} هي جدة جد ${translatedName2}`;
-              }
-              else{
-                relation = `${translatedName1} هي جدة جدة ${translatedName2}`;
-              }
-            }
-            score = 70;
-            explanation = relationshipExplanation[2];
+          score = 90;
+          explanation = relationshipExplanation[0];
+        }
+    
+        else if (p1Level === 3 && p2Level === 0) {
+          if (gender1 === 'Male'){
+            relation = `${translatedName1} هو إبن حفيد ${translatedName2}`;
           }
+          else{
+            relation = `${translatedName1} هي إبنة حفيدة ${translatedName2}`;
+          }
+          score = 75;
+          explanation = relationshipExplanation[1];
+        }
+    
+        else if (p1Level === 0 && p2Level === 3) {
+          if (gender1 === 'Male'){
+            relation = `${translatedName1} و جد والد ${translatedName2}`;
+          }
+          else{
+            relation = `${translatedName1} هي جدة والدة ${translatedName2}`;
+          }
+          score = 80;
+          explanation = relationshipExplanation[0];
+        } 
+        
+        else if (p1Level === 0 && p2Level === 4){ // ADD FROM MOTHER FROM FATHER GRANDFATHER 
+          const p2GreatAncestorGender = pathToP1[2].gender;
+          if (gender1 === 'Male'){
+            if (p2GreatAncestorGender === 'Male'){
+              relation = `${translatedName1} هو جد جد ${translatedName2}`;
+            }
+            else{
+              relation = `${translatedName1} هو جد جدة ${translatedName2}`;
+            }
+          }
+          else{
+            if (p2GreatAncestorGender === 'Male'){
+              relation = `${translatedName1} هي جدة جد ${translatedName2}`;
+            }
+            else{
+              relation = `${translatedName1} هي جدة جدة ${translatedName2}`;
+            }
+          }
+          score = 70;
+          explanation = relationshipExplanation[2];
+        }
 
-          else if (p1Level === 4 && p2Level === 0){ // ADD FROM MOTHER FROM FATHER GRANDFATHER 
-            const p1GreatAncestorGender = pathToP1[2].gender;
-            if (gender1 === 'Male'){
-              if (p1GreatAncestorGender === 'Male'){
-                relation = `${translatedName1} هو حفيد حفيد ${translatedName2}`;
-              }
-              else{
-                relation = `${translatedName1} هو حفيد حفيدة ${translatedName2}`;
-              }
+        else if (p1Level === 4 && p2Level === 0){ // ADD FROM MOTHER FROM FATHER GRANDFATHER 
+          const p1GreatAncestorGender = pathToP1[2].gender;
+          if (gender1 === 'Male'){
+            if (p1GreatAncestorGender === 'Male'){
+              relation = `${translatedName1} هو حفيد حفيد ${translatedName2}`;
             }
             else{
-              if (p1GreatAncestorGender === 'Male'){
-                relation = `${translatedName1} هي حفيدة حفيد ${translatedName2}`;
-              }
-              else{
-                relation = `${translatedName1} هي حفيدة حفيد ${translatedName2}`;
-              }
+              relation = `${translatedName1} هو حفيد حفيدة ${translatedName2}`;
             }
-            score = 70;
-            explanation = relationshipExplanation[2];
           }
-
-          else if (p1Level === 1 && p2Level === 1) {
-            if (gender1 === 'Male' && gender2 === 'Male'){
-              relation = `${translatedName1} و ${translatedName2} إخوة`;
-            }
-            else if (gender1 === 'Female' && gender2 === 'Female'){
-              relation = `${translatedName1} و ${translatedName2} أخوات`;
+          else{
+            if (p1GreatAncestorGender === 'Male'){
+              relation = `${translatedName1} هي حفيدة حفيد ${translatedName2}`;
             }
             else{
-              relation = `${translatedName1} و ${translatedName2} إخوة`;
+              relation = `${translatedName1} هي حفيدة حفيد ${translatedName2}`;
             }
-            score = 98;
-            explanation = relationshipExplanation[0];
-          } 
-          
-          else if (p1Level === 2 && p2Level === 1) {
-            const p1AncestorGender = pathToP1[1].gender;
-            if (gender1 === 'Male'){
-              if (p1AncestorGender === 'Male'){
-                relation = `${translatedName1} هو ابن أخ ${translatedName2}`;
-              }
-              else{
-                relation = `${translatedName1} هو ابن أخت ${translatedName2}`;
-              }
-              score = 93;
-            }
-            else{
-              if (p1AncestorGender === 'Male'){
-                relation = `${translatedName1} هي ابنة أخ ${translatedName2}`;
-              }
-              else{
-                relation = `${translatedName1} هي ابنة أخت ${translatedName2}`;
-              }
-              score = 93;
-              explanation = relationshipExplanation[1];
-            }
-          } 
-          
-          else if (p1Level === 1 && p2Level === 2) {
-            const p2AncestorGender = pathToP2[1].gender;
-            if (gender1 === 'Male'){
-              if (p2AncestorGender === 'Male'){
-                relation = `${translatedName1} هو عم ${translatedName2}`;
-                score = 95;
-              }
-              else{
-                relation = `${translatedName1} هو خال ${translatedName2}`;
-                score = 94;
-              }
-            }
-            else{
-              if (p2AncestorGender === 'Male'){
-                relation = `${translatedName1} هي عمة ${translatedName2}`;
-                score = 95;
-              }
-              else{
-                relation = `${translatedName1} هي خالة ${translatedName2}`;
-                score = 94;
-              }
-            }
-            explanation = relationshipExplanation[1];
           }
+          score = 70;
+          explanation = relationshipExplanation[2];
+        }
+
+        else if (p1Level === 4 && p2Level === 1) {
+          const p1GreatAncestorGender = pathToP1[2].gender;
+          const p1GreatGrandAncestorGender = pathToP1[3].gender;
           
-          else if (p1Level === 1 && p2Level === 3){
-            const p2AncestorGender = pathToP2[1].gender;
-            const p2GreatAncestorGender = pathToP2[2].gender;
-
-            if (gender1 === 'Male'){
-              if (p2AncestorGender === 'Male'){
-                if (p2GreatAncestorGender === 'Male'){
-                  relation = `${translatedName1} هو عم والد ${translatedName2}`;
-                  score = 80;
-                }
-                else {
-                  relation = `${translatedName1} هو خال والد ${translatedName2}`;
-                  score = 75;
-                }
-              }
-              else{
-                if (p2GreatAncestorGender === 'Male'){
-                  relation = `${translatedName1} هو عم والدة ${translatedName2}`;
-                  score = 80;
-                }
-                else {
-                  relation = `${translatedName1} هو خال والدة ${translatedName2}`;
-                  score = 70;
-                }
-              }
-            } 
-            else{
-              if (p2AncestorGender === 'Male'){
-                if (p2GreatAncestorGender === 'Male'){
-                  relation = `${translatedName1} هي عمة والد ${translatedName2}`;
-                  score = 80;
-                }
-                else {
-                  relation = `${translatedName1} هي خالة والد ${translatedName2}`;
-                  score = 75
-                }
-              }
-              else{
-                if (p2GreatAncestorGender === 'Male'){
-                  relation = `${translatedName1} هي عمة والدة ${translatedName2}`;
-                  score = 80;
-                }
-                else {
-                  relation = `${translatedName1} هي خالة والدة ${translatedName2}`;
-                  score = 75;
-                }
-              }
-            }
-            explanation = relationshipExplanation[2];
-          }
-
-          else if (p1Level === 1 && p2Level === 4) {
-            const p2AncestorGender = pathToP2[1].gender;
-            const p2GreatAncestorGender = pathToP2[2].gender;
-            const p2GreatGrandAncestorGender = pathToP2[3].gender;
-            
-            if (gender1 === 'Male') {
-              if (p2AncestorGender === 'Male') {
-                if (p2GreatAncestorGender === 'Male') {
-                  if (p2GreatGrandAncestorGender === 'Male') {
-                    relation = `${translatedName1} هو عم جد والد ${translatedName2}`;
-                    score = 85;
-                  } else {
-                    relation = `${translatedName1} هو عم جد والد ${translatedName2}`;
-                    score = 80;
-                  }
-                } else {
-                  relation = `${translatedName1} هو خال جد والد ${translatedName2}`;
-                  score = 75;
-                }
-              } else {
-                if (p2GreatAncestorGender === 'Male') {
-                  relation = `${translatedName1} هو عم جد والدة ${translatedName2}`;
+          if (gender1 === 'Male'){
+              if (p1GreatAncestorGender === 'Male') {
+                if (p1GreatGrandAncestorGender === 'Male') {
+                  relation = `${translatedName1} هو حفيد إبن أخ ${translatedName2}`;
                   score = 85;
                 } else {
-                  relation = `${translatedName1} هو خال جد والدة ${translatedName2}`;
-                  score = 70;
+                  relation = `${translatedName1} هو حفيد إبن أخت ${translatedName2}`;
+                  score = 80;
                 }
+              } 
+              else {
+                if (p1GreatGrandAncestorGender === 'Male') {
+                  relation = `${translatedName1} هو حفيد إبنة أخ ${translatedName2}`;
+                  score = 85;
+                } else {
+                  relation = `${translatedName1} هو حفيد إبنة أخت ${translatedName2}`;
+                  score = 80;
+                }
+              }
+          } 
+          else {
+            if (p1GreatAncestorGender === 'Male') {
+                if (p1GreatGrandAncestorGender === 'Male') {
+                  relation = `${translatedName1} هي حفيدة إبن أخ ${translatedName2}`;
+                  score = 85;
+                } else {
+                  relation = `${translatedName1} هي حفيدة إبن أخت ${translatedName2}`;
+                  score = 80;
+                }
+              } 
+              else {
+                if (p1GreatGrandAncestorGender === 'Male') {
+                  relation = `${translatedName1} هي حفيدة إبنة أخ ${translatedName2}`;
+                  score = 85;
+                } else {
+                  relation = `${translatedName1} هي حفيدة إبنة أخت ${translatedName2}`;
+                  score = 80;
+                }
+              }
+          }
+          explanation = relationshipExplanation[2];
+        }
+
+        else if (p1Level === 1 && p2Level === 1) {
+          if (gender1 === 'Male' && gender2 === 'Male'){
+            relation = `${translatedName1} و ${translatedName2} إخوة`;
+          }
+          else if (gender1 === 'Female' && gender2 === 'Female'){
+            relation = `${translatedName1} و ${translatedName2} أخوات`;
+          }
+          else{
+            relation = `${translatedName1} و ${translatedName2} إخوة`;
+          }
+          score = 98;
+          explanation = relationshipExplanation[0];
+        } 
+        
+        else if (p1Level === 2 && p2Level === 1) {
+          const p1AncestorGender = pathToP1[1].gender;
+          if (gender1 === 'Male'){
+            if (p1AncestorGender === 'Male'){
+              relation = `${translatedName1} هو ابن أخ ${translatedName2}`;
+            }
+            else{
+              relation = `${translatedName1} هو ابن أخت ${translatedName2}`;
+            }
+          }
+          else{
+            if (p1AncestorGender === 'Male'){
+              relation = `${translatedName1} هي ابنة أخ ${translatedName2}`;
+            }
+            else{
+              relation = `${translatedName1} هي ابنة أخت ${translatedName2}`;
+            }
+            
+          }
+          score = 93;
+          explanation = relationshipExplanation[1];
+        } 
+        
+        else if (p1Level === 1 && p2Level === 2) {
+          const p2AncestorGender = pathToP2[1].gender;
+          if (gender1 === 'Male'){
+            if (p2AncestorGender === 'Male'){
+              relation = `${translatedName1} هو عم ${translatedName2}`;
+              score = 95;
+            }
+            else{
+              relation = `${translatedName1} هو خال ${translatedName2}`;
+              score = 94;
+            }
+          }
+          else{
+            if (p2AncestorGender === 'Male'){
+              relation = `${translatedName1} هي عمة ${translatedName2}`;
+              score = 95;
+            }
+            else{
+              relation = `${translatedName1} هي خالة ${translatedName2}`;
+              score = 94;
+            }
+          }
+          explanation = relationshipExplanation[1];
+        }
+        
+        else if (p1Level === 1 && p2Level === 3){
+          const p2AncestorGender = pathToP2[1].gender;
+          const p2GreatAncestorGender = pathToP2[2].gender;
+
+          if (gender1 === 'Male'){
+            if (p2AncestorGender === 'Male'){
+              if (p2GreatAncestorGender === 'Male'){
+                relation = `${translatedName1} هو عم والد ${translatedName2}`;
+                score = 80;
+              }
+              else {
+                relation = `${translatedName1} هو خال والد ${translatedName2}`;
+                score = 75;
+              }
+            }
+            else{
+              if (p2GreatAncestorGender === 'Male'){
+                relation = `${translatedName1} هو عم والدة ${translatedName2}`;
+                score = 80;
+              }
+              else {
+                relation = `${translatedName1} هو خال والدة ${translatedName2}`;
+                score = 70;
+              }
+            }
+          } 
+          else{
+            if (p2AncestorGender === 'Male'){
+              if (p2GreatAncestorGender === 'Male'){
+                relation = `${translatedName1} هي عمة والد ${translatedName2}`;
+                score = 80;
+              }
+              else {
+                relation = `${translatedName1} هي خالة والد ${translatedName2}`;
+                score = 75
+              }
+            }
+            else{
+              if (p2GreatAncestorGender === 'Male'){
+                relation = `${translatedName1} هي عمة والدة ${translatedName2}`;
+                score = 80;
+              }
+              else {
+                relation = `${translatedName1} هي خالة والدة ${translatedName2}`;
+                score = 75;
+              }
+            }
+          }
+          explanation = relationshipExplanation[2];
+        }
+
+        else if (p1Level === 1 && p2Level === 4) {
+          const p2AncestorGender = pathToP2[1].gender;
+          const p2GreatAncestorGender = pathToP2[2].gender;
+          const p2GreatGrandAncestorGender = pathToP2[3].gender;
+          
+          if (gender1 === 'Male') {
+            if (p2AncestorGender === 'Male') {
+              if (p2GreatAncestorGender === 'Male') {
+                if (p2GreatGrandAncestorGender === 'Male') {
+                  relation = `${translatedName1} هو عم جد والد ${translatedName2}`;
+                  score = 85;
+                } else {
+                  relation = `${translatedName1} هو عم جد والد ${translatedName2}`;
+                  score = 80;
+                }
+              } else {
+                relation = `${translatedName1} هو خال جد والد ${translatedName2}`;
+                score = 75;
               }
             } else {
-              if (p2AncestorGender === 'Male') {
-                if (p2GreatAncestorGender === 'Male') {
-                  if (p2GreatGrandAncestorGender === 'Male') {
-                    relation = `${translatedName1} هي عمة جد والد ${translatedName2}`;
-                    score = 85;
-                  } else {
-                    relation = `${translatedName1} هي عمة جد والد ${translatedName2}`;
-                    score = 80;
-                  }
-                } else {
-                  relation = `${translatedName1} هي خالة جد والد ${translatedName2}`;
-                  score = 75;
-                }
+              if (p2GreatAncestorGender === 'Male') {
+                relation = `${translatedName1} هو عم جد والدة ${translatedName2}`;
+                score = 85;
               } else {
-                if (p2GreatAncestorGender === 'Male') {
-                  relation = `${translatedName1} هي عمة جد والدة ${translatedName2}`;
+                relation = `${translatedName1} هو خال جد والدة ${translatedName2}`;
+                score = 70;
+              }
+            }
+          } else {
+            if (p2AncestorGender === 'Male') {
+              if (p2GreatAncestorGender === 'Male') {
+                if (p2GreatGrandAncestorGender === 'Male') {
+                  relation = `${translatedName1} هي عمة جد والد ${translatedName2}`;
                   score = 85;
                 } else {
-                  relation = `${translatedName1} هي خالة جد والدة ${translatedName2}`;
-                  score = 70;
-                }
-              }
-            }
-            explanation = relationshipExplanation[2];
-          }
-          
-          else if (p1Level === 2 && p2Level === 4) {
-            const p2AncestorGender = pathToP2[1].gender;
-            const p2GreatAncestorGender = pathToP2[2].gender; 
-
-            if (gender1 === 'Male') {
-              if (p2AncestorGender === 'Male') {
-                if (p2GreatAncestorGender === 'Male') {
-                  relation = `${translatedName1} هو جد الأول وجد جد ${translatedName2} إخوة`;
-                  score = 90;
-                } else {
-                  relation = `${translatedName1} هو جد الأول وجدة جد ${translatedName2} إخوة`;
-                  score = 70;
+                  relation = `${translatedName1} هي عمة جد والد ${translatedName2}`;
+                  score = 80;
                 }
               } else {
-                if (p2GreatAncestorGender === 'Male') {
-                  relation = `${translatedName1} هو جد الأول وجدة جد ${translatedName2} إخوة`;
-                  score = 70;
-                } else {
-                  relation = `${translatedName1} هو جد الأول وجدة جد ${translatedName2} إخوة`;
-                  score = 70;
-                }
+                relation = `${translatedName1} هي خالة جد والد ${translatedName2}`;
+                score = 75;
               }
-            } 
-            else {
-              if (p2AncestorGender === 'Male') {
-                if (p2GreatAncestorGender === 'Male') {
-                  relation = `${translatedName1} هي جدة الأول وجد جد ${translatedName2} إخوة`;
-                  score = 70;
-                } else {
-                  relation = `${translatedName1} هي جدة الأول وجدة جد ${translatedName2} إخوة`;
-                  score = 70;
-                }
+            } else {
+              if (p2GreatAncestorGender === 'Male') {
+                relation = `${translatedName1} هي عمة جد والدة ${translatedName2}`;
+                score = 85;
               } else {
-                if (p2GreatAncestorGender === 'Male') {
-                  relation = `${translatedName1} هي جدة الأول وجدة جد ${translatedName2} إخوة`;
-                  score = 70;
-                } else {
-                  relation = `${translatedName1} هي جدة الأول وجدة جد ${translatedName2} إخوة`;
-                  score = 70;
-                }
+                relation = `${translatedName1} هي خالة جد والدة ${translatedName2}`;
+                score = 70;
               }
             }
-            explanation = relationshipExplanation[2];
           }
+          explanation = relationshipExplanation[2];
+        }
+        
+        else if (p1Level === 2 && p2Level === 4) {
+          const p2AncestorGender = pathToP2[1].gender;
+          const p2GreatAncestorGender = pathToP2[2].gender; 
 
-          else if (p1Level === 3 && p2Level === 1){
-            const p1GreatAncestorGender = pathToP1[2].gender;
-            if (gender1 === 'Male'){
-                if (p1GreatAncestorGender === 'Male'){
-                  relation = `${translatedName1} هو حفيد اخ ${translatedName2}`;
-                  score = 65;
-                }
-                else {
-                  relation = `${translatedName1} هو حفيد اخت ${translatedName2}`;
-                  score = 65;
-                }
-            } 
-            else{
-                if (p1GreatAncestorGender === 'Male'){
-                  relation = `${translatedName1} هي حفيدة اخ ${translatedName2}`;
-                  score = 65;
-                }
-                else {
-                  relation = `${translatedName1} هي حفيدة اخت ${translatedName2}`;
-                  score = 65;
-                }
-            }
-            explanation = relationshipExplanation[2];
-          }
-
-          else if (p1Level === 2 && p2Level === 2) {    
-            const p1AncestorGender = pathToP1[1].gender;
-            const p2AncestorGender = pathToP2[1].gender;
-      
-            if (gender1 === 'Male') { 
-              if (p2AncestorGender === 'Male') { 
-                if (p1AncestorGender === 'Male'){  // ولد عمه
-                  relation = `${translatedName1} إبن عم ${translatedName2}`;
-                  score = 90;
-                }
-                else{
-                  relation = `${translatedName1} هو إبن عمّة ${translatedName2}`;
-                  score = 89;
-
-                }
-              } 
-              else {  
-                if (p1AncestorGender === 'Male'){  // ولد خاله
-                  relation = `${translatedName1} هو إبن خال ${translatedName2}`;
-                  score = 88;
-                }
-                else{
-                  relation = `${translatedName1} هو إبن خالة ${translatedName2}`;
-                  score = 86;
-                }
+          if (gender1 === 'Male') {
+            if (p2AncestorGender === 'Male') {
+              if (p2GreatAncestorGender === 'Male') {
+                relation = `${translatedName1} هو جد الأول وجد جد ${translatedName2} إخوة`;
+                score = 90;
+              } else {
+                relation = `${translatedName1} هو جد الأول وجدة جد ${translatedName2} إخوة`;
+                score = 70;
+              }
+            } else {
+              if (p2GreatAncestorGender === 'Male') {
+                relation = `${translatedName1} هو جد الأول وجدة جد ${translatedName2} إخوة`;
+                score = 70;
+              } else {
+                relation = `${translatedName1} هو جد الأول وجدة جد ${translatedName2} إخوة`;
+                score = 70;
               }
             }
-            else {
-              if (p1AncestorGender === 'Male') { 
-                if (p2AncestorGender === 'Male'){  // بنت عمه
-                  relation = `${translatedName1} هي إبنة عمّ ${translatedName2}`;
-                  score = 90;
-                }
-                else{
-                  relation = `${translatedName1} هي إبنة عمّة ${translatedName2}`;
-                  score = 89;
-                }
-              } 
-              else {  
-                if (p2AncestorGender === 'Male'){  // بنت خاله
-                  relation = `${translatedName1} هي إبنة خال ${translatedName2}`;
-                  score = 88;
-                }
-                else{
-                  relation = `${translatedName1} هي إبنة خالة ${translatedName2}`;
-                  score = 86;
-                }
+          } 
+          else {
+            if (p2AncestorGender === 'Male') {
+              if (p2GreatAncestorGender === 'Male') {
+                relation = `${translatedName1} هي جدة الأول وجد جد ${translatedName2} إخوة`;
+                score = 70;
+              } else {
+                relation = `${translatedName1} هي جدة الأول وجدة جد ${translatedName2} إخوة`;
+                score = 70;
+              }
+            } else {
+              if (p2GreatAncestorGender === 'Male') {
+                relation = `${translatedName1} هي جدة الأول وجدة جد ${translatedName2} إخوة`;
+                score = 70;
+              } else {
+                relation = `${translatedName1} هي جدة الأول وجدة جد ${translatedName2} إخوة`;
+                score = 70;
               }
             }
-            explanation = relationshipExplanation[1];
           }
-      
-          else if (p1Level === 2 && p2Level === 3) {         
-      
-            const p1AncestorGender = pathToP1[1].gender;
-            const p2AncestorGender = pathToP2[1].gender;
+          explanation = relationshipExplanation[2];
+        }
 
-            if (gender1 === 'Male') { 
-              if (p1AncestorGender === 'Male') {
-                if (p2AncestorGender === 'Male') {
-                  relation = `${translatedName1} هو إبن عم والد ${translatedName2}`;
-                  score = 80;
-                } 
-                else { 
-                  relation = `${translatedName1} هو إبن خال والدة ${translatedName2}`;
-                  score = 78;
-                }
-              } 
-              else {  // mother's side
-                if (p2AncestorGender === 'Male') {  // mother's brother's son
-                  relation = `${translatedName1} هو إبن عم والد ${translatedName2}.`;
-                  score = 74;
-                } 
-                else {  // mother's brother's daughter
-                  relation = `${translatedName1} هو إبن عمّة والدة ${translatedName2}`;
-                  score = 72;
-                }
+        else if (p1Level === 3 && p2Level === 1){
+          const p1GreatAncestorGender = pathToP1[2].gender;
+          if (gender1 === 'Male'){
+              if (p1GreatAncestorGender === 'Male'){
+                relation = `${translatedName1} هو حفيد اخ ${translatedName2}`;
+                score = 65;
+              }
+              else {
+                relation = `${translatedName1} هو حفيد اخت ${translatedName2}`;
+                score = 65;
+              }
+          } 
+          else{
+              if (p1GreatAncestorGender === 'Male'){
+                relation = `${translatedName1} هي حفيدة اخ ${translatedName2}`;
+                score = 65;
+              }
+              else {
+                relation = `${translatedName1} هي حفيدة اخت ${translatedName2}`;
+                score = 65;
+              }
+          }
+          explanation = relationshipExplanation[2];
+        }
+
+        else if (p1Level === 2 && p2Level === 2) {    
+          const p1AncestorGender = pathToP1[1].gender;
+          const p2AncestorGender = pathToP2[1].gender;
+    
+          if (gender1 === 'Male') { 
+            if (p2AncestorGender === 'Male') { 
+              if (p1AncestorGender === 'Male'){  // ولد عمه
+                relation = `${translatedName1} إبن عم ${translatedName2}`;
+                score = 90;
+              }
+              else{
+                relation = `${translatedName1} هو إبن عمّة ${translatedName2}`;
+                score = 89;
+
               }
             } 
-            else {  // If person1 is female
-              if (p1AncestorGender === 'Male') {  // father's side
-                if (p2AncestorGender === 'Male') {  // father's brother's son
-                  relation = `${translatedName1} هي إبنة عم والد ${translatedName2}`;
-                  score = 80;
-                } else {  // father's brother's daughter
-                  relation = `${translatedName1} هي إبنة عم والدة ${translatedName2}`;
-                  score = 78;
-                }
-              } else {  // mother's side
-                if (p2AncestorGender === 'Male') {  // mother's brother's son
-                  relation = `${translatedName1} هي إبنة عم والدة ${translatedName2}`;
-                  score = 74;
-                } else {  // mother's brother's daughter
-                  relation = `${translatedName1} هي إبنة عمة والدة ${translatedName2}`;
-                  score = 72;
-                }
+            else {  
+              if (p1AncestorGender === 'Male'){  // ولد خاله
+                relation = `${translatedName1} هو إبن خال ${translatedName2}`;
+                score = 88;
+              }
+              else{
+                relation = `${translatedName1} هو إبن خالة ${translatedName2}`;
+                score = 86;
               }
             }
-            explanation = relationshipExplanation[2];
           }
-          
-          else if (p1Level === 4 && p2Level === 2) {
-            const p1GreatAncestorGender = pathToP1[3].gender;  // P1 Great Ancestor
-            const p2AncestorGender = pathToP2[1].gender;  // P2 Ancestor
-            if (p1GreatAncestorGender){
-                  if (p2AncestorGender === 'Male') {
-                      if (p1GreatAncestorGender === 'Male') {
-                          relation = `جد ${translatedName1} هو إبن عم ${translatedName2}`;
-                          score = 65;
-                      } else {
-                          relation = `جد ${translatedName1} هو إبن عمّة ${translatedName2}`;
-                          score = 65;
-                      }
-                  } else {
-                      if (p1GreatAncestorGender === 'Male') {
-                          relation = `جد ${translatedName1} هو إبن خال ${translatedName2}`;
-                          score = 65;
-                      } else {
-                          relation = `جد ${translatedName1} هو إبن خالة ${translatedName2}`;
-                          score = 65;
-                      }
-                  }
+          else {
+            if (p1AncestorGender === 'Male') { 
+              if (p2AncestorGender === 'Male'){  // بنت عمه
+                relation = `${translatedName1} هي إبنة عمّ ${translatedName2}`;
+                score = 90;
+              }
+              else{
+                relation = `${translatedName1} هي إبنة عمّة ${translatedName2}`;
+                score = 89;
+              }
             } 
-            else {
-                if (p2AncestorGender === 'Male') {
-                    if (p1GreatAncestorGender === 'Male') {
-                        relation = `جدة ${translatedName1} هي إبنة عم ${translatedName2}`;
-                        score = 65;
-                    } else {
-                        relation = `جدة ${translatedName1} هي إبنة عمّة ${translatedName2}`;
-                        score = 65;
-                    }
-                } else {
-                    if (p1GreatAncestorGender === 'Male') {
-                        relation = `جدة ${translatedName1} هي إبنة خال ${translatedName2}`;
-                        score = 65;
-                    } else {
-                        relation = `جدة ${translatedName1} هي إبنة خالة ${translatedName2}`;
-                        score = 65;
-                    }
-                }
+            else {  
+              if (p2AncestorGender === 'Male'){  // بنت خاله
+                relation = `${translatedName1} هي إبنة خال ${translatedName2}`;
+                score = 88;
+              }
+              else{
+                relation = `${translatedName1} هي إبنة خالة ${translatedName2}`;
+                score = 86;
+              }
             }
-            explanation = relationshipExplanation[2];
           }
-          
-          else if (p1Level === 3 && p2Level === 2) {          
-            const p1AncestorGender = pathToP1[1].gender;
-            const p2AncestorGender = pathToP2[1].gender;
-            const p1GreatAncestorGender = pathToP1[2].gender;
+          explanation = relationshipExplanation[1];
+        }
+    
+        else if (p1Level === 2 && p2Level === 3) {         
+    
+          const p1AncestorGender = pathToP1[1].gender;
+          const p2AncestorGender = pathToP2[1].gender;
 
-            if (p1AncestorGender === 'Male') {  // father's side
-              if (p2AncestorGender === 'Male') {  // father's brother's son
-                if (p1GreatAncestorGender === 'Male'){
-                  relation = `والد ${translatedName1} هو إبن عم ${translatedName2}`;
-                }
-                else{
-                  relation = `والد ${translatedName1} هو إبن عمة ${translatedName2}`;
-                }
-              } else { 
-                if (p1GreatAncestorGender === 'Male'){
-                  relation = `والد ${translatedName1} هو إبن خال ${translatedName2}`;
-                }
-                else{
-                  relation = `والد ${translatedName1} هو إبن خالة ${translatedName2}`;
-                }
+          if (gender1 === 'Male') { 
+            if (p1AncestorGender === 'Male') {
+              if (p2AncestorGender === 'Male') {
+                relation = `${translatedName1} هو إبن عم والد ${translatedName2}`;
+                score = 80;
+              } 
+              else { 
+                relation = `${translatedName1} هو إبن خال والدة ${translatedName2}`;
+                score = 78;
               }
             } 
             else {  // mother's side
               if (p2AncestorGender === 'Male') {  // mother's brother's son
-                if (p1GreatAncestorGender === 'Male'){
-                  relation = `والدة ${translatedName1} هي إبنة عم ${translatedName2}`;
-                }
-                else{
-                  relation = `والدة ${translatedName1} هي إبنة عمة ${translatedName2}`;
-                }
-                
-              } else {
-                if (p1GreatAncestorGender === 'Male'){
-                  relation = `والدة ${translatedName1} هي إبنة خال ${translatedName2}`;
-                }
-                else{
-                  relation = `والدة ${translatedName1} هي إبنة خالة ${translatedName2}`;
-                }
-              }
-            }
-            score = 60;
-            explanation = relationshipExplanation[2];
-          }
-
-          else if (p1Level === 3 && p2Level === 3) {          
-            
-            const p1AncestorGender = pathToP1[1].gender;
-            const p2AncestorGender = pathToP2[1].gender;
-            const p1GreatAncestorGender = pathToP1[2].gender;
-            const p2GreatAncestorGender = pathToP2[2].gender;
-
-            if (p1AncestorGender === 'Male') { 
-              if (p2AncestorGender === 'Male'){
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    relation = `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّة ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    relation = `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                }
-              }
-              else {
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأم إخوة.`;
-                  }
-                  else{
-                    relation = `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّة ${translatedName1} من الأب و جد${translatedName2} من الأم إخوة.`;
-                  }
-                  else{
-                    relation = `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-              }
-            }
-            else {
-              if (p2AncestorGender === 'Male'){
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّ ${translatedName1} من الأم و جد${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    relation = `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّة ${translatedName1} من الأم و جد ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    relation = `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب أخوات.`;
-                  }
-                }
-              }
-              else {
-                if (p1GreatAncestorGender === 'Male'){
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّ ${translatedName1} من الأم و جد ${translatedName2} من الأم إخوة.`;
-                  }
-                  else{
-                    relation = `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-                else {
-                  if (p2GreatAncestorGender === 'Male'){
-                    relation = `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
-                  }
-                  else{
-                    relation = `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
-                  }
-                }
-              }
-            }
-            explanation = relationshipExplanation[2];
-          }
-
-          else if (p1Level === 4 && p2Level === 3) {
-            const p1AncestorGender = pathToP2[0].gender;  // First ancestor of p2
-            const p2GreatAncestorGender = pathToP2[1].gender;  // Second ancestor of p2
-            const p1GreatGreatAncestorGender = pathToP2[2].gender;  // Third ancestor of p2
-
-            if (p1GreatGreatAncestorGender === 'Male') {
-                // Case when p1 is male
-                if (p1AncestorGender === 'Male') {
-                    if (p2GreatAncestorGender === 'Male') {
-                        relation = `جد اب ${translatedName1} و جد ${translatedName2} اخوة`;
-                        score = 75;
-                    } else {
-                        relation = `جد اب ${translatedName1} و جدة ${translatedName2} اخوة`;
-                        score = 75;
-                    }
-                } else {
-                    if (p2GreatAncestorGender === 'Male') {
-                        relation = `جد أم ${translatedName1} و جد ${translatedName2} اخوة`;
-                        score = 75;
-                    } else {
-                        relation = `جد أم ${translatedName1} و جدة ${translatedName2} اخوة`;
-                        score = 75;
-                    }
-                }
-            } 
-            else {
-                // Case when p1 is female
-                if (p1AncestorGender === 'Male') {
-                    if (p2GreatAncestorGender === 'Male') {
-                        relation = `جدة اب ${translatedName1} و جد ${translatedName2} اخوة`;
-                        score = 85;
-                    } else {
-                        relation = `جدة اب ${translatedName1} و جدة ${translatedName2} اخوة`;
-                        score = 80;
-                    }
-                } else {
-                    if (p2GreatAncestorGender === 'Male') {
-                        relation = `جدة أم ${translatedName1} و جد ${translatedName2} اخوة`;
-                        score = 75;
-                    } else {
-                        relation = `جدة أم ${translatedName1} و جدة ${translatedName2} اخوة`;
-                        score = 70;
-                    }
-                }
-            }
-          explanation = relationshipExplanation[2];
-          }
-
-          else if (p1Level === 3 && p2Level === 4) {
-            const p2AncestorGender = pathToP2[0].gender;  // First ancestor of p2
-            const p1GreatAncestorGender = pathToP2[1].gender;  // Second ancestor of p2
-            const p2GreatGreatAncestorGender = pathToP2[2].gender;  // Third ancestor of p2
-
-            if (p1GreatAncestorGender === 'Male') {
-                // Case when p1 is male
-                if (p2AncestorGender === 'Male') {
-                    if (p2GreatGreatAncestorGender === 'Male') {
-                        relation = `جد ${translatedName1} و جد أب ${translatedName2} اخوة`;
-                        score = 85;
-                    } else {
-                        relation = `جد ${translatedName1} و جدة أب ${translatedName2} اخوة`;
-                        score = 80;
-                    }
-                } else {
-                    if (p2GreatGreatAncestorGender === 'Male') {
-                        relation = `جد ${translatedName1} و جد أم ${translatedName2} اخوة`;
-                        score = 75;
-                    } else {
-                        relation = `جد ${translatedName1} و جدة أم ${translatedName2} اخوة`;
-                        score = 70;
-                    }
-                }
-            } 
-            else {
-                // Case when p1 is female
-                if (p2AncestorGender === 'Male') {
-                    if (p2GreatGreatAncestorGender === 'Male') {
-                        relation = `جدة ${translatedName1} و جد أب ${translatedName2} اخوة`;
-                        score = 85;
-                    } else {
-                        relation = `جدة ${translatedName1} و جدة أب ${translatedName2} أخوات`;
-                        score = 80;
-                    }
-                } else {
-                    if (p2GreatGreatAncestorGender === 'Male') {
-                        relation = `جدة ${translatedName1} و جد أم ${translatedName2} اخوة`;
-                        score = 75;
-                    } else {
-                        relation = `جدة ${translatedName1} و جدة أم ${translatedName2} أخوات`;
-                        score = 70;
-                    }
-                }
-            }
-            explanation = relationshipExplanation[2];
-          }
-
-          else if (p1Level === 4 && p2Level === 1) {
-            const p1GreatAncestorGender = pathToP1[2].gender;
-            const p1GreatGrandAncestorGender = pathToP1[3].gender;
-            
-            if (gender1 === 'Male'){
-                if (p1GreatAncestorGender === 'Male') {
-                  if (p1GreatGrandAncestorGender === 'Male') {
-                    relation = `${translatedName1} هو حفيد إبن أخ ${translatedName2}`;
-                    score = 85;
-                  } else {
-                    relation = `${translatedName1} هو حفيد إبن أخت ${translatedName2}`;
-                    score = 80;
-                  }
-                } 
-                else {
-                  if (p1GreatGrandAncestorGender === 'Male') {
-                    relation = `${translatedName1} هو حفيد إبنة أخ ${translatedName2}`;
-                    score = 85;
-                  } else {
-                    relation = `${translatedName1} هو حفيد إبنة أخت ${translatedName2}`;
-                    score = 80;
-                  }
-                }
-            } 
-            else {
-              if (p1GreatAncestorGender === 'Male') {
-                  if (p1GreatGrandAncestorGender === 'Male') {
-                    relation = `${translatedName1} هي حفيدة إبن أخ ${translatedName2}`;
-                    score = 85;
-                  } else {
-                    relation = `${translatedName1} هي حفيدة إبن أخت ${translatedName2}`;
-                    score = 80;
-                  }
-                } 
-                else {
-                  if (p1GreatGrandAncestorGender === 'Male') {
-                    relation = `${translatedName1} هي حفيدة إبنة أخ ${translatedName2}`;
-                    score = 85;
-                  } else {
-                    relation = `${translatedName1} هي حفيدة إبنة أخت ${translatedName2}`;
-                    score = 80;
-                  }
-                }
-            }
-            explanation = relationshipExplanation[2];
-          }
-
-          else if (p1Level === 4 && p2Level === 4) {
-            const p1AncestorGender = pathToP2[1].gender;
-            const p2AncestorGender = pathToP1[1].gender;
-            const p1GreatGreatAncestorGender = pathToP1[3].gender;
-            const p2GreatGreatAncestorGender = pathToP2[3].gender;
-
-            if (p1GreatGreatAncestorGender === 'Male') {
-              if (p1AncestorGender === 'Male') {
-                  if (p2AncestorGender === 'Male') {
-                    if (p2GreatGreatAncestorGender === 'Male'){
-                      relation = `جد أب ${translatedName1} و جد أب ${translatedName2} اخوة`;
-                      score = 85;
-                    } else {
-                        relation = `جد أب ${translatedName1} و جدة أب ${translatedName2} اخوة`;
-                        score = 80;
-                    }
-                  } 
-                  else{
-                    if (p2GreatGreatAncestorGender === 'Male'){
-                      relation = `جد أم ${translatedName1} و جد أم ${translatedName2} اخوة`;
-                      score = 85;
-                    } else {
-                        relation = `جد أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
-                        score = 80;
-                    }
-                  } 
+                relation = `${translatedName1} هو إبن عم والد ${translatedName2}.`;
+                score = 74;
               } 
+              else {  // mother's brother's daughter
+                relation = `${translatedName1} هو إبن عمّة والدة ${translatedName2}`;
+                score = 72;
+              }
+            }
+          } 
+          else {  // If person1 is female
+            if (p1AncestorGender === 'Male') {  // father's side
+              if (p2AncestorGender === 'Male') {  // father's brother's son
+                relation = `${translatedName1} هي إبنة عم والد ${translatedName2}`;
+                score = 80;
+              } else {  // father's brother's daughter
+                relation = `${translatedName1} هي إبنة عم والدة ${translatedName2}`;
+                score = 78;
+              }
+            } else {  // mother's side
+              if (p2AncestorGender === 'Male') {  // mother's brother's son
+                relation = `${translatedName1} هي إبنة عم والدة ${translatedName2}`;
+                score = 74;
+              } else {  // mother's brother's daughter
+                relation = `${translatedName1} هي إبنة عمة والدة ${translatedName2}`;
+                score = 72;
+              }
+            }
+          }
+          explanation = relationshipExplanation[2];
+        }
+        
+        else if (p1Level === 4 && p2Level === 2) {
+          const p1GreatAncestorGender = pathToP1[3].gender;  // P1 Great Ancestor
+          const p2AncestorGender = pathToP2[1].gender;  // P2 Ancestor
+          if (p1GreatAncestorGender){
+                if (p2AncestorGender === 'Male') {
+                    if (p1GreatAncestorGender === 'Male') {
+                        relation = `جد ${translatedName1} هو إبن عم ${translatedName2}`;
+                        score = 65;
+                    } else {
+                        relation = `جد ${translatedName1} هو إبن عمّة ${translatedName2}`;
+                        score = 65;
+                    }
+                } else {
+                    if (p1GreatAncestorGender === 'Male') {
+                        relation = `جد ${translatedName1} هو إبن خال ${translatedName2}`;
+                        score = 65;
+                    } else {
+                        relation = `جد ${translatedName1} هو إبن خالة ${translatedName2}`;
+                        score = 65;
+                    }
+                }
+          } 
+          else {
+              if (p2AncestorGender === 'Male') {
+                  if (p1GreatAncestorGender === 'Male') {
+                      relation = `جدة ${translatedName1} هي إبنة عم ${translatedName2}`;
+                      score = 65;
+                  } else {
+                      relation = `جدة ${translatedName1} هي إبنة عمّة ${translatedName2}`;
+                      score = 65;
+                  }
+              } else {
+                  if (p1GreatAncestorGender === 'Male') {
+                      relation = `جدة ${translatedName1} هي إبنة خال ${translatedName2}`;
+                      score = 65;
+                  } else {
+                      relation = `جدة ${translatedName1} هي إبنة خالة ${translatedName2}`;
+                      score = 65;
+                  }
+              }
+          }
+          explanation = relationshipExplanation[2];
+        }
+        
+        else if (p1Level === 3 && p2Level === 2) {          
+          const p1AncestorGender = pathToP1[1].gender;
+          const p2AncestorGender = pathToP2[1].gender;
+          const p1GreatAncestorGender = pathToP1[2].gender;
+
+          if (p1AncestorGender === 'Male') { 
+            if (p2AncestorGender === 'Male') {
+              if (p1GreatAncestorGender === 'Male'){
+                relation = `والد ${translatedName1} هو إبن عم ${translatedName2}`;
+              }
+              else{
+                relation = `والد ${translatedName1} هو إبن عمة ${translatedName2}`;
+              }
+            } else { 
+              if (p1GreatAncestorGender === 'Male'){
+                relation = `والد ${translatedName1} هو إبن خال ${translatedName2}`;
+              }
+              else{
+                relation = `والد ${translatedName1} هو إبن خالة ${translatedName2}`;
+              }
+            }
+          } 
+          else {  // mother's side
+            if (p2AncestorGender === 'Male') {  // mother's brother's son
+              if (p1GreatAncestorGender === 'Male'){
+                relation = `والدة ${translatedName1} هي إبنة عم ${translatedName2}`;
+              }
+              else{
+                relation = `والدة ${translatedName1} هي إبنة عمة ${translatedName2}`;
+              }
+              
+            } else {
+              if (p1GreatAncestorGender === 'Male'){
+                relation = `والدة ${translatedName1} هي إبنة خال ${translatedName2}`;
+              }
+              else{
+                relation = `والدة ${translatedName1} هي إبنة خالة ${translatedName2}`;
+              }
+            }
+          }
+          score = 60;
+          explanation = relationshipExplanation[2];
+        }
+
+        else if (p1Level === 3 && p2Level === 3) {          
+          
+          const p1AncestorGender = pathToP1[1].gender;
+          const p2AncestorGender = pathToP2[1].gender;
+          const p1GreatAncestorGender = pathToP1[2].gender;
+          const p2GreatAncestorGender = pathToP2[2].gender;
+
+          if (p1AncestorGender === 'Male') { 
+            if (p2AncestorGender === 'Male'){
+              if (p1GreatAncestorGender === 'Male'){
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
+                }
+                else{
+                  relation = `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
+                }
+              }
               else {
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّة ${translatedName1} من الأب و جد ${translatedName2} من الأب إخوة.`;
+                }
+                else{
+                  relation = `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأب إخوة.`;
+                }
+              }
+            }
+            else {
+              if (p1GreatAncestorGender === 'Male'){
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّ ${translatedName1} من الأب و جد ${translatedName2} من الأم إخوة.`;
+                }
+                else{
+                  relation = `جدّ ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
+                }
+              }
+              else {
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّة ${translatedName1} من الأب و جد${translatedName2} من الأم إخوة.`;
+                }
+                else{
+                  relation = `جدّة ${translatedName1} من الأب و جدة ${translatedName2} من الأم إخوة.`;
+                }
+              }
+            }
+          }
+          else {
+            if (p2AncestorGender === 'Male'){
+              if (p1GreatAncestorGender === 'Male'){
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّ ${translatedName1} من الأم و جد${translatedName2} من الأب إخوة.`;
+                }
+                else{
+                  relation = `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
+                }
+              }
+              else {
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّة ${translatedName1} من الأم و جد ${translatedName2} من الأب إخوة.`;
+                }
+                else{
+                  relation = `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب أخوات.`;
+                }
+              }
+            }
+            else {
+              if (p1GreatAncestorGender === 'Male'){
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّ ${translatedName1} من الأم و جد ${translatedName2} من الأم إخوة.`;
+                }
+                else{
+                  relation = `جدّ ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
+                }
+              }
+              else {
+                if (p2GreatAncestorGender === 'Male'){
+                  relation = `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأب إخوة.`;
+                }
+                else{
+                  relation = `جدّة ${translatedName1} من الأم و جدة ${translatedName2} من الأم إخوة.`;
+                }
+              }
+            }
+          }
+          explanation = relationshipExplanation[2];
+        }
+
+        else if (p1Level === 4 && p2Level === 3) {
+          const p1AncestorGender = pathToP2[0].gender;  // First ancestor of p2
+          const p2GreatAncestorGender = pathToP2[1].gender;  // Second ancestor of p2
+          const p1GreatGreatAncestorGender = pathToP2[2].gender;  // Third ancestor of p2
+
+          if (p1GreatGreatAncestorGender === 'Male') {
+              // Case when p1 is male
+              if (p1AncestorGender === 'Male') {
+                  if (p2GreatAncestorGender === 'Male') {
+                      relation = `جد اب ${translatedName1} و جد ${translatedName2} اخوة`;
+                      score = 75;
+                  } else {
+                      relation = `جد اب ${translatedName1} و جدة ${translatedName2} اخوة`;
+                      score = 75;
+                  }
+              } else {
+                  if (p2GreatAncestorGender === 'Male') {
+                      relation = `جد أم ${translatedName1} و جد ${translatedName2} اخوة`;
+                      score = 75;
+                  } else {
+                      relation = `جد أم ${translatedName1} و جدة ${translatedName2} اخوة`;
+                      score = 75;
+                  }
+              }
+          } 
+          else {
+              // Case when p1 is female
+              if (p1AncestorGender === 'Male') {
+                  if (p2GreatAncestorGender === 'Male') {
+                      relation = `جدة اب ${translatedName1} و جد ${translatedName2} اخوة`;
+                      score = 85;
+                  } else {
+                      relation = `جدة اب ${translatedName1} و جدة ${translatedName2} اخوة`;
+                      score = 80;
+                  }
+              } else {
+                  if (p2GreatAncestorGender === 'Male') {
+                      relation = `جدة أم ${translatedName1} و جد ${translatedName2} اخوة`;
+                      score = 75;
+                  } else {
+                      relation = `جدة أم ${translatedName1} و جدة ${translatedName2} اخوة`;
+                      score = 70;
+                  }
+              }
+          }
+        explanation = relationshipExplanation[2];
+        }
+
+        else if (p1Level === 3 && p2Level === 4) {
+          const p2AncestorGender = pathToP2[0].gender;  // First ancestor of p2
+          const p1GreatAncestorGender = pathToP2[1].gender;  // Second ancestor of p2
+          const p2GreatGreatAncestorGender = pathToP2[2].gender;  // Third ancestor of p2
+
+          if (p1GreatAncestorGender === 'Male') {
+              // Case when p1 is male
+              if (p2AncestorGender === 'Male') {
+                  if (p2GreatGreatAncestorGender === 'Male') {
+                      relation = `جد ${translatedName1} و جد أب ${translatedName2} اخوة`;
+                      score = 85;
+                  } else {
+                      relation = `جد ${translatedName1} و جدة أب ${translatedName2} اخوة`;
+                      score = 80;
+                  }
+              } else {
+                  if (p2GreatGreatAncestorGender === 'Male') {
+                      relation = `جد ${translatedName1} و جد أم ${translatedName2} اخوة`;
+                      score = 75;
+                  } else {
+                      relation = `جد ${translatedName1} و جدة أم ${translatedName2} اخوة`;
+                      score = 70;
+                  }
+              }
+          } 
+          else {
+              // Case when p1 is female
+              if (p2AncestorGender === 'Male') {
+                  if (p2GreatGreatAncestorGender === 'Male') {
+                      relation = `جدة ${translatedName1} و جد أب ${translatedName2} اخوة`;
+                      score = 85;
+                  } else {
+                      relation = `جدة ${translatedName1} و جدة أب ${translatedName2} أخوات`;
+                      score = 80;
+                  }
+              } else {
+                  if (p2GreatGreatAncestorGender === 'Male') {
+                      relation = `جدة ${translatedName1} و جد أم ${translatedName2} اخوة`;
+                      score = 75;
+                  } else {
+                      relation = `جدة ${translatedName1} و جدة أم ${translatedName2} أخوات`;
+                      score = 70;
+                  }
+              }
+          }
+          explanation = relationshipExplanation[2];
+        }
+        
+        else if (p1Level === 4 && p2Level === 4) {
+          const p1AncestorGender = pathToP2[1].gender;
+          const p2AncestorGender = pathToP1[1].gender;
+          const p1GreatGreatAncestorGender = pathToP1[3].gender;
+          const p2GreatGreatAncestorGender = pathToP2[3].gender;
+
+          if (p1GreatGreatAncestorGender === 'Male') {
+            if (p1AncestorGender === 'Male') {
                 if (p2AncestorGender === 'Male') {
                   if (p2GreatGreatAncestorGender === 'Male'){
                     relation = `جد أب ${translatedName1} و جد أب ${translatedName2} اخوة`;
@@ -1271,90 +986,110 @@ const RelationPage = () => {
                   if (p2GreatGreatAncestorGender === 'Male'){
                     relation = `جد أم ${translatedName1} و جد أم ${translatedName2} اخوة`;
                     score = 85;
-                  } 
-                  else {
-                    relation = `جد أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
-                    score = 80;
-                }
-              }
-          }
-      } 
-      else {
-          if (p1AncestorGender === 'Male') {
+                  } else {
+                      relation = `جد أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
+                      score = 80;
+                  }
+                } 
+            } 
+            else {
               if (p2AncestorGender === 'Male') {
                 if (p2GreatGreatAncestorGender === 'Male'){
-                  relation = `جدة أب ${translatedName1} و جد أب ${translatedName2} اخوة`;
+                  relation = `جد أب ${translatedName1} و جد أب ${translatedName2} اخوة`;
                   score = 85;
                 } else {
-                    relation = `جدة أب ${translatedName1} و جدة أب ${translatedName2} اخوة`;
-                    score = 80;
-                }
-              } else{
-                if (p2GreatGreatAncestorGender === 'Male'){
-                  relation = `جدة أم ${translatedName1} و جد أم ${translatedName2} اخوة`;
-                  score = 85;
-                } else {
-                    relation = `جدة أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
+                    relation = `جد أب ${translatedName1} و جدة أب ${translatedName2} اخوة`;
                     score = 80;
                 }
               } 
-          } else {
-              if (p2AncestorGender === 'Male') {
+              else{
                 if (p2GreatGreatAncestorGender === 'Male'){
-                  relation = `جدة أب ${translatedName1} و جد أب ${translatedName2} اخوة`;
+                  relation = `جد أم ${translatedName1} و جد أم ${translatedName2} اخوة`;
                   score = 85;
-                } else {
-                    relation = `جدة أب ${translatedName1} و جدة أب ${translatedName2} اخوة`;
-                    score = 80;
-                }
-              } else{
-                if (p2GreatGreatAncestorGender === 'Male'){
-                  relation = `جدة أم ${translatedName1} و جد أم ${translatedName2} اخوة`;
-                  score = 85;
-                } else {
-                    relation = `جدة أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
-                    score = 80;
-                  }
+                } 
+                else {
+                  relation = `جد أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
+                  score = 80;
+              }
+            }
+        }
+    } 
+    else {
+        if (p1AncestorGender === 'Male') {
+            if (p2AncestorGender === 'Male') {
+              if (p2GreatGreatAncestorGender === 'Male'){
+                relation = `جدة أب ${translatedName1} و جد أب ${translatedName2} اخوة`;
+                score = 85;
+              } else {
+                  relation = `جدة أب ${translatedName1} و جدة أب ${translatedName2} اخوة`;
+                  score = 80;
+              }
+            } else{
+              if (p2GreatGreatAncestorGender === 'Male'){
+                relation = `جدة أم ${translatedName1} و جد أم ${translatedName2} اخوة`;
+                score = 85;
+              } else {
+                  relation = `جدة أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
+                  score = 80;
+              }
+            } 
+        } else {
+            if (p2AncestorGender === 'Male') {
+              if (p2GreatGreatAncestorGender === 'Male'){
+                relation = `جدة أب ${translatedName1} و جد أب ${translatedName2} اخوة`;
+                score = 85;
+              } else {
+                  relation = `جدة أب ${translatedName1} و جدة أب ${translatedName2} اخوة`;
+                  score = 80;
+              }
+            } else{
+              if (p2GreatGreatAncestorGender === 'Male'){
+                relation = `جدة أم ${translatedName1} و جد أم ${translatedName2} اخوة`;
+                score = 85;
+              } else {
+                  relation = `جدة أم ${translatedName1} و جدة أم ${translatedName2} اخوة`;
+                  score = 80;
                 }
               }
             }
-            explanation = relationshipExplanation[2];
           }
-
-          else {
-            setLoading(false);
-            console.log('No direct relation found.');
-            relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
-            relationshipType = "Marriage-related";
-            return {  relation, score, 
-                      generation:Math.abs(p1Level-p2Level), 
-                      levelsTuple: {levelFromP1, levelFromP2},
-                      explanation,
-                      ancestor,
-                      relationshipType,
-                      treeData,
-                      person1ID,
-                      person2ID,
-                      person1: person1Matches[0], person2: person2Matches[0]};
-          }
-          if (relation != ''){
-              setLoading(false);
-              console.log(relation);
-              relationshipType = "Blood";
-              return {relation, score, 
-                      generation:Math.abs(p1Level-p2Level), 
-                      levelsTuple: {levelFromP1, levelFromP2},
-                      explanation,
-                      ancestor,
-                      relationshipType,
-                      treeData,
-                      person1ID,
-                      person2ID,
-                      person1: person1Matches[0], person2: person2Matches[0]};
-            }
+          explanation = relationshipExplanation[2];
         }
+
+        else {
+          setLoading(false);
+          console.log('No direct relation found.');
+          relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
+          relationshipType = "Marriage-related";
+          return {  relation, score, 
+                    generation:Math.abs(p1Level-p2Level), 
+                    levelsTuple: {levelFromP1, levelFromP2},
+                    explanation,
+                    ancestor,
+                    relationshipType,
+                    treeData,
+                    person1ID,
+                    person2ID,
+                    person1: person1Matches[0], person2: person2Matches[0]};
+        }
+        if (relation != ''){
+            setLoading(false);
+            console.log(relation);
+            relationshipType = "Blood";
+            return {relation, score, 
+                    generation:Math.abs(p1Level-p2Level), 
+                    levelsTuple: {levelFromP1, levelFromP2},
+                    explanation,
+                    ancestor,
+                    relationshipType,
+                    treeData,
+                    person1ID,
+                    person2ID,
+                    person1: person1Matches[0], person2: person2Matches[0]};
+          }
       }
     }
+  }
 
   const checkMarriage = async (person1ID, person2ID, gender1, gender2) => {
     if (gender1 === gender2) {return {areMarried : false}}
@@ -1376,10 +1111,8 @@ const RelationPage = () => {
         return record.length === 0 ? {areMarried : false} : {areMarried : true, P1, P2};
   };
 
-  async function getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2) {
-    console.log('🔍 Checking marriage-based relationship between', translatedName1, 'and', translatedName2);
+  const getMarriageRelation = async (session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2) => {
 
-    // Step 1: Person's own family
     const ownFamilyQuery = `
       MATCH (P:Person)
       WHERE id(P) = $personId
@@ -1767,18 +1500,17 @@ const RelationPage = () => {
   const getRelationship = async (person1FullName, person2FullName) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
     let gender1, gender2;
-    const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = splitName(person1FullName);
-    const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = splitName(person2FullName);
-    console.log(person1Name +  " + " + person1FatherName + " + " + person1LastName);
-    let translatedPerson1Name = isArabic(person1Name) ? translateName(person1Name, false) : person1Name;
-    let translatedPerson1FatherName = isArabic(person1FatherName) ? translateName(person1FatherName, false) : person1FatherName;
-    let translatedPerson1GrandfatherName = isArabic(person1GrandfatherName) ? translateName(person1GrandfatherName, false) : person1GrandfatherName;
-    let translatedPerson1LastName = isArabic(person1LastName) ? translateName(person1LastName, false) : person1LastName;
+    const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = utils.splitName(person1FullName);
+    const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = utils.splitName(person2FullName);
+    let translatedPerson1Name = isArabic(person1Name) ? utils.translateName(person1Name, false) : person1Name;
+    let translatedPerson1FatherName = isArabic(person1FatherName) ? utils.translateName(person1FatherName, false) : person1FatherName;
+    let translatedPerson1GrandfatherName = isArabic(person1GrandfatherName) ? utils.translateName(person1GrandfatherName, false) : person1GrandfatherName;
+    let translatedPerson1LastName = isArabic(person1LastName) ? utils.translateName(person1LastName, false) : person1LastName;
 
-    let translatedPerson2Name = isArabic(person2Name) ? translateName(person2Name, false) : person2Name;
-    let translatedPerson2FatherName = isArabic(person2FatherName) ? translateName(person2FatherName, false) : person2FatherName;
-    let translatedPerson2GrandfatherName = isArabic(person2GrandfatherName) ? translateName(person2GrandfatherName, false) : person2GrandfatherName;
-    let translatedPerson2LastName = isArabic(person2LastName) ? translateName(person2LastName, false) : person2LastName;
+    let translatedPerson2Name = isArabic(person2Name) ? utils.translateName(person2Name, false) : person2Name;
+    let translatedPerson2FatherName = isArabic(person2FatherName) ? utils.translateName(person2FatherName, false) : person2FatherName;
+    let translatedPerson2GrandfatherName = isArabic(person2GrandfatherName) ? utils.translateName(person2GrandfatherName, false) : person2GrandfatherName;
+    let translatedPerson2LastName = isArabic(person2LastName) ? utils.translateName(person2LastName, false) : person2LastName;
 
     const errorContainer = document.getElementById('error-container');
     try {
@@ -1832,8 +1564,8 @@ const RelationPage = () => {
         gender2 = person2Matches[0].gender;
       }
 
-      const translatedName1 = translateName(person1Matches[0].name + " " + person1Matches[0].lastName);
-      const translatedName2 = translateName(person2Matches[0].name + " " + person2Matches[0].lastName);
+      const translatedName1 = utils.translateName(person1Matches[0].name + " " + person1Matches[0].lastName);
+      const translatedName2 = utils.translateName(person2Matches[0].name + " " + person2Matches[0].lastName);
       
       console.log(person1Matches[0], person2Matches[0]);
       
@@ -1851,36 +1583,44 @@ const RelationPage = () => {
       return '';
     }
   };
+
   return (
-    <div className="relation-page">
-    
+  <div className="relation-page">
     <main className="main-panel">
-      
       <section className="relation-form-section">
-        <h2 className="section-title">ماهي العلاقة بينهما؟</h2>
+        <h1 className="section-title">ماهي العلاقة بينهما؟</h1>
         <p id="DescriptionZone">
-          الهدف من هذه الصفحة هو تحديد صلة القرابة بين شخصين بناءًا على اسمهم. كل ماعليك فعله
-          هو ادخال الاسم للشخص الاول والثاني وثم النقر على "التحقق من العلاقة" ستظهر لك النتيجة في اسهل الصفحة
-          والتي يتوضح لك نوع العلاقة ومدى قرابتها؟ في حال وجود اي تشابهات او تكرارات في الاسماء سيم توفير خيارات لتحديد الشخص الصحيح
+          يمكنك خلال هذه الأداء التعرف على العلاقة الي تربط أي شخصين في شجرة العائلة. كل ماعليك هو إدخال اسمَي الشخصين ،
+          يمكنك كتابة الاسم ، على الشكل التالي (فلان بن فلان بن فلان الفلاني). يمكنك كتابة الاسم فقط أو الاسم واللقب معاً أيضا. 
+          من الأفضل ان تدخل الاسم الكامل للشخص لكي تتعرف الأداء جيدًا على الشخص المقصود. في حالة وجود شخصين يحملان نفس الإسم، سوف تظهر
+          قائمة يمكنك اختيار من خلالها الشخص المحدد. يمكنك عبر هذه الأداة معرفة مدى قرب العلاقة بين الشخصين ، نوعها وتفاصيل اخرى عنها ، كما يمكنك إلقاء نظرة على
+          شجرة العائلة الي تربطمها بالجد المشترك بينهما. اكتشف قدرات هذه الأداة القوية الآن!
         </p>
         <form onSubmit={fetchRelationship} className="relation-form">
           <div className="input-group">
-            <input
+            <div className='inputSection'>
+              <h2>الشخص الأول</h2>
+              <input
               type="text"
               placeholder="الإسم الكامل الأول"
               value={person1}
               onChange={(e) => setPerson1(e.target.value)}
               className="inputNames"
-            />
-          </div>
-          <div className="input-group">
-            <input
-              type="text"
-              placeholder="الإسم الكامل الثاني"
-              value={person2}
-              onChange={(e) => setPerson2(e.target.value)}
-              className="inputNames"
-            />
+              />
+            </div>
+            <div>
+              <span className='relationEmoji'>🧬</span>
+            </div>
+            <div className='inputSection'>
+              <h2>الشخص الثاني</h2>
+              <input
+                type="text"
+                placeholder="الإسم الكامل الثاني"
+                value={person2}
+                onChange={(e) => setPerson2(e.target.value)}
+                className="inputNames"
+              />
+            </div>
           </div>
           <div className='ButtonSection'>
             <button type="submit" className="button checkButton">تحقق من العلاقة</button>
@@ -1915,10 +1655,10 @@ const RelationPage = () => {
                   <tbody>
                     {duplicates.person1.map((p, idx) => {
                       const fullName =
-                        (p.name ? `${translateName(p.name)} بن ` : '') +
-                        (p.father ? `${translateName(p.father)} بن ` : '') +
-                        (p.grandfather ? `${translateName(p.grandfather)} ` : '') +
-                        (p.lastName ? `${translateName(p.lastName)}` : '');
+                        (p.name ? `${utils.translateName(p.name)} بن ` : '') +
+                        (p.father ? `${utils.translateName(p.father)} بن ` : '') +
+                        (p.grandfather ? `${utils.translateName(p.grandfather)} ` : '') +
+                        (p.lastName ? `${utils.translateName(p.lastName)}` : '');
                         
                       return (
                         <tr key={`p1-${idx}`}>
@@ -1935,7 +1675,6 @@ const RelationPage = () => {
                             >
                               اختيار
                             </button>
-
                           </td>
                         </tr>
                       );
@@ -1961,10 +1700,10 @@ const RelationPage = () => {
                   <tbody>
                     {duplicates.person2.map((p, idx) => {
                       const fullName =
-                        (p.name ? `${translateName(p.name)} بن ` : '') +
-                        (p.father ? `${translateName(p.father)} بن ` : '') +
-                        (p.grandfather ? `${translateName(p.grandfather)} ` : '') +
-                        (p.lastName ? `${translateName(p.lastName)}` : '');
+                        (p.name ? `${utils.translateName(p.name)} بن ` : '') +
+                        (p.father ? `${utils.translateName(p.father)} بن ` : '') +
+                        (p.grandfather ? `${utils.translateName(p.grandfather)} ` : '') +
+                        (p.lastName ? `${utils.translateName(p.lastName)}` : '');
                       
                       return (
                         <tr key={`p2-${idx}`}>
@@ -1977,7 +1716,6 @@ const RelationPage = () => {
                               className="duplicate-button"
                               onClick={() => {
                                 setSelectedPerson2(fullName);
-                                // findRelationship(person1);
                               }}
                             >
                               اختيار
@@ -1997,8 +1735,7 @@ const RelationPage = () => {
 
 
     </aside>
-    )}
-
+        )}
       </section>
 
       {error && <div className="error-message">{error}</div>} {/* Show the error message */}
@@ -2008,31 +1745,28 @@ const RelationPage = () => {
           <p>{loadingMessage}</p>
         </div>
       )}
-      {}
+
       {!loading && relationship && !error  && (
         <section className="relationship-result">
           <div className="foundPersons">
-          <h2 id="resultTitle">الأشخاص الذين تم البحث عنهم:</h2>
+            <h2 id="resultTitle">الأشخاص الذين تم البحث عنهم:</h2>
+            <div className="person-card">
+              <h4>
+                {utils.translateName(relationship.relationshipPerson1Details?.name ?? '')} 
+                {relationship.relationshipPerson1Details?.father && ` بن ${utils.translateName(relationship.relationshipPerson1Details.father)}`} 
+                {relationship.relationshipPerson1Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson1Details.grandfather)}`} 
+                {relationship.relationshipPerson1Details?.lastName && ` ${utils.translateName(relationship.relationshipPerson1Details.lastName)}`}
+              </h4>
+            </div>
           <div className="person-card">
-          <h4>
-            {translateName(relationship.relationshipPerson1Details?.name ?? '')} 
-            {relationship.relationshipPerson1Details?.father && ` بن ${translateName(relationship.relationshipPerson1Details.father)}`} 
-            {relationship.relationshipPerson1Details?.grandfather && ` بن ${translateName(relationship.relationshipPerson1Details.grandfather)}`} 
-            {relationship.relationshipPerson1Details?.lastName && ` ${translateName(relationship.relationshipPerson1Details.lastName)}`}
-          </h4>
+            <h4>
+              {utils.translateName(relationship.relationshipPerson2Details?.name ?? '')} 
+              {relationship.relationshipPerson2Details?.father && ` بن ${utils.translateName(relationship.relationshipPerson2Details.father)}`} 
+              {relationship.relationshipPerson2Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson2Details.grandfather)}`} 
+              {relationship.relationshipPerson2Details?.lastName && ` ${utils.translateName(relationship.relationshipPerson2Details.lastName)}`}
+            </h4>
+          </div>
         </div>
-
-        <div className="person-card">
-          <h4>
-            {translateName(relationship.relationshipPerson2Details?.name ?? '')} 
-            {relationship.relationshipPerson2Details?.father && ` بن ${translateName(relationship.relationshipPerson2Details.father)}`} 
-            {relationship.relationshipPerson2Details?.grandfather && ` بن ${translateName(relationship.relationshipPerson2Details.grandfather)}`} 
-            {relationship.relationshipPerson2Details?.lastName && ` ${translateName(relationship.relationshipPerson2Details.lastName)}`}
-          </h4>
-        </div>
-
-        </div>
-
 
           <h2 id="resultTitle">نتيجة العلاقة</h2>
           <p className="relationText">{relationship.relationshipDescription}</p>
@@ -2123,7 +1857,7 @@ const RelationPage = () => {
             <div className="tree-wrapper" style={{
               height: `${Math.max(
                 ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
-                100 // Ensure minimum height is 100px
+                100
               ) + 1}px`
             }}>
 
@@ -2137,9 +1871,9 @@ const RelationPage = () => {
                     pathFunc="step"
                     nodeSize={{ x: 50, y: 90 }}
                     separation={{ siblings: 3, nonSiblings: 3 }}
-                    translate={{ x: 325, y: 27 }} 
+                    translate={{ x: 500, y: 30 }} 
                     renderCustomNodeElement={({ nodeDatum }) => (
-                     <g className="tree-node">
+                    <g className="tree-node">
                         <title>{nodeDatum.id}</title>
                         <rect
                           className="tree-node-rect"
@@ -2182,19 +1916,29 @@ const RelationPage = () => {
                             pointerEvents: 'none',
                           }}
                         >
-                          {translateName(nodeDatum.name)}
+                          {utils.translateName(nodeDatum.name)}
                         </text>
                       </g>
                     )}
                   />
                 </div>
               )}
-               </div>
+              </div>
           </div>
         </section>
       )}
     </main>
-  </div>
+    <div className="tipsFooter">
+      <h3>نصائح حول استخدام أداة معرفة العلاقة</h3>
+      <ul>
+        <li>اختر الأشخاص بدقة لضمان نتائج صحيحة.</li>
+        <li>إذا كان أحد الطرفين متزوج، تأكد من اختيار الزوج أو الزوجة المناسبة.</li>
+        <li>يمكنك استخدام زر "إلغاء" لإعادة التحديد بسهولة.</li>
+        <li>يمكن لهذه الأداء التعرف على أكثر من 200 ممكنة بين الشخصين .</li>
+      </ul>
+    </div>
+
+    </div>
   
   );
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import './mainPage.css';  // تأكد من استيراد ملف الـ CSS
+import '../styles/mainPage.css';  // تأكد من استيراد ملف الـ CSS
 import WeddingPage from './weddings';
 import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 

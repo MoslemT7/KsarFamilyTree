@@ -57,13 +57,12 @@ body {
 .logo {
   width: 60px;
   height: 60px;
-  background-image: url('./media/pic4.jpg'); /* Optional logo */
+  background-image: url('../media/pic4.jpg'); /* Optional logo */
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
 }
 
-/* Title */
 .title {
   text-align: center;
   flex-grow: 1;
