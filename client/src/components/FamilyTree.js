@@ -11,7 +11,7 @@ const driver = neo4j.driver(
   neo4jURI, 
   neo4j.auth.basic(neo4jUser, neo4jPassword)
 );
-
+const ROOT = 17;
 let uniqueKeyCounter = 0;
 
 const renderFamilyTree = (person, parentId = null, level = 0) => {
@@ -31,10 +31,33 @@ const renderFamilyTree = (person, parentId = null, level = 0) => {
   );
 };
 
-const fetchFamilyTree = async () => {
+const fetchFamilyTree = async (type) => {
   const session = driver.session();
   try {
-    const query = `
+    const defaultQuery = `
+      MATCH (root:Person)
+      WHERE id(root) = 17
+      CALL {
+        WITH root
+        MATCH (root)-[:FATHER_OF*]->(descendant)
+        RETURN collect(DISTINCT descendant) AS allDescendants
+      }
+      WITH root, allDescendants
+      UNWIND [root] + allDescendants AS person
+      OPTIONAL MATCH (person)-[:FATHER_OF]->(child)
+      WITH person, collect(child) AS children
+      RETURN {
+        id: id(person),
+        name: person.name,
+        lastName: person.lastName,
+        children: [child IN children | {
+          id: id(child),
+          name: child.name,
+          lastName: child.lastName
+        }]
+      } AS treeNode
+    `;
+    const queryWithMother = `
       MATCH (root:Person)
       WHERE id(root) = 17
       CALL {
@@ -57,8 +80,16 @@ const fetchFamilyTree = async () => {
         }]
       } AS treeNode
     `;
-
-    const result = await session.run(query);
+    let query;
+    let result = '';
+    if (type){
+      query = defaultQuery
+      result = await session.run(query);
+    }
+    else{
+      query = queryWithMother
+      result = await session.run(query);
+    }
 
     const familyTree = result.records.map(record => {
       const node = record.get('treeNode');
@@ -143,30 +174,81 @@ const FamilyTree = ({ searchQuery }) => {
   const treeContainerRef = useRef(null);
   const [familyTree, setFamilyTree] = useState(null);
   const [husbandId, setHusbandId] = useState(null);
+  const [wifeId, setWifeId] = useState(null);
   const [showTree, setShowTree] = useState(true);
   const [loading, setLoading] = useState(true);  
   const [translate, setTranslate] = useState({x : 0, y : 0});
+  const hasCenteredTree = useRef(false);  
   const nodePositions = useRef({});
+  const [personID, setPersonID] = useState(null);
+  const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
 
-  const handleWomanClick = async (person) => {
+  
+
+  const goToPersonById = async (personId) => {
+    const coords = nodePositions.current[personId];
+    const container = treeContainerRef.current;
+
+    if (!coords || !container) {
+      console.warn("Person coordinates or container not found.");
+      return;
+    }
+
+    const bounds = container.getBoundingClientRect();
+    if (ROOT == personID){
+        setTranslate({
+        x: bounds.width / 2 - coords.x,
+        y: bounds.height / 2 - coords.y,
+      });
+    }
+    else{
+      setTranslate({
+        x: bounds.width / 2 - coords.x,
+        y: bounds.height / 2 - coords.y,
+      });
+      
+    }
+  };
+  const handleIDPersonSearch = async () => {
+    const inputID = document.getElementById('personsearchName').value;
+    const personID = parseInt(inputID, 10);
+    setPersonID(personID);
+    if (isNaN(personID)) {
+      alert("❗ الرجاء إدخال رقم صحيح للشخص.");
+      return;
+    }
+    if (!showTree){
+      alert("الرجاء إظهار الشجرة أولا.");
+      return;
+    }
+    goToPersonById(personID);
+  };
+
+  const handlePersonClick = async (person) => {
     const session = driver.session();
-    const gender = await getGenderbyID(person.id);
-    if (gender !== "Female") return;
 
     try {
-      const result = await session.run(
+      const gender = await getGenderbyID(person.id);
+
+      const query = gender === "Female"
+        ? `
+          MATCH (w:Person)-[:WIFE_OF]-(h:Person)
+          WHERE id(w) = $id
+          RETURN id(h) as SpouseID
+          LIMIT 1
         `
-        MATCH (w:Person)-[:WIFE_OF]-(h:Person)
-        WHERE id(w) = $womanId
-        RETURN id(h) as HusbandID
-        LIMIT 1
-      `,
-        { womanId: person.id }
-      );
+        : `
+          MATCH (h:Person)-[:HUSBAND_OF]-(w:Person)
+          WHERE id(h) = $id
+          RETURN id(w) as SpouseID
+          LIMIT 1
+        `;
+
+      const result = await session.run(query, { id: person.id });
 
       if (result.records.length > 0) {
-        const husband = result.records[0].get("HusbandID").toNumber();
-        const coords = nodePositions.current[husband];
+        const spouseId = result.records[0].get("SpouseID").toNumber();
+        const coords = nodePositions.current[spouseId];
         const container = treeContainerRef.current;
 
         if (coords && container) {
@@ -177,12 +259,18 @@ const FamilyTree = ({ searchQuery }) => {
           });
         }
 
-        setHusbandId(husband);
+        if (gender === "Female") {
+          setHusbandId(spouseId);
+          setWifeId(null);
+        } else {
+          setWifeId(spouseId);
+          setHusbandId(null);
+        }
       } else {
-        console.log("No husband found for", person.name);
+        console.log("No spouse found for", person.name);
       }
     } catch (error) {
-      console.error("Error fetching husband:", error);
+      console.error("Error fetching spouse:", error);
     } finally {
       await session.close();
     }
@@ -200,19 +288,25 @@ const FamilyTree = ({ searchQuery }) => {
   };
 
   const handleRootTreeClick = async () => {
-    loadFamilyTree(17);
+    await loadFamilyTree(17, true); // assuming it’s async
+    setFocusAfterLoadId(17);
   };
+  const handleRootWomenTreeClick = async () =>{
+    loadFamilyTree(17, false)
+  };
+  
+  const loadFamilyTree = async (rootID, type) => {
 
-  const loadFamilyTree = async (rootID) => {
     try {
       setLoading(true);
-      const people = await fetchFamilyTree();
+      const people = await fetchFamilyTree(type);
       if (Array.isArray(people) && people.length > 0) {
         const rootPerson = people.find((p) => p.id === rootID);
         const treeData = buildTree(rootPerson, people);
         console.log(treeData);
         setFamilyTree(treeData);
         setShowTree(true);
+        
         setLoading(false);
       } else {
         console.warn("Empty or invalid people data");
@@ -224,6 +318,26 @@ const FamilyTree = ({ searchQuery }) => {
     }
   };
 
+  const getTreeSize = () => {
+    const positions = Object.values(nodePositions.current);
+
+    if (positions.length === 0) return { width: 0, height: 0 };
+
+    const xValues = positions.map(p => p.x);
+    const yValues = positions.map(p => p.y);
+
+    const width = Math.max(...xValues) - Math.min(...xValues);
+    const height = Math.max(...yValues) - Math.min(...yValues);
+
+    return { width, height };
+  };
+
+  useEffect(() => {
+    if (focusAfterLoadId && nodePositions.current[focusAfterLoadId]) {
+      goToPersonById(focusAfterLoadId);
+      setFocusAfterLoadId(null); // reset
+    }
+  }, [focusAfterLoadId, nodePositions.current]);
   return (
     <div className="treePage">
       <header>
@@ -241,16 +355,23 @@ const FamilyTree = ({ searchQuery }) => {
         <div className="filterChoice">
           <div className="card filter-left">
             <form className="filterChoiceForm">
-              <p>زر "شجرة العائلة منذ الجد الأول" يتيح لك عرض شجرة العائلة بدءًا من الجد الأول للعائلة،
-                 وهو الجذر الذي تتفرع منه جميع الأجيال التالية.
-                 عند الضغط على هذا الزر، سيتم تحميل شجرة العائلة بالكامل بدءًا من ذلك الشخص،
-                 مما يتيح لك استكشاف الروابط العائلية بين الأفراد عبر الأجيال المختلفة،
-                 وتعرف أكثر على تاريخ العائلة وعلاقاتها.</p>
-              <button type="button" className="btn-root" onClick={handleRootTreeClick}>
-                شجرة العائلة منذ الجد الأول
-              </button>
+              <p className="info-text">
+                زر <strong>"شجرة العائلة منذ الجد الأول"</strong> يتيح لك عرض شجرة العائلة بدءًا من الجد الأول، 
+                وهو الجذر الذي تتفرع منه جميع الأجيال. عند الضغط عليه، يتم تحميل الشجرة الكاملة 
+                لتستكشف الروابط العائلية بين الأفراد وتتعرف على تاريخ العائلة وعلاقاتها المتنوعة.
+              </p>
+
+              <div className="rootButton">
+                <button type="button" id="men" onClick={handleRootTreeClick}>
+                  شجرة العائلة التقليدية
+                </button>
+                <button type="button" id="women" onClick={handleRootWomenTreeClick}>
+                  شجرة العائلة مع أبناء الأمهات
+                </button>
+              </div>
             </form>
           </div>
+
           
           <div className="card filter-right">
             <p>
@@ -272,12 +393,10 @@ const FamilyTree = ({ searchQuery }) => {
               ستجد رقم التسلسل يظهر فوق اسم الشخص في نتائج البحث. قم بنسخ هذا الرقم وأدخله هنا لرؤية مكانه داخل الشجرة.</p>
 
             <input id="personsearchName" type="text" placeholder="ابحث عن شخص في الشجرة" />
-            <button type='button' className='btn-search'>إبحث عن شخص في شجرة العائلة</button>
+            <button type='button' className='btn-search' onClick={handleIDPersonSearch}>إبحث عن شخص في شجرة العائلة</button>
           </div>
         </div>
 
-
-        
       </header>
       {loading && !showTree && !familyTree && (
         <div className="loading-indicator">
@@ -300,17 +419,16 @@ const FamilyTree = ({ searchQuery }) => {
             justifyContent: 'center', // Center the content horizontally
             alignItems: 'center', // Center the content vertically
           }}
-        >
+          >
           <Tree
             data={familyTree}
             orientation="vertical"
             pathFunc="step"
-            translate={{ x: 500, y: 50 }} // Adjust vertical spacing, change this if needed
-            scale={0.00001} // Scale down tree to fit within the container
-            nodeSize={{ x: 100, y: 100 }} // Adjust node size if needed
-            separation={{ siblings: 1.1, nonSiblings: 1.5 }} // Adjust separation between nodes
+            translate={translate}
+            nodeSize={{ x: 100, y: 100 }}
+            separation={{ siblings: 1.1, nonSiblings: 1.5 }}
             renderCustomNodeElement={({ nodeDatum, hierarchyPointNode }) => {
-              const isHusband = nodeDatum.id === husbandId;
+              const isSpouse = nodeDatum.id === husbandId || nodeDatum.id === wifeId;
               nodePositions.current[nodeDatum.id] = {
                 x: hierarchyPointNode.x,
                 y: hierarchyPointNode.y,
@@ -318,16 +436,24 @@ const FamilyTree = ({ searchQuery }) => {
 
               return (
                 <g
-                  onClick={() => handleWomanClick(nodeDatum)}
+                  onClick={() => handlePersonClick(nodeDatum)}
                   style={{ cursor: "pointer" }}
-                > 
+                >
                   <title>{nodeDatum.id}</title>
                   <rect
                     x="-50"
                     y="-20"
                     width="100"
                     height="40"
-                    fill={isHusband ? "#66bb6a" : "#4fc3f7"}
+                    fill={
+                      nodeDatum.id === husbandId
+                        ? "#66bb6a" 
+                        : nodeDatum.id === wifeId
+                        ? "#ff8a65" 
+                        : nodeDatum.id === personID 
+                        ? "#cf14d9"
+                        : "#4fc3f7"      
+                    }                    
                     stroke="black"
                     strokeWidth="2"
                     rx="8"

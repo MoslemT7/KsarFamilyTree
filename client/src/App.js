@@ -31,21 +31,11 @@ const App = () => {
     <div className="app-container">
       <Router>
       <header className="header">
-        <div className="header-top">
+        <div className="header-left">
+          <div className="logo"></div>
           <button className="menu-toggle" onClick={toggleMenu}>☰</button>
-          <div className="logo">
-            {/* Optional: Insert <img src="/logo.png" alt="Logo" /> here */}
-          </div>
           <div className="title">
             <h1>موقع قصر أولاد بوبكر</h1>
-            <div>
-              <h2>التاريخ | العلاقات | التقاليد</h2>
-              <label class="toggle-switch">
-                <input type="checkbox" id="darkModeToggle" onClick={toggleDarkMode}></input>
-                <span class="slider"></span>
-              </label>
-            </div>
-            
           </div>
         </div>
 
@@ -59,6 +49,12 @@ const App = () => {
             <li><Link to="/weddingsDates">أعراسنا</Link></li>
           </ul>
         </nav>
+        <div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="darkModeToggle" onClick={toggleDarkMode}></input>
+            <span class="slider"></span>
+          </label>
+        </div>
       </header>
 
       <div className="main-container">

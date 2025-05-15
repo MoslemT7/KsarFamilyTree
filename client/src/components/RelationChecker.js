@@ -115,7 +115,7 @@ const RelationPage = () => {
         explanation: "الاسمين يشيران إلى نفس الشخص."
       }
     ];
-
+    console.log(translatedName1, translatedName2);
     let marraigeRecord = await checkMarriage(person1ID, person2ID, gender1, gender2);
     if (marraigeRecord.areMarried === true){
       let relation = '';
@@ -154,7 +154,7 @@ const RelationPage = () => {
       else{
         const ancestorID = relationRecord.id;
         const ancestorName = relationRecord.name ? utils.translateName(relationRecord.name) : '';
-        const ancestorLastName = relationRecord.lastName ? utils.translateName(relationRecord.lastName) : '';
+        const ancestorLastName = relationRecord.lastName ? utils.translateFamilyName(relationRecord.lastName) : '';
         const ancestorFatherName = relationRecord.fatherName ? utils.translateName(relationRecord.fatherName) : '';
         const ancestorGrandFatherName = relationRecord.grandfatherName ? utils.translateName(relationRecord.grandfatherName) : '';
         const ancestorGender = relationRecord.gender;
@@ -1055,7 +1055,65 @@ const RelationPage = () => {
           }
           explanation = relationshipExplanation[2];
         }
+          
+        else if (p1Level === 5 && p2Level === 4){
+          const p1AncestorGender = pathToP1[1].gender;
+          const p1thirdGreatAncestor = pathToP2[4].gender;
+          const p1SecondGreatAncestorGender = pathToP1[3].gender;
+          const p2SecondGreatAncestorGender = pathToP2[3].gender;
+          const p2GreatAncestorGender = pathFromAncestorToP2[2].gender;
+          if (p1AncestorGender === 'Male'){
+            if (p1thirdGreatAncestor === 'Male' && p2SecondGreatAncestorGender === 'Male'){
+              if (p2GreatAncestorGender == 'Male'){
+                if (p1SecondGreatAncestorGender === 'Male'){
+                  relation = `جد أب ${translatedName1} و جد ${translatedName2} أولاد عم`;
+                }
+                else{
+                  relation = `جدة أب ${translatedName1} و جد ${translatedName2} أولاد عم`;
+                }
+              }
+              else{
+                if (p1SecondGreatAncestorGender === 'Male'){
+                  relation = `جد أب ${translatedName1} و جدة ${translatedName2} أولاد عم`;
+                }
+                else{
+                  relation = `جدة أب ${translatedName1} و جدة ${translatedName2} أولاد عم`;
+                }
+              }
+            } 
+            else{
+              if (p1SecondGreatAncestorGender === 'Male'){
+              relation = `جد أب ${translatedName1} و جد ${translatedName2} أولاد الخال/العم`;
+              }
+              else{
+                relation = `جدة أب ${translatedName1} و جد ${translatedName2} أولاد الخالة/العمة`;
+              }
+            }
+          }
+          else{
+            if (p1thirdGreatAncestor === 'Male' && p2SecondGreatAncestorGender === 'Male'){
+              if (p1SecondGreatAncestorGender === 'Male'){
+              relation = `جد أم ${translatedName1} و جد ${translatedName2} أولاد عم`;
+              }
+              else{
+                relation = `جدة أم ${translatedName1} و جد ${translatedName2} أولاد عم`;
+              }
+            } 
+            else{
+              if (p1SecondGreatAncestorGender === 'Male'){
+              relation = `جد أم ${translatedName1} و جد ${translatedName2} أولاد الخال/العم`;
+              }
+              else{
+                relation = `جدة أم ${translatedName1} و جد ${translatedName2} أولاد الخالة/العمة`;
+              }
+            }
+          }
+          score = 80;
+        }
 
+        else if (p1Level === 6 && p1Level === 6){
+          relation = 'هذان الشخصان يشتركان في الجد الخامس';
+        }
         else {
           setLoading(false);
           console.log('No direct relation found.');
@@ -1505,12 +1563,12 @@ const RelationPage = () => {
     let translatedPerson1Name = isArabic(person1Name) ? utils.translateName(person1Name, false) : person1Name;
     let translatedPerson1FatherName = isArabic(person1FatherName) ? utils.translateName(person1FatherName, false) : person1FatherName;
     let translatedPerson1GrandfatherName = isArabic(person1GrandfatherName) ? utils.translateName(person1GrandfatherName, false) : person1GrandfatherName;
-    let translatedPerson1LastName = isArabic(person1LastName) ? utils.translateName(person1LastName, false) : person1LastName;
-
+    let translatedPerson1LastName = isArabic(person1LastName) ? utils.translateFamilyName(person1LastName, false) : person1LastName;
+    console.log(translatedPerson1Name, translatedPerson1LastName);
     let translatedPerson2Name = isArabic(person2Name) ? utils.translateName(person2Name, false) : person2Name;
     let translatedPerson2FatherName = isArabic(person2FatherName) ? utils.translateName(person2FatherName, false) : person2FatherName;
     let translatedPerson2GrandfatherName = isArabic(person2GrandfatherName) ? utils.translateName(person2GrandfatherName, false) : person2GrandfatherName;
-    let translatedPerson2LastName = isArabic(person2LastName) ? utils.translateName(person2LastName, false) : person2LastName;
+    let translatedPerson2LastName = isArabic(person2LastName) ? utils.translateFamilyName(person2LastName, false) : person2LastName;
 
     const errorContainer = document.getElementById('error-container');
     try {
@@ -1564,8 +1622,10 @@ const RelationPage = () => {
         gender2 = person2Matches[0].gender;
       }
 
-      const translatedName1 = utils.translateName(person1Matches[0].name + " " + person1Matches[0].lastName);
-      const translatedName2 = utils.translateName(person2Matches[0].name + " " + person2Matches[0].lastName);
+      const translatedName1 = utils.translateName(person1Matches[0].name) + " " + 
+                              utils.translateFamilyName(person1Matches[0].lastName);
+      const translatedName2 = utils.translateName(person2Matches[0].name) + " " + 
+                              utils.translateFamilyName(person2Matches[0].lastName);
       
       console.log(person1Matches[0], person2Matches[0]);
       
@@ -1755,7 +1815,7 @@ const RelationPage = () => {
                 {utils.translateName(relationship.relationshipPerson1Details?.name ?? '')} 
                 {relationship.relationshipPerson1Details?.father && ` بن ${utils.translateName(relationship.relationshipPerson1Details.father)}`} 
                 {relationship.relationshipPerson1Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson1Details.grandfather)}`} 
-                {relationship.relationshipPerson1Details?.lastName && ` ${utils.translateName(relationship.relationshipPerson1Details.lastName)}`}
+                {relationship.relationshipPerson1Details?.lastName && ` ${utils.translateFamilyName(relationship.relationshipPerson1Details.lastName)}`}
               </h4>
             </div>
           <div className="person-card">
@@ -1763,7 +1823,7 @@ const RelationPage = () => {
               {utils.translateName(relationship.relationshipPerson2Details?.name ?? '')} 
               {relationship.relationshipPerson2Details?.father && ` بن ${utils.translateName(relationship.relationshipPerson2Details.father)}`} 
               {relationship.relationshipPerson2Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson2Details.grandfather)}`} 
-              {relationship.relationshipPerson2Details?.lastName && ` ${utils.translateName(relationship.relationshipPerson2Details.lastName)}`}
+              {relationship.relationshipPerson2Details?.lastName && ` ${utils.translateFamilyName(relationship.relationshipPerson2Details.lastName)}`}
             </h4>
           </div>
         </div>

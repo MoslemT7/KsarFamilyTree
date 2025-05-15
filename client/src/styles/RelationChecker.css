@@ -6,7 +6,8 @@
   font-family: 'Cairo', sans-serif;
   direction: rtl;
   gap: 16px;
-  padding: 0 15px;
+  padding: 0 10px;
+  
 }
 
 h1{
@@ -30,6 +31,7 @@ table {
 .input-group{
   display: flex;
 }
+
 .inputSection{
   display: block;
   width: 100%;
@@ -104,12 +106,13 @@ table {
   flex-direction: column;
   gap: 30px;
   min-width: 500px;
+  
 }
 
 /* Form Styling */
 .relation-form-section {
   background: white;
-  padding: 30px;
+  padding: 10px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
@@ -608,15 +611,19 @@ body.dark-mode .relationship-result h2{
   list-style-type:none;
   padding: 5px;
   display: flex;
-
+  gap: 75px;
+  text-align: center;
 }
 
 .tipsFooter li {
   margin-bottom: 8px;
-  font-size: 16px;
-  color: #333;
+  font-size: 20px;
+  color: #fafafa;
+  background: linear-gradient(30deg, #007bff, #07eb2d);
   border: 1px solid rgb(197, 188, 188);
   margin: 2px;
+  padding: 8px;
+  width: 20%;
   text-align: center;
 
 }

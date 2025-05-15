@@ -271,11 +271,28 @@ export const translateName = (fullName, language = true) => {
   return translatedParts.join(' ');
 };
 
-export const translateFamilyName = (fullName, language = true) => {
+export const translateFamilyName = (fullFamilyName, language = true) => {
   const reverseTranslations = Object.fromEntries(
-    Object.entries(familyNameTranslation).map(([key, value]) => [value, key])
+    Object.entries(familyNameTranslation).map(([en, ar]) => [ar, en])
   );
 
-  return familyNameTranslation[fullName] || fullName;
+  const reverseCompound = Object.fromEntries(
+    Object.entries(compoundNameTranslation).map(([en, ar]) => [ar, en])
+  );
 
+  const dict = language ? familyNameTranslation : reverseTranslations;
+  const compoundDict = language ? compoundNameTranslation : reverseCompound;
+
+  const normalized = fullFamilyName.trim().replace(/\s+/g, ' ');
+
+  // Check compound match first
+  if (compoundDict[normalized]) {
+    return compoundDict[normalized];
+  }
+
+  // Split and translate each part
+  const nameParts = normalized.split(' ');
+  const translatedParts = nameParts.map(part => dict[part] || part);
+
+  return translatedParts.join(' ');
 };

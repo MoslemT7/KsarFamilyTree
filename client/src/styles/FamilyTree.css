@@ -98,11 +98,45 @@ header p{
   border: 2px solid #b0e57c;
 }
 
-button {
-  display: block;
-  width: 100%;
-  height: 50px;
+.filter-left {
+  width: 30%;
+  min-height: 325px;
+  margin: 5px;
+  background-color: #f0f8ff; /* Light blue */
+  border: 2px solid #add8e6;
+  border-radius: 8px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Description paragraph */
+.info-text {
+  font-family: "Cairo", sans-serif;
   font-size: 16px;
+  line-height: 1.7;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* Button container */
+.rootButton {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rootButton button{
+  height: 50%;
+}
+
+.btn-person, .btn-search{
+  width: 75%;
+}
+/* Buttons already have general styles */
+button{
+  flex: 1;
+  height: 50px;
+  font-size: 14px;
   font-family: "Cairo", sans-serif;
   font-weight: bold;
   border: none;
@@ -111,8 +145,7 @@ button {
   transition: all 0.3s ease;
   text-align: center;
   color: white;
-  padding: 5px;
-  margin-top: 15px;
+  background-color: #00b894;
 }
 
 button:hover {
@@ -137,6 +170,16 @@ input {
 
 .btn-root:hover {
   background: linear-gradient(45deg, #00f2fe, #4facfe); /* Reversed gradient on hover */
+  box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4); /* Slightly stronger shadow on hover */
+}
+
+.btn-root {
+  background: linear-gradient(45deg, #dd6f26, #f5350a); /* Blue to light cyan gradient */
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2); /* Subtle shadow */
+}
+
+.btn-root:hover {
+  background: linear-gradient(45deg, #dd6f26, #f5350a); /* Reversed gradient on hover */
   box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4); /* Slightly stronger shadow on hover */
 }
 

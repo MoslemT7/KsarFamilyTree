@@ -307,7 +307,6 @@ const SexCount = async () => {
     }
 };
 
-
 const totalAlivePopulation = async () => {
     const session = driver.session();
     try {
@@ -325,26 +324,6 @@ const totalAlivePopulation = async () => {
     }
 };
 
-const mostUsedFamilyName = async () => {
-  const session = driver.session();
-    try {
-      const result = await session.run(`
-        MATCH (p:Person)
-        WHERE p.name IS NOT NULL
-        RETURN p.lastName AS lastName, count(*) AS occurrences
-        ORDER BY occurrences DESC
-        LIMIT 5
-      `);
-      return {familyName: result.records[0].get('lastName'), 
-              occurences: (result.records[0].get('occurrences').toNumber())
-      };
-    } catch (error) {
-      console.error("Error counting population:", error);
-      return 0;
-    } finally {
-      await session.close();
-    }
-};
 
 const unmariedMales = async () => {
   const session = driver.session();
@@ -459,6 +438,27 @@ const familiesNumber = async () => {
     }
 }
 
+const getAllYearsOfMarriage = async () => {
+  const session = driver.session();
+  try {
+    const result = await session.run(`
+      MATCH (p:Person)
+      WHERE p.YoM IS NOT NULL
+      RETURN DISTINCT p.YoM AS year
+      ORDER BY year
+    `);
+
+    const years = result.records.map(record => record.get('year'));
+    return years;
+  } catch (error) {
+    console.error('Error fetching Years of Marriage:', error);
+    return [];
+  } finally {
+    await session.close();
+  }
+};
+
+
 const StatisticsDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -472,13 +472,6 @@ const StatisticsDashboard = () => {
     2024, 2024, 2024, 2023, 2023, 2023, 2023, 2023, 2022, 2022, 2022,
     2023, 2022, 2021, 2020, 2019, 2023, 2022, 2023, 2021, 2021, 2023,
     2022, 2022, 2022, 2023, 2021, 2021, 2021, 2021, 2021, 2022, 2021,
-  ];
-  const topFamilies = [
-    { family: 'البوبكري', count: 320 },
-    { family: 'اللقماني', count: 275 },
-    { family: 'الفرحاتي', count: 240 },
-    { family: 'السقراطي', count: 215 },
-    { family: 'الرحموني', count: 198 }
   ];
   
   const ageDistributionChartRef = useRef(null);
@@ -528,6 +521,27 @@ const StatisticsDashboard = () => {
     } finally {
       await session.close();
     }
+  };
+  const mostUsedFamilyName = async () => {
+    const session = driver.session();
+      try {
+        const result = await session.run(`
+          MATCH (p:Person)
+          WHERE p.name IS NOT NULL
+          RETURN p.lastName AS familyName, count(*) AS Count
+          ORDER BY Count DESC
+          LIMIT 5
+        `);
+        return result.records.map(record => ({
+          familyName: utils.translateFamilyName(record.get('familyName')),
+          occurences: record.get('Count').toNumber()
+        }));
+      } catch (error) {
+        console.error("Error counting population:", error);
+        return 0;
+      } finally {
+        await session.close();
+      }
   };
 
   const populationGrowth = async () => {
@@ -588,6 +602,8 @@ const StatisticsDashboard = () => {
         const fetchedAgeDistribution = await ageBins();
         const fetchedCumGrowth = await populationGrowth();
         const familiesCount = await familiesNumber();
+        const top5families = await mostUsedFamilyName();
+        const yearlyWeddings = await getAllYearsOfMarriage();
         setStats({
           totalPopulation: total,
           totalAlivePopulation: totalAlive,
@@ -613,8 +629,8 @@ const StatisticsDashboard = () => {
         setAgeDistribution(fetchedAgeDistribution);
         setpopulationGrowth(fetchedCumGrowth);
         setWeddingData(weddingYears);
-        setTopFamilies(topFamilies);
-
+        setTopFamilies(top5families);
+        setWeddingData(yearlyWeddings);
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -895,10 +911,10 @@ const StatisticsDashboard = () => {
     topFamiliesInstance.current = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: topFamiliesData.map(f => f.family),
+        labels: topFamiliesData.map(f => f.familyName),
         datasets: [{
           label: 'عدد الأفراد في العائلة',
-          data: topFamiliesData.map(f => f.count),
+          data: topFamiliesData.map(f => f.occurences),
           backgroundColor: 'rgba(255, 99, 132, 0.5)',
           borderColor: 'rgba(255, 99, 132, 1)',
           borderWidth: 1
@@ -936,7 +952,7 @@ const StatisticsDashboard = () => {
       topFamiliesInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
     };
 
-  }, [topFamilies]);
+  }, [topFamiliesData]);
 
   if (loading) return (
     <div className="loading-container">
@@ -981,7 +997,7 @@ const StatisticsDashboard = () => {
             </p>
           </div>
             <div class="stat-card"> 
-              <h4>أكبر فرد</h4>
+              <h4>أصغر فرد</h4>
               <p className="stat-number">
                 {utils.translateName(stats.youngestPerson.name || '')}{" "}
                 {utils.translateName(stats.youngestPerson.lastName || '')} بن{" "} 
@@ -1065,7 +1081,7 @@ const StatisticsDashboard = () => {
         </div>
         <div class="fun-fact">
           <h2 class="fun-chart">{stats.mostUsedFamilyNameCount.occurences}</h2>
-          <p>{stats.mostUsedFamilyNameCount.occurences} شخص، يحملون لقب <strong>{utils.translateName(stats.mostUsedFamilyNameCount.familyName)}</strong>   كأكثر لقب شائع، ويمثل  
+          <p>{stats.mostUsedFamilyNameCount.occurences} شخص، يحملون لقب <strong></strong>   كأكثر لقب شائع، ويمثل  
              <strong>{(((stats.mostUsedFamilyNameCount.occurences))*100/stats.totalPopulation).toFixed(1)}% </strong> من السكان.</p>
         </div>
         <div class="fun-fact">
