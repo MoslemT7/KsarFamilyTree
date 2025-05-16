@@ -1,0 +1,166 @@
+.cin-card {
+  width: 500px;
+  height: 300px;
+  perspective: 1000px;
+  margin: 40px auto;
+  font-family: "Cairo", sans-serif;
+  direction: rtl;
+  position: relative;
+}
+
+.cin-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.8s;
+  transform-style: preserve-3d;
+  z-index: 1;
+}
+
+.cin-inner::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('../media/CINFront.png') center center no-repeat;
+  background-size: contain;
+  opacity: 0.08;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Make sure content stays above background */
+.cin-inner > * {
+  position: relative;
+  z-index: 1;
+}
+
+.cin-card:hover .cin-inner {
+  transform: rotateY(180deg);
+}
+
+
+.cin-front,
+.cin-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  border: 2px solid #ccc;
+  border-radius: 12px;
+  backface-visibility: hidden;
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+/* FRONT */
+.cin-front {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cin-header {
+  display: flex;
+  justify-content: space-between;
+  height: 10%;
+  border-bottom: 1px solid grey;
+  align-items: center;
+}
+
+.cin-logo {
+  height: 40px;
+}
+
+.cin-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #222;
+}
+
+.cin-badge {
+  font-size: 28px;
+}
+
+.cin-number {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 10px;
+  border: 1px dashed #aaa;
+  padding: 5px;
+ 
+  background-color: #eef1f4;
+}
+
+.cin-info {
+    line-height: 1.6;
+    font-size: 18px;
+    display: flex;
+    align-items: flex-start;
+}
+
+.cin-photo {
+  flex-shrink: 0;
+}
+
+.cin-photo img {
+  width: 100px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.cin-names strong, 
+.cin-info-back strong{
+    color: blueviolet;
+}
+
+#familyName{
+    font-size: 24px;
+}
+
+.cin-names {
+  font-size: 18px;
+  text-align: right;
+  line-height: 1.8;
+  flex: 1;
+}
+.cin-names p{
+    letter-spacing: 1px;
+}
+
+/* BACK */
+.cin-back {
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 10px;
+}
+
+/* Container for info and fingerprint side-by-side */
+.cin-back-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+/* Info on the left */
+.cin-info-back {
+  font-size: 18px;
+  line-height: 1.5;
+  flex: 1;
+
+}
+
+/* Barcode at the bottom */
+.cin-barcode {
+    width: 100%;
+    height: 50px;
+    margin-top: auto;
+    object-fit: contain;
+}

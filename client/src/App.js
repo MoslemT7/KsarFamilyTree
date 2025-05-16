@@ -14,7 +14,6 @@ const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleMenu = () => setMenuOpen(!menuOpen);
   useEffect(() => {
-    // Load theme from localStorage on mount
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "light") {
       document.body.classList.add("dark-mode");
@@ -35,7 +34,7 @@ const App = () => {
           <div className="logo"></div>
           <button className="menu-toggle" onClick={toggleMenu}>☰</button>
           <div className="title">
-            <h1>موقع قصر أولاد بوبكر</h1>
+            <h1><a href='https://shorturl.at/Ktu6p'>موقع قصر أولاد بوبكر</a></h1>
           </div>
         </div>
 
@@ -47,12 +46,13 @@ const App = () => {
             <li><Link to="/statistics">إحصائيات</Link></li>
             <li><Link to="/relation-checker">ماهي العلاقة بينهما؟</Link></li>
             <li><Link to="/weddingsDates">أعراسنا</Link></li>
+            <li id="contactUs"><a>إتصل بنا</a></li>
           </ul>
         </nav>
         <div>
           <label class="toggle-switch">
             <input type="checkbox" id="darkModeToggle" onClick={toggleDarkMode}></input>
-            <span class="slider"></span>
+            <span class="slider">🌙      ☀️</span>
           </label>
         </div>
       </header>
@@ -62,7 +62,7 @@ const App = () => {
 
         <div className="content">
           <Routes>
-            <Route path="/main" element={<MainPage />} />
+            <Route path="/" element={<MainPage />} />
             <Route path="/familyTree" element={<FamilyTree />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/statistics" element={<StatisticsDashboard />} />
@@ -87,14 +87,18 @@ const App = () => {
               <li><a href="/tree">شجرة العائلة</a></li>
               <li><a href="/search">البحث عن فرد</a></li>
               <li><a href="/weddings">أعراسنا</a></li>
+              <li><a href="https://github.com/MoslemT7/KsarFamilyTree" target="_blank" rel="noopener noreferrer" title="Tech & Source code on GitHub">
+              GitHub
+              </a></li>
             </ul>
           </div>
           <div className="footer-column">
             <h4>تواصل معنا</h4>
             <ul>
               <li>📧 البريد الإلكتروني: contact@elkasr-family.tn</li>
-              <li>📍 قصر أولاد بوبكر، تطاوين، تونس</li>
-              <li>📞 الهاتف: +216 99 999 999</li>
+              <li><a href="https://shorturl.at/Ktu6p">📍 قصر أولاد بوبكر، تطاوين، تونس</a></li>
+              <li>📞 +216 98 695 061</li>
+              <li>📞 +216 27 200 162</li>
               <li><a href='https://www.facebook.com/infosKOB' id='fblink'>صفحة الفايسبوك</a></li>
             </ul>
           </div>

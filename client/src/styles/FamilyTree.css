@@ -44,7 +44,7 @@ header{
 h2 {
   text-align: center;
   font-family: "Cairo";
-  font-size: 24px;
+  font-size: 36px;
 }
 
 header p{
@@ -54,16 +54,28 @@ header p{
 }
 
 .card {
-  padding: 20px;
+  padding: 5px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  gap: 15px;
-  height: 100%; /* Ensure each card takes full height */
+  gap: 10px;
+  min-height: 275px;
   text-align: center;
+}
+
+.card .info-text{
+  color: black;
+  font-size: 15px;
+  height: 50%;
+  padding: 2px;
+}
+
+#warning {
+  color: #d63031;
+  font-weight: 900;
 
 }
 
@@ -72,69 +84,50 @@ header p{
   justify-content: space-between;
   gap: 5px;
   align-items: flex-start;
-  flex-wrap: wrap; /* Wrap cards on smaller screens */
+  flex-wrap: wrap;
 }
 
-.filter-left,
-.filter-right,
-.personSearch {
-  width: 30%; /* Each card takes 33% of the space */
-  min-height: 325px;
-  margin: 5px;
-}
-
-.filter-left {
-  background-color: #f0f8ff; /* Light blue background */
-  border: 2px solid #add8e6;
-}
-
-.filter-right {
-  background-color: #fbe8e6; /* Light pink background */
-  border: 2px solid #f4a6b1;
-}
-
-.personSearch {
-  background-color: #f6f9f5; /* Light green background */
-  border: 2px solid #b0e57c;
-}
-
-.filter-left {
-  width: 30%;
-  min-height: 325px;
-  margin: 5px;
-  background-color: #f0f8ff; /* Light blue */
-  border: 2px solid #add8e6;
-  border-radius: 8px;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-/* Description paragraph */
-.info-text {
-  font-family: "Cairo", sans-serif;
-  font-size: 16px;
-  line-height: 1.7;
-  color: #333;
-  margin-bottom: 20px;
-}
-
-/* Button container */
-.rootButton {
+.rootButton{
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  text-align: center;
 }
 
-.rootButton button{
-  height: 50%;
+#men, #women{
+  width: 45%;
+  margin: 25px 50px;
+  font-size: 14px;
 }
 
-.btn-person, .btn-search{
-  width: 75%;
+#R1{
+  border-bottom: 4px solid red;
+    border-top: 4px solid red;
+
 }
-/* Buttons already have general styles */
+
+#R2{
+  border-bottom: 4px solid orange;
+    border-top: 4px solid orange;
+
+}
+
+#R2 button{
+  color: #f1eeec;
+  margin-bottom: 15px;
+  background: linear-gradient(45deg, #d9ab72, #c90f0f);
+}
+
+#R3{
+  border-bottom: 4px solid green;
+    border-top: 4px solid green;
+
+}
+#R3 button{
+  color: #f1eeec;
+  margin-bottom: 15px;
+  background: linear-gradient(45deg, #4bb896, #29c810);
+}
+
 button{
-  flex: 1;
   height: 50px;
   font-size: 14px;
   font-family: "Cairo", sans-serif;
@@ -144,8 +137,6 @@ button{
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
-  color: white;
-  background-color: #00b894;
 }
 
 button:hover {
@@ -163,47 +154,6 @@ input {
   font-size: 16px;
 }
 
-.btn-root {
-  background: linear-gradient(45deg, #4facfe, #00f2fe); /* Blue to light cyan gradient */
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2); /* Subtle shadow */
-}
-
-.btn-root:hover {
-  background: linear-gradient(45deg, #00f2fe, #4facfe); /* Reversed gradient on hover */
-  box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4); /* Slightly stronger shadow on hover */
-}
-
-.btn-root {
-  background: linear-gradient(45deg, #dd6f26, #f5350a); /* Blue to light cyan gradient */
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2); /* Subtle shadow */
-}
-
-.btn-root:hover {
-  background: linear-gradient(45deg, #dd6f26, #f5350a); /* Reversed gradient on hover */
-  box-shadow: 0 6px 12px rgba(0, 123, 255, 0.4); /* Slightly stronger shadow on hover */
-}
-
-.btn-person {
-  background: linear-gradient(45deg, #f6b93b, #f0932b); /* Orange to yellow gradient */
-  box-shadow: 0 4px 8px rgba(255, 165, 0, 0.2); /* Subtle shadow */
-}
-
-.btn-person:hover {
-  background: linear-gradient(45deg, #f0932b, #f6b93b); /* Reversed gradient on hover */
-  box-shadow: 0 6px 12px rgba(255, 165, 0, 0.4); /* Slightly stronger shadow on hover */
-}
-
-.btn-search {
-  background: linear-gradient(45deg, #00b894, #00cec9); /* Teal to light turquoise gradient */
-  box-shadow: 0 4px 8px rgba(0, 204, 204, 0.2); /* Subtle shadow */
-}
-
-.btn-search:hover {
-  background: linear-gradient(45deg, #00cec9, #00b894); /* Reversed gradient on hover */
-  box-shadow: 0 6px 12px rgba(0, 204, 204, 0.4); /* Slightly stronger shadow on hover */
-}
-
-/* Loading Indicator */
 .loading-indicator {
   display: flex;
   justify-content: center;
@@ -228,7 +178,6 @@ input {
   animation: spin 2s linear infinite;
 }
 
-/* Spinner animation */
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -280,8 +229,8 @@ input {
 }
 
 .footerTips .card:hover {
-  transform: translateY(-10px); /* Lift the card when hovering */
-  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2); /* Increase the shadow */
+  transform: translateY(-10px); 
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2); 
 }
 
 .footerTips .card:hover h4 {
@@ -292,63 +241,164 @@ input {
   color: #f5f5f5; /* Light text color on hover */
 }
 
-@media (max-width: 768px) {
-  .footerTips .card {
-    width: 48%; /* On smaller screens, the cards take up 1/2 of the row */
+#rotateSuggestion {
+  display: none;
+  font-family: 'Cairo', sans-serif;
+  font-size: 16px;
+  text-align: center;
+  color: #d63031;
+  margin: 20px;
+}
+
+@media (max-width: 1024px) {
+  .footerTips {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
   }
+
+  .footerTips .card {
+    width: 100%;
+    padding: 10px 15px;
+    margin: 8px 0;
+    min-height: auto;
+  }
+
+  .filterChoice {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+  }
+
+  .filter-left,
+  .filter-right,
+  .personSearch {
+    width: 100%;
+    padding: 15px;
+    margin: 8px 0;
+  }
+
+  .btn-person,
+  .btn-search,
+  .btn-root,
+  button,
+  input {
+    width: 95% !important;
+    font-size: 14px;
+  }
+
+  .info-text {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .rootButton {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .footerTips {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+  }
+  #rotateSuggestion {
+    display: block;
+  }
+  #men, #women{
+    font-size: 12px;
+  }
+
+  .card.filter-left, .card.filter-right, .card.personSearch  {
+    padding: 0px 4px;
+    min-height: 40px;
+  }
+  .footerTips .card {
+    width: 100%;
+    padding: 10px 15px;
+    margin: 8px 0;
+    min-height: auto;
+  }
+  .info-text,
+  .card.filter-right p,
+  .card.personSearch p {
+    font-size: 12px;
+  }
+
+  .card input{
+    font-size: 10px;
+    padding: 8px 4px;
+    width: 50%;
+  }
+  .footerTips .card p{
+    font-size: 11px;
+  }
+  .footerTips .card h4{
+    font-size: 13px;
+  }
+  .filterChoice {
+    display: flex;
+    align-items: center;
+    padding: 0;
+  }
+
+  .btn-person,
+  .btn-search,
+  .btn-root,
+  button,
+  input {
+    width: 95% !important;
+    font-size: 14px;
+  }
+
+  .rootButton {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+  }
+
+
+
 }
 
 @media (max-width: 480px) {
-  .footerTips .card {
-    width: 100%; /* On mobile, the cards take full width */
+  .filterChoice {
+    padding: 10px;
   }
-}
 
-.card {
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin: 10px;
-  flex-grow: 1; /* Allow the card to grow to take available space */
-  display: flex;
-  flex-direction: column; /* Keep content inside vertically aligned */
-  justify-content: space-between; /* Distribute space evenly within the card */
-}
+  .filter-left,
+  .filter-right,
+  .personSearch {
+    width: 100%;
+    margin: 5px 0;
+  }
 
-.color-key {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-top: 10px;
-}
+  .footerTips .card {
+    width: 100%;
+    margin-bottom: 15px;
+  }
 
-.color-box {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-}
+  .info-text {
+    font-size: 14px;
+    line-height: 1.5;
+  }
 
-.men {
-  background-color: #4fc3f7; /* Blue for men */
-}
+  .loading-indicator p {
+    font-size: 16px;
+    margin-bottom: 40%;
+  }
 
-.women {
-  background-color: #f48fb1; /* Pink for women */
-}
-
-.married {
-  background-color: #81c784; /* Green for married couples */
-}
-
-span {
-  font-size: 16px;
-  font-family: 'Cairo', sans-serif;
-  color: #3b4d61;
-  margin-left: 3px;
-}
-
-
-.filterChoice p{
-  color: black;
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
 }

@@ -1,40 +1,18 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client'; // Use 'react-dom/client' in React 18+
-import App from './App'; // Adjust if the App file is located elsewhere
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
 import MainPage from './components/mainPage';
+import './styles/CommingSoon.css';
 
-// Main App Component
-const CommingSoon = () => {
-  const styles = {
-    container: {
-      height: '100vh',
-      backgroundColor: '#0e1a2b',
-      color: '#fff',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif',
-      textAlign: 'center'
-    },
-    heading: {
-      fontSize: '3em',
-      fontFamily: "Cairo"
-    },
-    paragraph: {
-      fontSize: '1.2em',
-      color: '#ccc'
-    }
-  };
-
+const ComingSoonPhaseOne = () => {
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>🚧 قريبا ...</h1>
-
+    
+    <div className="coming-soon-container">
+      <div className="coming-soon-text wave"> ...شيءٌ كبير قادم </div>
+      <div className="coming-soon-orb"></div>
     </div>
   );
 };
-
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -44,4 +22,4 @@ root.render(
 );
 
 
-export default CommingSoon;
+export default ComingSoonPhaseOne;

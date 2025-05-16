@@ -3,7 +3,7 @@ import Tree from 'react-d3-tree';
 import '../styles/FamilyTree.css';
 import neo4j from 'neo4j-driver';
 import * as utils from '../utils/utils';
-
+const ROOT = 15;
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
 const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;
@@ -11,7 +11,6 @@ const driver = neo4j.driver(
   neo4jURI, 
   neo4j.auth.basic(neo4jUser, neo4jPassword)
 );
-const ROOT = 17;
 let uniqueKeyCounter = 0;
 
 const renderFamilyTree = (person, parentId = null, level = 0) => {
@@ -23,7 +22,7 @@ const renderFamilyTree = (person, parentId = null, level = 0) => {
         <strong>{person.name} {person.lastName}</strong>
       </div>
       {person.children && person.children.length > 0 && (
-        <div style={{ marginLeft: '20px' }}>
+        <div>
           {person.children.map((child) => renderFamilyTree(child, person.id, level + 1))}
         </div>
       )}
@@ -33,10 +32,11 @@ const renderFamilyTree = (person, parentId = null, level = 0) => {
 
 const fetchFamilyTree = async (type) => {
   const session = driver.session();
+  const queryParamsObject = {};
   try {
     const defaultQuery = `
       MATCH (root:Person)
-      WHERE id(root) = 17
+      WHERE id(root) = $rootID
       CALL {
         WITH root
         MATCH (root)-[:FATHER_OF*]->(descendant)
@@ -59,7 +59,7 @@ const fetchFamilyTree = async (type) => {
     `;
     const queryWithMother = `
       MATCH (root:Person)
-      WHERE id(root) = 17
+      WHERE id(root) = $rootID
       CALL {
         WITH root
         MATCH (root)-[:FATHER_OF*]->(descendant)
@@ -84,11 +84,13 @@ const fetchFamilyTree = async (type) => {
     let result = '';
     if (type){
       query = defaultQuery
-      result = await session.run(query);
+      queryParamsObject.rootID =  ROOT;
+      result = await session.run(query, queryParamsObject);
     }
     else{
       query = queryWithMother
-      result = await session.run(query);
+      queryParamsObject.rootID =  ROOT;
+      result = await session.run(query, queryParamsObject);
     }
 
     const familyTree = result.records.map(record => {
@@ -178,12 +180,9 @@ const FamilyTree = ({ searchQuery }) => {
   const [showTree, setShowTree] = useState(true);
   const [loading, setLoading] = useState(true);  
   const [translate, setTranslate] = useState({x : 0, y : 0});
-  const hasCenteredTree = useRef(false);  
   const nodePositions = useRef({});
   const [personID, setPersonID] = useState(null);
   const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
-
-  
 
   const goToPersonById = async (personId) => {
     const coords = nodePositions.current[personId];
@@ -288,11 +287,11 @@ const FamilyTree = ({ searchQuery }) => {
   };
 
   const handleRootTreeClick = async () => {
-    await loadFamilyTree(17, true); // assuming it’s async
-    setFocusAfterLoadId(17);
+    await loadFamilyTree(85, true); // assuming it’s async
+    setFocusAfterLoadId(85);
   };
   const handleRootWomenTreeClick = async () =>{
-    loadFamilyTree(17, false)
+    loadFamilyTree(85, false)
   };
   
   const loadFamilyTree = async (rootID, type) => {
@@ -352,59 +351,7 @@ const FamilyTree = ({ searchQuery }) => {
              مما يعزز فهمك للتاريخ العائلي والعلاقات الاجتماعية بين الأفراد في هذا العرش.</p>
 
         </div>
-        <div className="filterChoice">
-          <div className="card filter-left">
-            <form className="filterChoiceForm">
-              <p className="info-text">
-                زر <strong>"شجرة العائلة منذ الجد الأول"</strong> يتيح لك عرض شجرة العائلة بدءًا من الجد الأول، 
-                وهو الجذر الذي تتفرع منه جميع الأجيال. عند الضغط عليه، يتم تحميل الشجرة الكاملة 
-                لتستكشف الروابط العائلية بين الأفراد وتتعرف على تاريخ العائلة وعلاقاتها المتنوعة.
-              </p>
-
-              <div className="rootButton">
-                <button type="button" id="men" onClick={handleRootTreeClick}>
-                  شجرة العائلة التقليدية
-                </button>
-                <button type="button" id="women" onClick={handleRootWomenTreeClick}>
-                  شجرة العائلة مع أبناء الأمهات
-                </button>
-              </div>
-            </form>
-          </div>
-
-          
-          <div className="card filter-right">
-            <p>
-              للحصول على رقم الهوية (رقم التسلسل) للشخص، يجب عليك التوجه إلى صفحة البحث ثم البحث عن الشخص المطلوب.
-              بعد إجراء البحث، سيظهر رقم التسلسل (رقم الهوية) مباشرةً فوق الاسم الكامل للشخص في قسم النتائج. يمكنك نسخ
-              هذا الرقم ومن ثم لصقه هنا لرؤية شجرة العائلة بدءًا من ذلك الشخص.
-            </p>
-            <input id="rootID" type="number" placeholder="أدخل رقم الشخص" />
-            <button className="btn-person" type="button" onClick={handlePersonTreeDisplay}>
-              شجرة العائلة ابتداءا من شخص معين
-            </button>
-          </div>
-          
-          <div className="card personSearch">
-          <p>هذه القسم يتيح لك رؤية مكان الشخص داخل شجرة العائلة.
-             كل ما عليك فعله هو إدخال رقم هوية الشخص (رقم التسلسل) في الخانة المخصصة. للحصول على رقم الهوية،
-              توجه إلى صفحة البحث وابحث عن الشخص المطلوب.
-              بعد إجراء البحث،
-              ستجد رقم التسلسل يظهر فوق اسم الشخص في نتائج البحث. قم بنسخ هذا الرقم وأدخله هنا لرؤية مكانه داخل الشجرة.</p>
-
-            <input id="personsearchName" type="text" placeholder="ابحث عن شخص في الشجرة" />
-            <button type='button' className='btn-search' onClick={handleIDPersonSearch}>إبحث عن شخص في شجرة العائلة</button>
-          </div>
-        </div>
-
-      </header>
-      {loading && !showTree && !familyTree && (
-        <div className="loading-indicator">
-          <p>جار تحميل الشجرة...</p>
-          <div className="spinner"></div> {/* Loading spinner */}
-        </div>
-      )}
-      {showTree && familyTree && (
+        {showTree && familyTree && (
         <div
           id="treeWrapper"
           ref={treeContainerRef}
@@ -479,6 +426,58 @@ const FamilyTree = ({ searchQuery }) => {
           />
         </div>
       )}
+        <p id="rotateSuggestion">ننحصحك بتدوير الهاتف</p>
+        <div className="filterChoice">
+          <div className="card" id="R1">
+              <p className="info-text">
+                يتيح لك زر <strong style={{color: 'blue'}}>شجرة العائلة التقليدية</strong> تصفح شجرة عائلة كامل العرش بدءًا منذ الجد الأول
+                حتى الوصول الي الأجيال الحالية. <br></br>
+                أما زر <strong style={{color: '#b52155'}}>شجرة العائلة مع أبناء الأمهات</strong> فيتيح لك اضافة أبناء الأمهات الى الشجرة أيضا، ولكن إحذر ،
+                <strong id="warning">سوف تبدو لك الشجرة كبيرة جدا لإحتوائها على العديد من الأشخاص المكررين</strong>
+              </p>
+
+              <div className="rootButton">
+                <button type="button" id="men" onClick={handleRootTreeClick}>
+                  شجرة العائلة التقليدية
+                </button>
+                <button type="button" id="women" onClick={handleRootWomenTreeClick}>
+                  شجرة العائلة مع أبناء الأمهات
+                </button>
+              </div>
+          </div>
+
+          <div className="card" id="R2">
+            <p className="info-text">
+              للحصول على رقم الهوية (رقم التسلسل) للشخص، يجب عليك التوجه إلى صفحة البحث ثم البحث عن الشخص المطلوب.
+              بعد إجراء البحث، سيظهر رقم التسلسل (رقم الهوية) مباشرةً فوق الاسم الكامل للشخص في قسم النتائج. يمكنك نسخ
+              هذا الرقم ومن ثم لصقه هنا لرؤية شجرة العائلة بدءًا من ذلك الشخص.
+            </p>
+            <input id="rootID" type="number" placeholder="أدخل رقم الشخص" />
+            <button className="btn-person" type="button" onClick={handlePersonTreeDisplay}>
+              شجرة العائلة ابتداءا من شخص معين
+            </button>
+          </div>
+          
+          <div className="card" id="R3">
+          <p className="info-text">هذه القسم يتيح لك رؤية مكان الشخص داخل شجرة العائلة.
+             كل ما عليك فعله هو إدخال رقم هوية الشخص (رقم التسلسل) في الخانة المخصصة. للحصول على رقم الهوية،
+              توجه إلى صفحة البحث وابحث عن الشخص المطلوب.
+              بعد إجراء البحث،
+              ستجد رقم التسلسل يظهر فوق اسم الشخص في نتائج البحث. قم بنسخ هذا الرقم وأدخله هنا لرؤية مكانه داخل الشجرة.</p>
+
+            <input id="personsearchName" type="text" placeholder="ابحث عن شخص في الشجرة" />
+            <button type='button' className='btn-search' onClick={handleIDPersonSearch}>إبحث عن شخص في شجرة العائلة</button>
+          </div>
+        </div>
+
+      </header>
+      {loading && !showTree && !familyTree && (
+        <div className="loading-indicator">
+          <p>جار تحميل الشجرة...</p>
+          <div className="spinner"></div> {/* Loading spinner */}
+        </div>
+      )}
+      
 
       <div className='footerTips'>
         <div className="card">

@@ -130,6 +130,8 @@
   margin-bottom: 15px;
 }
 
+
+
 .wedding-feature-card p {
   color: #0c022d;
   font-size: 32px;
@@ -207,6 +209,77 @@ background-position: center left;
 opacity: 0.6; /* Slight transparency */
   
 }
+
+.relationship-card {
+  background: url('../media/pic5.jpg');
+  background-position: center 70%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Pushes content to top and bottom */
+  min-height: 650px; /* Ensure the card takes full height */
+  padding: 20px;
+  background-color: #fefefe;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.relationship-card:hover {
+  transform: translateY(-5px);
+}
+
+.relationship-card h2 {
+  font-size: 2.8em;
+  margin-bottom: 15px;
+  color: #093a65;
+  text-align: left;
+}
+
+.relationship-card p {
+  font-size: 1.1em;
+  color: #f7f7f7;
+  line-height: 1.6;
+  margin-top: -24%;
+}
+
+.relationship-card ul {
+  list-style: none;
+  padding-right: 0;
+  margin: 15px 0;
+  margin-top: -20%;
+}
+
+.relationship-card ul li {
+  margin-bottom: 10px;
+  font-size: 1em;
+  color: #222;
+  background-color: #ffffff;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  max-width: 20%;
+  border: 1px solid #e5e5e5;
+  transition: transform 0.2s ease;
+}
+
+.relationship-button {
+  display: flex;
+  width: 20%;
+  background: linear-gradient(to right, #1d56c7, #3f8de1);
+  color: white;
+  padding: 12px 25px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1em;
+  transition: background 0.3s ease;
+}
+
+.relationship-button:hover {
+  background: linear-gradient(to right, #1445a2, #3271c4);
+}
+
 
 .school-bg {
   background-image: url('../media/school.jpg'); /* Replace with your image URL */
@@ -340,6 +413,7 @@ opacity: 0.6; /* Slight transparency */
   border-radius: 30px;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 85%;
 }
 
 .cta-button:hover {
@@ -357,6 +431,8 @@ opacity: 0.6; /* Slight transparency */
   border-radius: 30px;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 85%;
+
 }
 
 .cta-secondary-button:hover {

@@ -11,7 +11,7 @@ export function countBenAndBent(str) {
   const words = str.trim().split(/\s+/);
   if (words.length < 3) return 0;
   const interior = words.slice(1, -1);
-  return interior.filter(w => w === 'بن' || w === 'بنت').length;
+  return interior.filter(w => w === 'بن' || w === 'بنت' || w === 'ben' || w === 'bent').length;
 };
 
 export function isCompoundName(name) {
@@ -23,7 +23,7 @@ export function splitName(fullName) {
     console.error("fullName is not a string:", fullName);
     return [];
   }
-  const parts = fullName.replace(/\s*(بن|بنت)\s*/gi, ' ').trim().split(/\s+/);
+  const parts = fullName.replace(/\s*(بن|بنت|ben|bent)\s*/gi, ' ').trim().split(/\s+/);
   const bentCount = countBenAndBent(fullName);
   console.log(bentCount, parts);
   if (isCompoundName(parts[0] + " " + parts[1])) {
@@ -96,7 +96,7 @@ export function splitName(fullName) {
           personName: parts[0],
           fatherName: parts[1],
           grandfatherName: "",
-          familyName: parts[2]
+          familyName: ""
         };
       }
 
@@ -250,6 +250,7 @@ export function mergePaths(pathToP1, pathToP2) {
 }
 
 export const translateName = (fullName, language = true) => {
+  if (!fullName || typeof fullName !== 'string') return '';
   const reverseTranslations = Object.fromEntries(
     Object.entries(nameTranslation).map(([key, value]) => [value, key])
   );
@@ -285,7 +286,6 @@ export const translateFamilyName = (fullFamilyName, language = true) => {
 
   const normalized = fullFamilyName.trim().replace(/\s+/g, ' ');
 
-  // Check compound match first
   if (compoundDict[normalized]) {
     return compoundDict[normalized];
   }
