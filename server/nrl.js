@@ -13,6 +13,12 @@ const driver = require('neo4j-driver').driver(
 );
 const session = driver.session();
 
+const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      terminal: true
+    });
+
 const createParentChildRelationship = async (parentFullName, childFullName, relationshipLabel) => {
   const [parentFirst, ...parentLastArr] = parentFullName.trim().split(' ');
   const [childFirst, ...childLastArr] = childFullName.trim().split(' ');
@@ -45,7 +51,7 @@ const createParentChildRelationship = async (parentFullName, childFullName, rela
       MERGE (parent)-[:${relationshipLabel}]->(child)
       RETURN parent.name AS parentName, child.name AS childName
       `,
-      { parentId: parentId.toNumber(), childId: childId.toNumber() }
+      { parentId: parentId, childId: childId }
     );
 
     if (result.records.length > 0) {
@@ -67,7 +73,6 @@ const createPerson = async ({
   isAlive,
   YoB,
   YoD,
-  YoM,
   WorkCountry
 }) => {
   if (!name || !lastName || !gender || isAlive === undefined) {
@@ -85,7 +90,6 @@ const createPerson = async ({
 
   if (YoB && !isNaN(YoB)) props.YoB = parseInt(YoB);
   if (YoD && !isNaN(YoD)) props.YoD = parseInt(YoD);
-  if (YoM && !isNaN(YoM)) props.YoM = parseInt(YoM);
   if (WorkCountry) props.WorkCountry = formatName(WorkCountry);
 
   const cypherFields = Object.keys(props).map(k => `${k}: $${k}`).join(', ');
@@ -106,46 +110,68 @@ const createPerson = async ({
 };
 
 
-const createMarriage = async (maleFullName, femaleFullName, YoM = null) => {
+const createMarriage = async (maleFullName, femaleFullName, marriageYear = null, status, endYear = null) => {
   const [maleFirst, ...maleLastArr] = maleFullName.trim().split(' ');
   const [femaleFirst, ...femaleLastArr] = femaleFullName.trim().split(' ');
 
-  const maleName = formatName(maleFirst);
+  const maleFirstName = formatName(maleFirst);
   const maleLastName = formatName(maleLastArr.join(' '));
-  const femaleName = formatName(femaleFirst);
+  const femaleFirstName = formatName(femaleFirst);
   const femaleLastName = formatName(femaleLastArr.join(' '));
 
-  const cypherSet = YoM && !isNaN(YoM) ? 'SET wife.YoM = $YoM, husband.YoM = $YoM' : '';
-
   try {
+    // Find all male candidates with the given first and last name
+    const maleCandidates = await getPeopleWithSameName(maleFirstName, maleLastName);
+    // Find all female candidates with the given first and last name
+    const femaleCandidates = await getPeopleWithSameName(femaleFirstName, femaleLastName);
+
+    if (maleCandidates.length === 0 || femaleCandidates.length === 0) {
+      console.log('❌ Male or female person not found.');
+      return;
+    }
+
+    // If multiple male candidates, prompt user to select
+    const maleId = maleCandidates.length > 1
+      ? await promptUserForSelection(maleCandidates)
+      : maleCandidates[0].personId;
+
+    // If multiple female candidates, prompt user to select
+    const femaleId = femaleCandidates.length > 1
+      ? await promptUserForSelection(femaleCandidates)
+      : femaleCandidates[0].personId;
+
+    // Create marriage relationship in Neo4j using internal node IDs
     const result = await session.run(
       `
-      MATCH (husband:Person {name: $maleName, lastName: $maleLastName})
-      MATCH (wife:Person {name: $femaleName, lastName: $femaleLastName})
-      MERGE (wife)-[:WIFE_OF]->(husband)
-      MERGE (husband)-[:HUSBAND_OF]->(wife)
-      ${cypherSet}
-      RETURN wife.name AS wife, husband.name AS husband
+      MATCH (husband:Person), (wife:Person)
+      WHERE id(husband) = $maleId AND id(wife) = $femaleId
+      MERGE (husband)-[r:MARRIED_TO]-(wife)
+      SET 
+        ${marriageYear !== null ? 'r.marriageYear = $marriageYear,' : ''}
+        r.status = $status
+        ${endYear !== null ? ', r.endYear = $endYear' : ''}
+      RETURN husband.name AS husband, wife.name AS wife
       `,
       {
-        maleName,
-        maleLastName,
-        femaleName,
-        femaleLastName,
-        ...(YoM && !isNaN(YoM) ? { YoM: parseInt(YoM) } : {})
+        maleId: maleId.toNumber ? maleId.toNumber() : maleId,
+        femaleId: femaleId.toNumber ? femaleId.toNumber() : femaleId,
+        ...(marriageYear !== null ? { marriageYear } : {}),
+        status,
+        ...(endYear !== null ? { endYear } : {})
       }
     );
 
     if (result.records.length > 0) {
-      console.log(`✅ Created marriage between ${maleFullName} and ${femaleFullName}${YoM ? ` in ${YoM}` : ''}`);
+      console.log(`✅ Created MARRIED_TO between ${maleFullName} and ${femaleFullName} (${status}${marriageYear ? `, ${marriageYear}` : ''}${endYear ? ` – ${endYear}` : ''})`);
     } else {
-      console.log(`⚠️ Marriage not created — verify names.`);
+      console.log('⚠️ Marriage not created — check selected persons.');
     }
-
   } catch (err) {
-    console.error('❌ Error creating marriage:', err);
+    console.error('❌ Error creating MARRIED_TO relationship:', err);
   }
 };
+
+
 
 const getPeopleWithSameName = async (name, lastName) => {
   const query = `
@@ -174,32 +200,37 @@ const getPeopleWithSameName = async (name, lastName) => {
 
 const promptUserForSelection = (people) => {
   return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
     
-    console.log("Multiple people found with the same name. Please select the correct one:");
-    console.log(people);
+
+    console.log("\nMultiple people found with the same name. Please select the correct one:\n");
+
     people.forEach((person, index) => {
-      console.log(`${index + 1}: ${person.personName} ben ${person.fatherName || 'Unknown'} ben ${person.grandfatherName || 'Unknown'} ${person.lastName}`);
+      const id = person.personId.toNumber ? person.personId.toNumber() : person.personId;
+      const personName = person.personName || 'Unknown';
+      const fatherName = person.fatherName || 'Unknown';
+      const grandfatherName = person.grandfatherName || 'Unknown';
+      const lastName = person.lastName || '';
+      console.log(`${index + 1}) ID: ${id} | ${personName} ben ${fatherName} ben ${grandfatherName} ${lastName}`);
     });
 
-    rl.question('Please select the number of the correct person: ', (answer) => {
-      const selectedIndex = parseInt(answer) - 1;
-      // Extract the correct ID
-      const selectedPersonId = people[selectedIndex].personId;
+    const ask = () => {
+      rl.question('\nEnter the number of the correct person: ', (answer) => {
+        const selectedIndex = parseInt(answer, 10) - 1;
+        if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < people.length) {
+          const selectedPersonId = people[selectedIndex].personId.toNumber ? people[selectedIndex].personId.toNumber() : people[selectedIndex].personId;
+          rl.close();
+          resolve(selectedPersonId);
+        } else {
+          console.log('Invalid selection, please enter a valid number.');
+          ask();
+        }
+      });
+    };
 
-      rl.close();
-      resolve(selectedPersonId); // Resolve with the ID
-    });
+    ask();
   });
 };
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
 
 async function askValidatedQuestion(prompt, validAnswers) {
   while (true) {
@@ -211,8 +242,12 @@ async function askValidatedQuestion(prompt, validAnswers) {
   }
 }
 
-const question = (q) => new Promise(resolve => rl.question(q, resolve));
-
+const question = (q) =>
+  new Promise((resolve) => {
+    rl.question(q, (answer) => {
+      resolve(answer.trim());
+    });
+  });
 const formatName = (input) =>
   input
     .trim()
@@ -255,12 +290,10 @@ async function terminalConversation() {
 
         const YoBInput = await question('Year of Birth (optional): ');
         const YoDInput = await question('Year of Death (optional): ');
-        const YoMInput = await question('Year of Marriage (optional): ');
         const WorkCountryInput = await question('Work Country (optional): ');
 
         const YoB = YoBInput.trim() && !isNaN(YoBInput) ? parseInt(YoBInput) : undefined;
         const YoD = YoDInput.trim() && !isNaN(YoDInput) ? parseInt(YoDInput) : undefined;
-        const YoM = YoMInput.trim() && !isNaN(YoMInput) ? parseInt(YoMInput) : undefined;
         const WorkCountry = WorkCountryInput.trim() || undefined;
 
         await createPerson({
@@ -270,7 +303,6 @@ async function terminalConversation() {
           isAlive,
           YoB,
           YoD,
-          YoM,
           WorkCountry
         });
         break;
@@ -297,13 +329,23 @@ async function terminalConversation() {
       case '4': {
         const maleFullNameRaw = await question('Husband Full Name (First Last): ');
         const femaleFullNameRaw = await question('Wife Full Name (First Last): ');
-        const YoMInput = await question('Year of Marriage (optional): ');
+        const marriageYearInput = await question('Year of Marriage: ');
+        const statusInput = await question("Marriage Status ('married', 'divorced', 'widowed'): ");
+        const endYearInput = await question('Year of End (leave empty if not ended): ');
 
         const maleFullName = formatFullName(maleFullNameRaw);
         const femaleFullName = formatFullName(femaleFullNameRaw);
-        const YoM = YoMInput.trim() && !isNaN(YoMInput) ? parseInt(YoMInput) : null;
 
-        await createMarriage(maleFullName, femaleFullName, YoM);
+        const marriageYear = marriageYearInput.trim() && !isNaN(marriageYearInput) ? parseInt(marriageYearInput) : null;
+        const status = statusInput.trim().toLowerCase();
+        const endYear = endYearInput.trim() && !isNaN(endYearInput) ? parseInt(endYearInput) : null;
+
+        if (!status || !['married', 'divorced', 'widowed'].includes(status)) {
+          console.log("⚠️ Invalid input. 'Status' is required.");
+          break;
+        }
+
+        await createMarriage(maleFullName, femaleFullName, marriageYear, status, endYear);
         break;
       }
 

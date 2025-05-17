@@ -1,0 +1,49 @@
+.ai-prediction-zone {
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: #fff;
+  padding: 40px 20px;
+  border-radius: 12px;
+  margin-top: 40px;
+  font-family: 'Orbitron', 'Cairo', sans-serif;
+}
+
+.futuristic-title {
+  text-align: center;
+  font-size: 28px;
+  margin-bottom: 15px;
+}
+
+.prediction-intro {
+  text-align: center;
+  font-size: 16px;
+  color: #e0f7fa;
+  margin-bottom: 30px;
+}
+
+.prediction-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+}
+
+.prediction-card {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 20px;
+  border-radius: 10px;
+  width: 250px;
+  text-align: center;
+  transition: transform 0.3s ease;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.12);
+}
+
+.prediction-card:hover {
+  transform: scale(1.03);
+}
+
+.prediction-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: #00ffe0;
+}

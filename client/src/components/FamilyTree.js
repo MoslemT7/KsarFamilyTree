@@ -229,19 +229,13 @@ const FamilyTree = ({ searchQuery }) => {
     try {
       const gender = await getGenderbyID(person.id);
 
-      const query = gender === "Female"
-        ? `
-          MATCH (w:Person)-[:WIFE_OF]-(h:Person)
-          WHERE id(w) = $id
-          RETURN id(h) as SpouseID
-          LIMIT 1
-        `
-        : `
-          MATCH (h:Person)-[:HUSBAND_OF]-(w:Person)
-          WHERE id(h) = $id
-          RETURN id(w) as SpouseID
-          LIMIT 1
-        `;
+      const query = `
+        MATCH (p:Person)-[:MARRIED_TO]-(spouse:Person)
+        WHERE id(p) = $id
+        RETURN id(spouse) AS SpouseID
+        LIMIT 1
+      `;
+
 
       const result = await session.run(query, { id: person.id });
 

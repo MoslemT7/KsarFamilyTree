@@ -1,4 +1,4 @@
-import './PersonCINCard.css';
+import '../styles/PersonCINCard.css';
 import logo from '../media/logo.png'; // replace with your logo
 import barcode from '../media/barcode.jpg'; // placeholder barcode
 import fingerprint from '../media/fingerprint.png'; // placeholder image

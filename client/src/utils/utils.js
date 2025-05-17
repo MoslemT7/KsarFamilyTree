@@ -296,3 +296,44 @@ export const translateFamilyName = (fullFamilyName, language = true) => {
 
   return translatedParts.join(' ');
 };
+
+export const translateNodeName = (fullName, language = true) => {
+  if (!fullName || typeof fullName !== 'string') return '';
+
+  // Prepare reverse translation dictionaries for name, family, and compound names
+  const reverseNameTranslation = Object.fromEntries(
+    Object.entries(nameTranslation).map(([key, value]) => [value, key])
+  );
+  const reverseFamilyNameTranslation = Object.fromEntries(
+    Object.entries(familyNameTranslation).map(([key, value]) => [value, key])
+  );
+  const reverseCompoundTranslation = Object.fromEntries(
+    Object.entries(compoundNameTranslation).map(([key, value]) => [value, key])
+  );
+
+  // Select the proper dictionaries depending on translation direction
+  const nameDict = language ? nameTranslation : reverseNameTranslation;
+  const familyDict = language ? familyNameTranslation : reverseFamilyNameTranslation;
+  const compoundDict = language ? compoundNameTranslation : reverseCompoundTranslation;
+
+  // Normalize input (trim and replace multiple spaces with a single space)
+  const normalized = fullName.trim().replace(/\s+/g, ' ');
+
+  // Check if the full normalized name exists in compound dictionary (direct translation)
+  if (compoundDict[normalized]) {
+    return compoundDict[normalized];
+  }
+
+  // If not compound, split into parts and translate each part
+  const parts = normalized.split(' ');
+
+  // Translate each part checking first in nameDict, then familyDict, else leave unchanged
+  const translatedParts = parts.map(part => {
+    if (nameDict[part]) return nameDict[part];
+    if (familyDict[part]) return familyDict[part];
+    return part; // fallback if no translation found
+  });
+
+  // Join translated parts back into a string
+  return translatedParts.join(' ');
+};

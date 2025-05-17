@@ -164,3 +164,9 @@
     margin-top: auto;
     object-fit: contain;
 }
+
+@media screen and (max-width: 480px) {
+  .cin-card .cin-inner {
+  transform: rotateY(180deg);
+}
+}

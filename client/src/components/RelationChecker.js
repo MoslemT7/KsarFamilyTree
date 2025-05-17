@@ -24,6 +24,10 @@ const RelationPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
+  const handleReset = async () => {
+    setPerson1('');
+    setPerson2('');
+  };
   const fetchRelationship = async (e, customPerson1 = person1, customPerson2 = person2) => {
     if (e) e.preventDefault();
 
@@ -207,7 +211,7 @@ const RelationPage = () => {
             relation = `${translatedName1} هي والدة ${translatedName2}`;
           }
           score = 100;
-          explanation = relationshipType[0];
+          explanation = relationshipExplanation[0];
         }
     
         else if (p1Level === 1 && p2Level === 0) {
@@ -628,13 +632,13 @@ const RelationPage = () => {
                 score = 90;
               }
               else{
-                relation = `${translatedName1} هي إبنة عمّة ${translatedName2}`;
+                relation = `${translatedName1} هي إبنة خال ${translatedName2}`;
                 score = 89;
               }
             } 
             else {  
               if (p2AncestorGender === 'Male'){  // بنت خاله
-                relation = `${translatedName1} هي إبنة خال ${translatedName2}`;
+                relation = `${translatedName1} هي إبنة عمة ${translatedName2}`;
                 score = 88;
               }
               else{
@@ -1153,11 +1157,10 @@ const RelationPage = () => {
     if (gender1 === gender2) {return {areMarried : false}}
         setLoadingMessage("جاري البحث عن علاقة زواج");
         const result = await session.run(`
-          MATCH (Husband:Person)-[:HUSBAND_OF]->(Wife:Person)
-          MATCH (Wife)-[:WIFE_OF]->(Husband)
-          WHERE (id(Wife) = $person1ID AND id(Husband) = $person2ID) 
-            OR (id(Wife) = $person2ID AND id(Husband) = $person1ID)
-          RETURN Husband AS P1, Wife AS P2
+        MATCH (p1:Person)-[r:MARRIED_TO]-(p2:Person)
+        WHERE (id(p1) = $person1ID AND id(p2) = $person2ID)
+          OR (id(p1) = $person2ID AND id(p2) = $person1ID)
+        RETURN p1 AS P1, p2 AS P2
         `, { person1ID, person2ID });
 
         if (result.records.length === 0) {
@@ -1172,33 +1175,44 @@ const RelationPage = () => {
   const getMarriageRelation = async (session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2) => {
 
     const ownFamilyQuery = `
-      MATCH (P:Person)
+MATCH (P:Person)
       WHERE id(P) = $personId
 
-      // Person's Father and Mother
+      // Person's Father and Mother via PARENT_OF, filtering by gender
       OPTIONAL MATCH (Father:Person)-[:FATHER_OF]->(P)
-      OPTIONAL MATCH (Mother:Person)-[:MOTHER_OF]->(P)
+      WHERE Father.gender = 'Male'
 
-      // Person's Siblings
-      OPTIONAL MATCH (Father)-[:FATHER_OF]->(Sibling:Person)
+      OPTIONAL MATCH (Mother:Person)-[:MOTHER_OF]->(P)
+      WHERE Mother.gender = 'Female'
+
+      // Person's Siblings (other children of Father or Mother)
+      OPTIONAL MATCH (Father)-[:FATHER_OF|MOTHER_OF]->(Sibling:Person)
       WHERE Sibling <> P
 
-      // Spouses of Siblings
-      OPTIONAL MATCH (Sibling)-[:HUSBAND_OF|:WIFE_OF]->(SiblingSpouse:Person)
+      OPTIONAL MATCH (Mother)-[:FATHER_OF|MOTHER_OF]->(Sibling2:Person)
+      WHERE Sibling2 <> P
 
-      // Person's Children
-      OPTIONAL MATCH (P)-[:MOTHER_OF|:FATHER_OF]->(Child:Person)
+      WITH P, Father, Mother, collect(DISTINCT Sibling) + collect(DISTINCT Sibling2) AS AllSiblings
 
-      // Spouses of Children
-      OPTIONAL MATCH (Child)-[:HUSBAND_OF|:WIFE_OF]->(ChildSpouse:Person)
+      // Spouses of Siblings (via MARRIED_TO)
+      OPTIONAL MATCH (sibling:Person)-[:MARRIED_TO]-(SiblingSpouse:Person)
+      WHERE sibling IN AllSiblings
+
+      // Person's Children via PARENT_OF
+      OPTIONAL MATCH (P)-[:FATHER_OF|MOTHER_OF]->(Child:Person)
+
+      // Spouses of Children (via MARRIED_TO)
+      OPTIONAL MATCH (Child)-[:MARRIED_TO]-(ChildSpouse:Person)
 
       RETURN 
         id(Father) AS fatherId,
         id(Mother) AS motherId,
-        collect(DISTINCT id(Sibling)) AS siblingIds,
+        [s IN AllSiblings | id(s)] AS siblingIds,
         collect(DISTINCT id(SiblingSpouse)) AS siblingSpouseIds,
         collect(DISTINCT id(Child)) AS childIds,
         collect(DISTINCT id(ChildSpouse)) AS childSpouseIds
+
+
     `;
 
     const ownResult = await session.run(ownFamilyQuery, { personId: person1ID });
@@ -1221,27 +1235,43 @@ const RelationPage = () => {
 
     // Step 2: Spouse's family
     const spouseFamilyQuery = `
-      MATCH (P:Person)-[:HUSBAND_OF|:WIFE_OF]->(Spouse:Person)
+      MATCH (P:Person)-[:MARRIED_TO]-(Spouse:Person)
       WHERE id(P) = $personId
 
-      OPTIONAL MATCH (SFather:Person)-[:FATHER_OF]->(Spouse)
-      OPTIONAL MATCH (SMother:Person)-[:MOTHER_OF]->(Spouse)
-      OPTIONAL MATCH (SFather)-[:FATHER_OF]->(SSibling:Person)
-      WHERE SSibling <> Spouse
+      // Spouse's Father and Mother
+      OPTIONAL MATCH (SFather:Person)-[:FATHER_OF|MOTHER_OF]->(Spouse)
+      WHERE SFather.gender = 'Male'
 
-      OPTIONAL MATCH (SSibling)-[:HUSBAND_OF|:WIFE_OF]->(SSiblingSpouse:Person)
+      OPTIONAL MATCH (SMother:Person)-[:FATHER_OF|MOTHER_OF]->(Spouse)
+      WHERE SMother.gender = 'Female'
 
-      // Get children of the spouse
-      OPTIONAL MATCH (Spouse)-[:MOTHER_OF|:FATHER_OF]->(Child:Person)
-      OPTIONAL MATCH (Child)-[:HUSBAND_OF|:WIFE_OF]->(ChildSpouse:Person)
+      // Spouse's Siblings (other children of the same parents)
+      OPTIONAL MATCH (SFather)-[:FATHER_OF|MOTHER_OF]->(SSibling1:Person)
+      WHERE SSibling1 <> Spouse
+
+      OPTIONAL MATCH (SMother)-[:FATHER_OF|MOTHER_OF]->(SSibling2:Person)
+      WHERE SSibling2 <> Spouse
+
+      WITH P, Spouse, SFather, SMother, collect(DISTINCT SSibling1) + collect(DISTINCT SSibling2) AS sSiblings
+
+      // Spouse's Siblings' spouses
+      OPTIONAL MATCH (sibling:Person)-[:MARRIED_TO]-(SSiblingSpouse:Person)
+      WHERE sibling IN sSiblings
+
+      // Spouse's children
+      OPTIONAL MATCH (Spouse)-[:FATHER_OF|MOTHER_OF]->(Child:Person)
+
+      // Spouse's children spouses
+      OPTIONAL MATCH (Child)-[:MARRIED_TO]-(ChildSpouse:Person)
 
       RETURN 
         id(SFather) AS sFatherId,
         id(SMother) AS sMotherId,
-        collect(DISTINCT id(SSibling)) AS sSiblingIds,
+        [s IN sSiblings | id(s)] AS sSiblingIds,
         collect(DISTINCT id(SSiblingSpouse)) AS sSiblingSpouseIds,
         collect(DISTINCT id(Child)) AS childIds,
         collect(DISTINCT id(ChildSpouse)) AS childSpouseIds
+
     `;
 
     const spouseResult = await session.run(spouseFamilyQuery, { personId: person1ID });
@@ -1295,10 +1325,10 @@ const RelationPage = () => {
       } else {
         // Female person with female sibling-in-law (spouse of the sibling)
         if(gender2 === 'Male'){
-        return `${translatedName1} هي اخت زوج ${translatedName2}`;
+        return `${translatedName1} هي اخت زوجة ${translatedName2}`;
         }
         else{
-          return `${translatedName1} هو اخ زوجة ${translatedName2}`;
+          return `${translatedName1} هي اخت زوج ${translatedName2}`;
         }
       }
     }
@@ -1335,44 +1365,42 @@ const RelationPage = () => {
           WHERE id(p1) = $person1ID
 
           MATCH path2 = (common)-[:FATHER_OF|MOTHER_OF*0..12]->(p2:Person)
-          WHERE id(p2) = $person2ID
-            AND id(p1) <> id(p2)
+          WHERE id(p2) = $person2ID AND id(p1) <> id(p2)
 
           WITH common, path1, path2, length(path1) AS level1, length(path2) AS level2
 
-          // Prioritize father ancestors by explicitly matching FATHER_OF first, then MOTHER_OF
+          // Prioritize paternal lineage if needed
           OPTIONAL MATCH (cGF:Person)-[:FATHER_OF]->(cF:Person)-[:FATHER_OF]->(common)
 
-          // Check if the common ancestor is married and get the husband if married
-          OPTIONAL MATCH (common)-[:WIFE_OF]->(husband:Person)
+          // Get the spouse via MARRIED_TO
+          OPTIONAL MATCH (common)-[:MARRIED_TO]-(spouse:Person)
 
-          // Include spouse information
-          WITH common, cF, cGF, husband, path1, path2, level1, level2
-
+          WITH common, cF, cGF, spouse, path1, path2, level1, level2
           ORDER BY (level1 + level2) ASC
           LIMIT 1
 
           RETURN 
-            // If common ancestor is female and married, return the husband's name
             common.name AS commonAncestorName,
             cF.name AS commonAncestorFatherName,
             cGF.name AS commonAncestorGrandFatherName,
             common.lastName AS commonAncestorLastName,
             id(common) AS commonAncestorID,
-
             common.gender AS commonAncestorGender,
             level1 AS generationsFromP1,
             level2 AS generationsFromP2,
 
-            // Include spouse information if married
             CASE 
-              WHEN husband IS NOT NULL THEN { id: id(husband), name: husband.name, lastName: husband.lastName, gender: husband.gender }
+              WHEN spouse IS NOT NULL THEN { 
+                id: id(spouse), 
+                name: spouse.name, 
+                lastName: spouse.lastName, 
+                gender: spouse.gender 
+              }
               ELSE null
             END AS spouseOfAncestor,
 
             [n IN nodes(path1) | { id: id(n), name: n.name, lastName: n.lastName, gender: n.gender }] AS pathToP1,
             [n IN nodes(path2) | { id: id(n), name: n.name, lastName: n.lastName, gender: n.gender }] AS pathToP2
-
 
         `, { person1ID, person2ID });
 
@@ -1684,7 +1712,7 @@ const RelationPage = () => {
           </div>
           <div className='ButtonSection'>
             <button type="submit" className="button checkButton">تحقق من العلاقة</button>
-            <button type="reset" className="button resetButton">إلغاء</button>
+            <button type="reset" className="button resetButton" onClick={handleReset}>إلغاء</button>
             <button
               type="button"
               className="button swapButton"
@@ -1718,7 +1746,7 @@ const RelationPage = () => {
                         (p.name ? `${utils.translateName(p.name)} بن ` : '') +
                         (p.father ? `${utils.translateName(p.father)} بن ` : '') +
                         (p.grandfather ? `${utils.translateName(p.grandfather)} ` : '') +
-                        (p.lastName ? `${utils.translateName(p.lastName)}` : '');
+                        (p.lastName ? `${utils.translateFamilyName(p.lastName)}` : '');
                         
                       return (
                         <tr key={`p1-${idx}`}>
@@ -1763,7 +1791,7 @@ const RelationPage = () => {
                         (p.name ? `${utils.translateName(p.name)} بن ` : '') +
                         (p.father ? `${utils.translateName(p.father)} بن ` : '') +
                         (p.grandfather ? `${utils.translateName(p.grandfather)} ` : '') +
-                        (p.lastName ? `${utils.translateName(p.lastName)}` : '');
+                        (p.lastName ? `${utils.translateFamilyName(p.lastName)}` : '');
                       
                       return (
                         <tr key={`p2-${idx}`}>
@@ -1976,7 +2004,7 @@ const RelationPage = () => {
                             pointerEvents: 'none',
                           }}
                         >
-                          {utils.translateName(nodeDatum.name)}
+                          {utils.translateNodeName(nodeDatum.name)}
                         </text>
                       </g>
                     )}

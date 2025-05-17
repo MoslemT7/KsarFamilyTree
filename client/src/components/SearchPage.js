@@ -305,18 +305,18 @@ const SearchPage = () => {
 
         const siblingsCountsRecord = await session.run(`
         MATCH (target:Person)
-        WHERE id(target) = 23
+        WHERE id(target) = $childID
         MATCH (parent:Person)-[:FATHER_OF|MOTHER_OF]->(target)
         MATCH (parent)-[:FATHER_OF|MOTHER_OF]->(sibling:Person)
-        WHERE id(sibling) <> 23
-
+        WHERE id(sibling) <> $childID
         RETURN count(DISTINCT sibling) AS siblingCount  
         `, {childID});
         const isMarried = await session.run(`
-          MATCH (p)-[:HUSBAND_OF|WIFE_OF]->(:Person)
+          MATCH (p)-[:MARRIED_TO]->(:Person)
           WHERE id(p) = $childID
           RETURN count(*) > 0 AS isMarried
         `, { childID });
+          
         const personDetails = {
           personID: childID,
           personName: record.get('childName') ?? "غير متوفر",
@@ -332,9 +332,9 @@ const SearchPage = () => {
           motherFamilyName: motherResult.has('motherFamilyName') ? motherResult.get('motherFamilyName') : "غير متوفر", // Check if motherFamilyName exists
           
           lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر", // Check if lifeStatus exists
-          martialStatus: isMarried.records[0]?.get('isMarried') ?? "غير متوفر", // Safe access for marital status
+          maritalStatus: isMarried.records[0]?.get('isMarried') ?? "غير متوفر", // Safe access for marital status
           childrenCount: childrenCountRecord.records[0]?.get('childrenCount')?.toInt() ?? 0, // Default to 0 if missing
-          siblingsCountsRecord: siblingsCountsRecord.records[0]?.get('siblingCount')?.toInt() ?? 0
+          siblingsCounts: siblingsCountsRecord.records[0]?.get('siblingCount')?.toInt() ?? 0
         };
     
         setPersonDetails(personDetails);
@@ -375,13 +375,21 @@ const SearchPage = () => {
             WHERE id(p) = $childID
             RETURN count(child) AS childrenCount
           `, { childID });
-      
+            const siblingsCountsRecord = await session.run(`
+              MATCH (target:Person)
+              WHERE id(target) = $childID
+              MATCH (parent:Person)-[:FATHER_OF|MOTHER_OF]->(target)
+              MATCH (parent)-[:FATHER_OF|MOTHER_OF]->(sibling:Person)
+              WHERE id(sibling) <> $childID
+              RETURN count(DISTINCT sibling) AS siblingCount  
+              `, {childID});
+
           const isMarried = await session.run(`
-            MATCH (m:Person)-[r:HUSBAND_OF]->(w:Person)
+            MATCH (m:Person)-[r:MARRIED_TO]->(w:Person)
             WHERE id(m) = $childID
             RETURN count(r) > 0 AS isMarried
           `, { childID });
-      
+          console.log(isMarried.records[0]?.get('isMarried'));
           const personDetails = {
             personID: childID,
             personName: record.get('childName') ?? "غير متوفر",
@@ -398,7 +406,9 @@ const SearchPage = () => {
 
             lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر",
             maritalStatus: isMarried.records[0]?.get('isMarried') ?? "غير متوفر",
-            childrenCount: childrenCountRecord.records[0]?.get('childrenCount')?.toInt() ?? 0
+            childrenCount: childrenCountRecord.records[0]?.get('childrenCount')?.toInt() ?? 0,
+            siblingsCounts: siblingsCountsRecord.records[0]?.get('siblingCount')?.toInt() ?? 0
+
           };
       
           multipleMatches.push(personDetails);
@@ -519,7 +529,9 @@ const SearchPage = () => {
             <div className="person-table-view">
               <table className="person-side-table">
                 <tbody>
-                    <th>الإسم الكامل</th>
+                  <tr><th>الرقم التسلسلي</th>
+                  <td className='highlight-id'>{personDetails.personID}</td></tr>
+                  <tr><th>الإسم الكامل</th>
 
                   <td>
                     {utils.translateName(personDetails?.personName)}
@@ -532,7 +544,8 @@ const SearchPage = () => {
                     {personDetails?.familyName ? 
                       ` ${utils.translateFamilyName(personDetails.familyName)}` 
                       : ''}
-                  </td>
+                  </td></tr>
+                  
 
                   <tr>
                     <th>إسم الأم الكامل</th>
@@ -575,11 +588,30 @@ const SearchPage = () => {
                 </tr>
                 <tr>
                   <th>عدد الأبناء</th>
-                  <td></td>
+                  <td>
+                    {personDetails?.childrenCount === 0
+                      ? "لا أطفال"
+                      : personDetails.childrenCount === 1
+                      ? "طفل واحد (1)"
+                      : personDetails.childrenCount === 2
+                      ? "طفلان (2)"
+                      : personDetails.childrenCount >= 3 && personDetails.childrenCount <= 10
+                      ? `${personDetails.childrenCount} أطفال`
+                      : `${personDetails.childrenCount} طفل`}
+                  </td>
+
                 </tr>
                 <tr>
                   <th>عدد الإخوة</th>
-                  <td></td>
+                  <td>{personDetails?.childrenCount === 0
+                      ? "لا إخوة"
+                      : personDetails.childrenCount === 1
+                      ? "أخ واحد (1)"
+                      : personDetails.childrenCount === 2
+                      ? "أخوان (2)"
+                      : personDetails.childrenCount >= 3 && personDetails.childrenCount <= 10
+                      ? `${personDetails.childrenCount} إخوة`
+                      : `${personDetails.childrenCount} أخـًا`}</td>
                 </tr>
                 <tr>
                   <th>بلاد السكنة أو العمل</th>
