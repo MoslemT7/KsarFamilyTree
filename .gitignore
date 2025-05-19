@@ -4,7 +4,7 @@
 # Build output
 /build
 /dist
-
+buglog.txt
 # Environment files
 .env
 .env.local
