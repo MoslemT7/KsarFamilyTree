@@ -56,7 +56,7 @@ Using modern technologies and a scalable structure, the site transforms historic
 | Layer         | Technology                    |
 |--------------|-------------------------------|
 | **Frontend** | React.js, CSS3, HTML5          |
-| **Backend**  | Node.js, Express.js            |
+| **Backend**  | Node.js, Express.js, PHP           |
 | **Database** | Neo4j (Graph DB), MySQL (optional layer) |
 | **Hosting**  | cPanel-based deployment with domain `ouledboubaker.tn` |
 
