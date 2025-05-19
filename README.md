@@ -2,7 +2,7 @@
 
 Welcome to the **Ksar Family Tree** project — a dynamic web platform dedicated to preserving and visualizing the ancestral and community ties of **Ksar Ouled Boubaker**, a historic town in Southern Tunisia. With over **3000+ individuals** connected in a deeply interwoven family network, this project is a digital celebration of our shared heritage.
 
-🔗 **Visit the Live Website**: [https://ouledboubaker.tn](https://ouledboubaker.tn)
+🔗 **Visit the Website**: [https://ouledboubaker.tn](https://ouledboubaker.tn) [Please note taht the website is currently off, the work still going on!].
 
 ---
 
@@ -56,7 +56,7 @@ Using modern technologies and a scalable structure, the site transforms historic
 | Layer         | Technology                    |
 |--------------|-------------------------------|
 | **Frontend** | React.js, CSS3, HTML5          |
-| **Backend**  | Node.js, Express.js            |
+| **Backend**  | Node.js, Express.js, PHP           |
 | **Database** | Neo4j (Graph DB), MySQL (optional layer) |
 | **Hosting**  | cPanel-based deployment with domain `ouledboubaker.tn` |
 
