@@ -727,13 +727,6 @@ const StatisticsDashboard = () => {
             <div className="progress" style={{ width: '70%' }}></div>
           </div>
         </div>
-        <div>
-            <AIPredictionZone stats={stats}/>
-        </div>
-
-
-
-  
     </div>
   );
 };

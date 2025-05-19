@@ -508,7 +508,23 @@ body.dark-mode button:hover {
 
 body.dark-mode .app-container,
 body.dark-mode .content{
-    background-color: #2d2d2d;
+  background-color: #2d2d2d;
   border: 0px;
   padding: 2px;
+}
+
+body.dark-mode .header,
+body.dark-mode .sidebar,
+body.dark-mode nav{
+  background-color: #444;
+  
+}
+
+body.dark-mode .sidebar ul li a{
+  color: #00d1b2;
+}
+
+body.dark-mode .title h1{
+  color: #00d1b2;
+  background-color: #0d1f2d;
 }

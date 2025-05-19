@@ -243,16 +243,18 @@ export function mergePaths(pathToP1, pathToP2) {
     children.push(buildTreePath(branch2));
   }
   return {
-    id: (ancestor.id).toNumber(),
+    id: typeof ancestor.id === 'object' && ancestor.id.toNumber
+      ? ancestor.id.toNumber()
+      : ancestor.id,
     name: `${ancestor.name} ${ancestor.lastName}`,
     children: children.length > 0 ? children : undefined
   }
-}
+};
 
 function normalizeArabicName(name) {
   return name
     .replace(/[أإآ]/g, 'ا')  // Normalize Alif variants to bare Alif
-}
+};
 
 function _translate(
   raw,
@@ -291,7 +293,7 @@ function _translate(
     .split(' ')
     .map((tok) => dict[tok] || tok)
     .join(' ');
-}
+};
 
 // 3) your two exports
 export const translateName = (fullName, toEnglish = true) =>

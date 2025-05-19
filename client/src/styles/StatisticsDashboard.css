@@ -399,7 +399,7 @@
 }
 
 .data-completeness-card {
-  background: linear-gradient(145deg, #7e91b3, #246bae); /* Cool gradient background */
+  background: linear-gradient(145deg, #053b5e, #3a4e5c); /* Cool gradient background */
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -415,13 +415,13 @@
 
 .data-completeness-container h2 {
   font-size: 20px;
-  color: #92cd12;
+  color: #12e362;
   margin-bottom: 10px;
 }
 
 .data-completeness-container p {
   font-size: 16px;
-  color: #f3f5f7;
+  color: #12e362;
 }
 
 /* Container to divide content and percentage */
@@ -440,7 +440,7 @@
 .percentage {
   font-size: 42px; /* Larger font for percentage */
   font-weight: bold;
-  color: #92cd12; /* Match the heading color */
+  color: #12e362; /* Match the heading color */
   margin-left: 10px; /* Small gap between percentage and description */
   flex-direction: column;
   align-items: flex-end;
@@ -467,7 +467,7 @@
 
 
 .important-info {
-  background: linear-gradient(145deg, #EEAECA, #94BBE9); /* Warm gradient background for emphasis */
+  background: linear-gradient(30deg, #05e059, #b3d7c1); /* Warm gradient background for emphasis */
   color: #fff; /* White text for contrast */
   padding: 40px;
   border-radius: 12px; /* Slightly rounded corners */
@@ -482,7 +482,7 @@
 .important-info h2 {
   font-size: 32px; /* Big, bold title */
   font-weight: bold;
-  color:#b72818;
+  color:#0d3b5a;
   margin-bottom: 20px;
 }
 
@@ -508,7 +508,7 @@
 .important-info .highlight {
   font-size: 36px;
   font-weight: bold;
-  color: #b83f32;
+  color: #0d3b5a;
   padding: 5px 5px;
   border-radius: 5px;
 }

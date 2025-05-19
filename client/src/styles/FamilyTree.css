@@ -90,12 +90,17 @@ header p{
 .rootButton{
   display: flex;
   text-align: center;
+    width: 100%;
+
 }
 
 #men, #women{
-  width: 45%;
-  margin: 25px 50px;
+  width: 55%;
+  padding: 0px;
+  margin: 20px 5px;
   font-size: 14px;
+  color: white;
+  font-size: 16px;
 }
 
 #R1{
@@ -106,7 +111,7 @@ header p{
 
 #R2{
   border-bottom: 4px solid orange;
-    border-top: 4px solid orange;
+  border-top: 4px solid orange;
 
 }
 
@@ -114,6 +119,7 @@ header p{
   color: #f1eeec;
   margin-bottom: 15px;
   background: linear-gradient(45deg, #d9ab72, #c90f0f);
+  width: 75%;
 }
 
 #R3{
@@ -125,6 +131,8 @@ header p{
   color: #f1eeec;
   margin-bottom: 15px;
   background: linear-gradient(45deg, #4bb896, #29c810);
+  width: 75%;
+
 }
 
 button{
@@ -137,10 +145,6 @@ button{
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: center;
-}
-
-button:hover {
-  background-color: #45a049;
 }
 
 input {
@@ -194,8 +198,8 @@ input {
 }
 
 .footerTips .card {
-  width: 23%; /* Each card takes up 1/4 of the row */
-  background: linear-gradient(135deg, #74ebd5, #acb6e5); /* Gradient background */
+  width: 33%; /* Each card takes up 1/4 of the row */
+  background: linear-gradient(35deg, #083757, #3f5665); /* Gradient background */
   border-radius: 12px;
   padding: 15px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
@@ -211,21 +215,21 @@ input {
 }
 
 .footerTips .card h4 {
-  font-size: 18px;
+  font-size: 20px;
   font-family: 'Cairo', sans-serif;
-  color: #2c3e50;
+  color: #12e362;
   font-weight: bold;
   margin-bottom: 15px;
 }
 
 .footerTips .card p {
-  font-size: 16px;
-  color: #34495e;
-  line-height: 1.5;
+  font-size: 15px;
+  color: #ffffff;
+  line-height: 1.5; 
   font-weight: bolder;
   font-family: 'Cairo', sans-serif;
-  text-align: center; /* Centers the text inside the <p> */
-  margin: 0; /* Removes any default margin around the <p> */
+  text-align: center;
+  margin: 0;
 }
 
 .footerTips .card:hover {

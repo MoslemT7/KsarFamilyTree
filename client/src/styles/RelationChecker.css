@@ -617,13 +617,21 @@ body.dark-mode .relationship-result h2{
 
 .tipsFooter li {
   margin-bottom: 8px;
-  font-size: 20px;
-  color: #fafafa;
-  background: linear-gradient(30deg, #007bff, #07eb2d);
+  font-size: 18px;  
+  color: #12e362;
+  background: linear-gradient(30deg, #083757, #3f5665);
   border: 1px solid rgb(197, 188, 188);
   margin: 2px;
+  border-radius: 5px;
   padding: 8px;
   width: 20%;
   text-align: center;
 
+}
+
+body.dark-mode .tipsFooter{
+  background-color: #333 ;
+}
+body.dark-mode h3{
+  color: #12e362 ;
 }
