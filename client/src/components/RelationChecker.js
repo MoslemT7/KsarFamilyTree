@@ -1584,6 +1584,7 @@ MATCH (P:Person)
   };
 
   const getRelationship = async (person1FullName, person2FullName) => {
+    console.log(person1FullName);
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
     let gender1, gender2;
     const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = utils.splitName(person1FullName);

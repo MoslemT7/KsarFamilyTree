@@ -15,6 +15,29 @@ const driver = require('neo4j-driver').driver(
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
 
+function groupAgesByRange(ages, rangeSize = 5) {
+  const grouped = {};
+  ages.forEach(age => {
+    const group = `${Math.floor(age / rangeSize) * rangeSize}-${Math.floor(age / rangeSize) * rangeSize + rangeSize - 1}`;
+    grouped[group] = (grouped[group] || 0) + 1;
+  });
+  return grouped;
+};
+
+function buildPyramidData(maleAges, femaleAges, rangeSize = 5) {
+  const maleGroups = groupAgesByRange(maleAges, rangeSize);
+  const femaleGroups = groupAgesByRange(femaleAges, rangeSize);
+
+  const allRanges = Array.from(new Set([...Object.keys(maleGroups), ...Object.keys(femaleGroups)]))
+    .sort((a, b) => parseInt(a.split('-')[0]) - parseInt(b.split('-')[0]));
+
+  const labels = allRanges;
+  const maleData = allRanges.map(range => -1 * (maleGroups[range] || 0));  // Negative for left
+  const femaleData = allRanges.map(range => femaleGroups[range] || 0);     // Positive for right
+
+  return { labels, maleData, femaleData };
+};
+
 const StatisticsDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,19 +45,19 @@ const StatisticsDashboard = () => {
   const [cumulativePopulationGrowth, setpopulationGrowth] = useState([]);
   const [weddingData, setWeddingData] = useState([]);
   const [topFamiliesData, setTopFamilies] = useState([]);
-
+  const [ageGenderDATA, setAgeGenderDATA] = useState([]);
   const ageDistributionChartRef = useRef(null);
-  const genderRatioChartRef = useRef(null);
   const weddingChartRef = useRef(null);
   const cumulativePopulationGrowthRef = useRef(null);
   const topFamiliesRef = useRef(null);
+  const chartRef = useRef(null);
+  const chartInstance = useRef(null);
 
   let ageDistributionChartInstance = useRef(null);
-  let genderRatioChartInstance = useRef(null);
   let weddingChartInstance = useRef(null);
   let cumulativePopulationGrowthInstance = useRef(null);
   let topFamiliesInstance = useRef(null);
-  const weddingYears = [];
+
   const ageBins = async () => {
     const session = driver.session();
     try {
@@ -109,7 +132,6 @@ const StatisticsDashboard = () => {
         const Population = await statistics.getPopulationStats();
         const AgeStats = await statistics.getAgeStats()
         const oldest = await statistics.oldestPerson();
-        const youngest = await statistics.youngestPerson();
 
         const total = Population.totalPopulation;
         const totalAlive = Population.totalAlive;
@@ -132,8 +154,8 @@ const StatisticsDashboard = () => {
         const top5families = await statistics.mostUsedFamilyName();
         const mostUsedFamilyNameCount = top5families[0];
         const mostUsedNameCount = await statistics.mostUsedName();
-        console.log(mostUsedNameCount);
-        const { maleCount, femaleCount } = await statistics.SexCount();
+        const GenderStats = await statistics.getAgeGenderData();
+        console.log(GenderStats);
         const fetchedAgeDistribution = await ageBins();
         const fetchedCumGrowth = await populationGrowth();
         const familiesCount = await statistics.familiesNumber();
@@ -141,14 +163,13 @@ const StatisticsDashboard = () => {
         setStats({
           totalPopulation: total,
           totalAlivePopulation: totalAlive,
-          totalMen: maleCount,
+          totalMen: GenderStats.maleCount,
+          totalWomen: GenderStats.femaleCount,
           deadPopulation: totalDead,
-          totalWomen: femaleCount,
           avgAge,
           medAge,
           agedPeopleCount: nbrOfAgedPeople.count,
           oldestPerson: oldest,
-          youngestPerson: youngest,
           biggestFamily: biggestFamilyCount,
           mostUsedFamilyNameCount,
           mostUsedNameCount: mostUsedNameCount[0],
@@ -165,9 +186,9 @@ const StatisticsDashboard = () => {
         });
         setAgeDistribution(fetchedAgeDistribution);
         setpopulationGrowth(fetchedCumGrowth);
-        setWeddingData(weddingYears);
         setTopFamilies(top5families);
         setWeddingData(yearlyWeddings);
+        setAgeGenderDATA(GenderStats);
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -178,25 +199,22 @@ const StatisticsDashboard = () => {
     fetchStats();
   }, []);
 
-  // AGE DISTRIBUTION DATA
   useEffect(() => {
     if (!ageDistributionChartRef.current || ageDistribution.length === 0) return;
 
-    // Destroy previous chart if it exists
     if (ageDistributionChartInstance.current) {
       ageDistributionChartInstance.current.destroy();
     }
 
     const ctx = ageDistributionChartRef.current.getContext('2d');
 
-    // Create a new chart instance
     ageDistributionChartInstance.current = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: ageDistribution.map((item) => item.ageBin),
         datasets: [
           {
-            label: 'Age Distribution',
+            label: 'توزيع السكّان',
             data: ageDistribution.map((item) => item.count),
             backgroundColor: 'rgba(54, 162, 235, 0.2)',
             borderColor: 'rgba(54, 162, 235, 1)',
@@ -211,13 +229,13 @@ const StatisticsDashboard = () => {
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Population',
+              text: 'عدد السكان',
             },
           },
           x: {
             title: {
               display: true,
-              text: 'Age Distribution',
+              text: 'مجالات الأعمار',
             },
           }
         },
@@ -229,84 +247,99 @@ const StatisticsDashboard = () => {
     };
   }, [ageDistribution]);
 
-  // GENDER DISTRIBUTION DATA
   useEffect(() => {
-    if (!stats || !stats.totalMen || !stats.totalWomen) return;
+    if (!chartRef.current) return;
+    const DATA = ageGenderDATA;
+    const maleAges = DATA.maleAges;
+    const femaleAges = DATA.femaleAges;
+    const { labels, maleData, femaleData } = buildPyramidData(maleAges, femaleAges);
+    
+    const ctx = chartRef.current.getContext('2d');
+    if (chartInstance.current) chartInstance.current.destroy();
 
-    const ctx = genderRatioChartRef.current.getContext('2d');
-
-    // Destroy previous chart if it exists
-    if (genderRatioChartInstance.current) {
-      genderRatioChartInstance.current.destroy();
-    }
-
-    // Create a new chart instance for Gender Ratio
-    genderRatioChartInstance.current = new Chart(ctx, {
-      type: 'pie',
+    chartInstance.current = new Chart(ctx, {
+      type: 'bar',
       data: {
-        labels: ['Male', 'Female'],
+        labels,
         datasets: [
           {
-            data: [stats.totalMen, stats.totalWomen],
-            backgroundColor: ['#36A2EB', '#FF6384'],
-            hoverBackgroundColor: ['#5DADE2', '#FF8F9E'],
+            label: 'ذكور',
+            data: maleData,
+            backgroundColor: '#36A2EB',
+          },
+          {
+            label: 'إناث',
+            data: femaleData,
+            backgroundColor: '#FF6384',
           },
         ],
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function (tooltipItem) {
-                return ' people' + tooltipItem.raw;
-              },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              callback: value => Math.abs(value),
+            },
+            title: {
+              display: true,
+              text: 'عدد الأشخاص',
             },
           },
+          y: {
+            stacked: true,
+            title: {
+              display: true,
+              text: 'الفئة العمرية',
+            },
+          },
+        },
+        plugins: {
           legend: {
             position: 'bottom',
+          },
+          tooltip: {
+            callbacks: {
+              label: tooltipItem =>
+                `${tooltipItem.dataset.label}: ${Math.abs(tooltipItem.raw)} أشخاص`,
+            },
           },
         },
       },
     });
+  return () => {
+    chartInstance.current?.destroy();
+  };
+  }, []);
 
-    return () => {
-      genderRatioChartInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
-    };
-  }, [stats]);
-
-  // POPULATION GROWTH:
   useEffect(() => {
     if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
-  
     const ctx = cumulativePopulationGrowthRef.current.getContext('2d');
-  
-    // Destroy previous chart if it exists
     if (cumulativePopulationGrowthInstance.current) {
       cumulativePopulationGrowthInstance.current.destroy();
     }
   
-    // Prepare labels and datasets for both populations
     const labels = cumulativePopulationGrowth.map(item => item.year);
     const cumulativeValues = cumulativePopulationGrowth.map(item => item.cumulativePopulation);
-    const aliveValues = cumulativePopulationGrowth.map(item => item.alivePopulation);  // Assuming you added alivePopulation to your data
-    // Create line chart
+    const aliveValues = cumulativePopulationGrowth.map(item => item.alivePopulation);
     cumulativePopulationGrowthInstance.current = new Chart(ctx, {
       type: 'line',
       data: {
         labels: labels,
         datasets: [
           {
-            label: 'Cumulative Population',
+            label: 'عدد السكان التراكمي',
             data: cumulativeValues,
-            borderColor: '#36A2EB', // Blue color for cumulative population
+            borderColor: '#36A2EB',
             backgroundColor: 'rgba(54, 162, 235, 0.2)',
             fill: true,
             tension: 0.4,
             pointRadius: 3,
           },
           {
-            label: 'Alive Population',
+            label: 'الأشخاص الأحياء',
             data: aliveValues,
             borderColor: '#FF6384', // Red color for alive population
             backgroundColor: 'rgba(255, 99, 132, 0.2)',
@@ -322,7 +355,7 @@ const StatisticsDashboard = () => {
           tooltip: {
             callbacks: {
               label: function (tooltipItem) {
-                return tooltipItem.raw + ' people';
+                return tooltipItem.raw + ' نسمة';
               },
             },
           },
@@ -334,14 +367,14 @@ const StatisticsDashboard = () => {
           x: {
             title: {
               display: true,
-              text: 'Year',
+              text: 'السنة',
             },
           },
           y: {
             beginAtZero: true,
             title: {
               display: true,
-              text: 'Population',
+              text: 'السكّان',
             },
           },
         },
@@ -434,7 +467,7 @@ const StatisticsDashboard = () => {
     return () => {
       weddingChartInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
     };
-  }, [weddingData]); // Trigger the effect when weddingData changes
+  }, [weddingData]);
 
   useEffect(() => {
     if (!topFamiliesRef.current || topFamiliesData.length === 0) return;
@@ -533,18 +566,6 @@ const StatisticsDashboard = () => {
               {stats.oldestPerson.age} سنة
             </p>
           </div>
-            <div class="stat-card"> 
-              <h4>أصغر فرد</h4>
-              <p className="stat-number">
-                {utils.translateName(stats.youngestPerson.name || '')}{" "}
-                {utils.translateName(stats.youngestPerson.fatherName ? 'بن ' +stats.youngestPerson.fatherName : '')} {" "} 
-                {utils.translateName(stats.youngestPerson.grandfatherName ? 'بن ' +stats.youngestPerson.grandfatherName : '')}{" "}
-                {utils.translateFamilyName(stats.youngestPerson.lastName || '')}
-              </p>
-              <p className="stat-note">
-                {stats.youngestPerson.age} سنة
-              </p>
-            </div>
             <div class="stat-card"> <h4>متوسط الأعمار</h4> <p class="stat-number">{stats.avgAge} سنة</p> </div>
             <div class="stat-card"> <h4>الوسيط العمري</h4> <p class="stat-number">{stats.medAge} سنة</p> </div>
             <div class="stat-card"> <h4>عدد المعمرين (+100 سنة)</h4> <p class="stat-number">{stats.agedPeopleCount}</p> </div>
@@ -586,9 +607,8 @@ const StatisticsDashboard = () => {
           </div>
           <div className="chart-container">
             <h3>الرجال VS النساء</h3>
-            <canvas id="genderChart" ref={genderRatioChartRef}></canvas>
+            <canvas id="genderChart" ref={chartRef}></canvas>
           </div>
-        
         </div>
 
         <div className="chart-container full-width">

@@ -311,34 +311,47 @@ export const agedPersonCount = async () => {
   }
 };
 
-export const SexCount = async () => {
-    const session = driver.session();
-    try {
-      const resultM = await session.run(`
-        MATCH (n:Person)
-        WHERE n.gender = 'Male'
-        RETURN COUNT(n) AS MaleCount
-      `);
-      const resultF = await session.run(`
-        MATCH (n:Person)
-        WHERE n.gender = 'Female'
-        RETURN COUNT(n) AS FemaleCount
-      `);
-  
-      if (resultM.records.length > 0 && resultF.records.length > 0) {
-        const maleCount = resultM.records[0].get('MaleCount').toNumber(); // ensure it's a number
-        const femaleCount = resultF.records[0].get('FemaleCount').toNumber(); // ensure it's a number
-        return { maleCount, femaleCount };
-      } else {
-        return { maleCount: "-", femaleCount: "-" };
+export const getAgeGenderData = async () => {
+  const session = driver.session();
+  try {
+    const result = await session.run(`
+      MATCH (n:Person)
+      WHERE n.gender IN ['Male', 'Female'] AND n.YoB IS NOT NULL
+      RETURN n.gender AS gender, date().year - n.YoB AS age
+    `);
+
+    let maleCount = 0;
+    let femaleCount = 0;
+    const maleAges = [];
+    const femaleAges = [];
+
+    result.records.forEach(record => {
+      const gender = record.get('gender');
+      const age = record.get('age');
+      const numericAge = typeof age.toNumber === 'function' ? age.toNumber() : age;
+
+      if (gender === 'Male') {
+        maleCount++;
+        maleAges.push(numericAge);
+      } else if (gender === 'Female') {
+        femaleCount++;
+        femaleAges.push(numericAge);
       }
-    } catch (error) {
-      console.error("Error fetching gender counts:", error);
-      return { maleCount: "-", femaleCount: "-" };
-    } finally {
-      await session.close();
-    }
+    });
+
+    return { maleCount, femaleCount, maleAges, femaleAges };
+
+  } catch (error) {
+    console.error("Error fetching age/gender data:", error);
+    return {
+      maleCount: "-", femaleCount: "-",
+      maleAges: [], femaleAges: []
+    };
+  } finally {
+    await session.close();
+  }
 };
+
 
 export const unmariedMales = async () => {
   const session = driver.session();

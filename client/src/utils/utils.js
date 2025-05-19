@@ -249,53 +249,56 @@ export function mergePaths(pathToP1, pathToP2) {
   }
 }
 
-export const translateName = (fullName, language = true) => {
-  if (!fullName || typeof fullName !== 'string') return '';
-  const reverseTranslations = Object.fromEntries(
-    Object.entries(nameTranslation).map(([key, value]) => [value, key])
-  );
-  const reverseCompound = Object.fromEntries(
-    Object.entries(compoundNameTranslation).map(([key, value]) => [value, key])
-  );
+function normalizeArabicName(name) {
+  return name
+    .replace(/[أإآ]/g, 'ا')  // Normalize Alif variants to bare Alif
+}
 
-  const dict = language ? nameTranslation : reverseTranslations;
-  const compoundDict = language ? compoundNameTranslation : reverseCompound;
+function _translate(
+  raw,
+  toEnglish,
+  simpleDict,
+  compoundDict
+) {
+  if (!raw || typeof raw !== 'string') return '';
 
-  const normalized = fullName.trim().replace(/\s+/g, ' ');
-  if (compoundDict[normalized]) {
-    return compoundDict[normalized];
+  const normalized = normalizeArabicName(raw);
+  const dict = toEnglish
+    ? simpleDict
+    : Object.fromEntries(Object.entries(simpleDict).map(([k, v]) => [v, k]));
+  const compDict = toEnglish
+    ? compoundDict
+    : Object.fromEntries(Object.entries(compoundDict).map(([k, v]) => [v, k]));
+
+  // Try exact match in compound dict
+  if (compDict[normalized]) return compDict[normalized];
+
+  // Try normalized version without spaces
+  const noSpace = normalized.replace(/\s+/g, '');
+  const foundEntry = Object.entries(compDict).find(([key, val]) => {
+    const keyNorm = normalizeArabicName(key).replace(/\s+/g, '');
+    const valNorm = normalizeArabicName(val).replace(/\s+/g, '');
+    return toEnglish
+      ? valNorm === noSpace
+      : keyNorm === noSpace;
+  });
+  if (foundEntry) {
+    return toEnglish ? foundEntry[0] : foundEntry[1];
   }
 
-  const nameParts = normalized.split(' ');
-  const translatedParts = nameParts.map(part => dict[part] || part);
+  // Fall back to word-by-word translation
+  return normalized
+    .split(' ')
+    .map((tok) => dict[tok] || tok)
+    .join(' ');
+}
 
-  return translatedParts.join(' ');
-};
+// 3) your two exports
+export const translateName = (fullName, toEnglish = true) =>
+  _translate(fullName, toEnglish, nameTranslation, compoundNameTranslation);
 
-export const translateFamilyName = (fullFamilyName, language = true) => {
-  const reverseTranslations = Object.fromEntries(
-    Object.entries(familyNameTranslation).map(([en, ar]) => [ar, en])
-  );
-
-  const reverseCompound = Object.fromEntries(
-    Object.entries(compoundNameTranslation).map(([en, ar]) => [ar, en])
-  );
-
-  const dict = language ? familyNameTranslation : reverseTranslations;
-  const compoundDict = language ? compoundNameTranslation : reverseCompound;
-
-  const normalized = fullFamilyName.trim().replace(/\s+/g, ' ');
-
-  if (compoundDict[normalized]) {
-    return compoundDict[normalized];
-  }
-
-  // Split and translate each part
-  const nameParts = normalized.split(' ');
-  const translatedParts = nameParts.map(part => dict[part] || part);
-
-  return translatedParts.join(' ');
-};
+export const translateFamilyName = (fullFamilyName, toEnglish = true) =>
+  _translate(fullFamilyName, toEnglish, familyNameTranslation, compoundNameTranslation);
 
 export const translateNodeName = (fullName, language = true) => {
   if (!fullName || typeof fullName !== 'string') return '';

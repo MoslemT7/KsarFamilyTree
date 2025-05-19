@@ -5,7 +5,6 @@ const { createPerson, createFatherChildRelationship, createMarriage,
 // Example function call to create a Father-Child relationship and fetch relationships
 const run = async () => {
 try {
-    await createPerson("Firas", "Lokmani", "Male", "2005", "True");
 } catch (error) {
   console.error('Error executing functions:', error);
 }

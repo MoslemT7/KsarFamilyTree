@@ -40,11 +40,11 @@ const App = () => {
 
         <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
           <ul>
-            <li><Link to="/main">الرئيسية</Link></li>
+            <li><Link to="/">الرئيسية</Link></li>
             <li><Link to="/familyTree">شجرة العائلة</Link></li>
             <li><Link to="/search">البحث</Link></li>
             <li><Link to="/statistics">إحصائيات</Link></li>
-            <li><Link to="/relation-checker">ماهي العلاقة بينهما؟</Link></li>
+            <li><Link to="/relationChecker">ماهي العلاقة بينهما؟</Link></li>
             <li><Link to="/weddingsDates">أعراسنا</Link></li>
             <li id="contactUs"><a>إتصل بنا</a></li>
           </ul>
@@ -66,7 +66,7 @@ const App = () => {
             <Route path="/familyTree" element={<FamilyTree />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/statistics" element={<StatisticsDashboard />} />
-            <Route path="/relation-checker" element={<RelationPage />} />
+            <Route path="/relationChecker" element={<RelationPage />} />
             <Route path="/weddingsDates" element={<WeddingPage />} />
           </Routes>
         </div>

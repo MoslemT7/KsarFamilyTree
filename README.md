@@ -1,14 +1,63 @@
-Introduction
-Welcome to the Ksar Family Tree project, a unique platform dedicated to preserving and showcasing the rich history of Ksar Ouled Boubaker's vast family network. This website aims to connect over 3000 members of the community by providing an interactive, visual representation of our family tree.
+# 🌳 Ksar Family Tree - Ouled Boubaker
 
-The project is designed to make it easier for current and future generations to explore their heritage, discover their familial connections, and understand the intricate web of relationships within our town. With the use of cutting-edge web technologies, we bring to life a dynamic and user-friendly interface that allows users to search, explore, and interact with the family tree in ways never before possible.
+Welcome to the **Ksar Family Tree** project — a dynamic web platform dedicated to preserving and visualizing the ancestral and community ties of **Ksar Ouled Boubaker**, a historic town in Southern Tunisia. With over **3000+ individuals** connected in a deeply interwoven family network, this project is a digital celebration of our shared heritage.
 
-Key features include:
+🔗 **Visit the Live Website**: [https://ouledboubaker.tn](https://ouledboubaker.tn)
 
-- A zoomable family tree for easy navigation.
-- A relationship finder tool to trace connections across generations.
-- A live statistics page for tracking key informations about the Ksar Ouled Boubaker Large Family.
-- Dual family assignments for women to ensure that both their father’s and husband’s family lines are represented.
-- A search page for finding any person in the database.
-- 
-This website not only aims to be a tool for genealogical exploration but also serves as a way to strengthen ties within the community. By visualizing our shared history, we celebrate the bonds that unite us all. Whether you're tracing your roots, learning about your ancestors, or simply exploring family connections, the Ksar Family Tree project will help you connect with your past and understand the legacy that shapes the future.
+---
+
+## 📜 Project Mission
+
+Our goal is to provide an interactive, user-friendly platform that allows current and future generations to:
+
+- Explore their roots.
+- Understand the intricate web of relationships within the town.
+- Strengthen connections within the large extended family of Ksar Ouled Boubaker.
+
+Using modern technologies and a scalable structure, the site transforms historical data into a **zoomable, searchable, and interactive family tree**, ensuring the preservation of our collective memory.
+
+---
+
+## 🚀 Features
+
+### 🔍 Interactive Exploration
+
+- **Zoomable Family Tree**  
+  Navigate through generations with ease using a performant, scalable family tree visualizer.
+
+- **Search & Find**  
+  Instantly find any person in the database by name, ID, or family.
+
+- **Relationship Finder Tool**  
+  Determine the connection between any two individuals across generations.
+
+### 📊 Live Community Statistics
+
+- Real-time population count (alive vs deceased).
+- Oldest and youngest members.
+- Average and median age statistics.
+- Family size metrics and more.
+
+### 👩‍👩‍👧 Dual Family Assignment (For Women)
+
+- Women are represented in both their **father’s** family and their **husband’s** family — maintaining complete and inclusive lineage records.
+
+### 🧠 Smart Infrastructure (Coming Soon)
+
+- AI-powered relationship predictions.
+- Marriage recommendation tools.
+- Event-based invitations and PDF generation.
+- Blog, news, and family activity feeds.
+
+---
+
+## 🏗️ Tech Stack
+
+| Layer         | Technology                    |
+|--------------|-------------------------------|
+| **Frontend** | React.js, CSS3, HTML5          |
+| **Backend**  | Node.js, Express.js            |
+| **Database** | Neo4j (Graph DB), MySQL (optional layer) |
+| **Hosting**  | cPanel-based deployment with domain `ouledboubaker.tn` |
+
+---

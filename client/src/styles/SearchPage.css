@@ -501,11 +501,12 @@ body.dark-mode .highlight-id {
     margin-bottom: 8px;
   }
 
-  .title h1 {
+  .serach-header h1 {
     font-size: 18px;
-    margin: 5px 0;
   }
-
+  .serach-header p{
+    font-size: 10px;
+  }
   .title h2 {
     font-size: 14px;
     margin: 5px 0;
@@ -561,10 +562,6 @@ body.dark-mode .highlight-id {
     padding: 0;
   }
 
-  .search-header h1 {
-    font-size: 16px; 
-  }
-
   .search-bar {
     font-size: 16px;
     padding: 4px 6px;
@@ -572,56 +569,19 @@ body.dark-mode .highlight-id {
   }
 
   .search-button, .reset-button {
-    font-size: 12px;
+    font-size: 18px;
     padding: 4px;
   }
+
   .titles {
     display: block;
     text-align: center;
     padding: 10px;
   }
 
-  .person-details h2 {
-    font-size: 20px;
-    margin: 10px 0;
-  }
-
   #idPerson {
     font-size: 14px;
     margin: 5px 0;
-  }
-
-  .highlight-id {
-    font-size: 14px;
-    padding: 3px 6px;
-  }
-  .personDetails {
-    font-size: 16px;
-    color: #333;
-    margin: 1px auto;
-    padding: 1px auto;
-    font-weight: normal;
-  }
-  .content {
-    padding: 1px;
-  }
-  .person-details h3 {
-    font-size: 18px;
-    width: 90%;
-    padding: 6px;
-    margin-top: 10px;
-  }
-  .person-details-table th, .person-details-table td {
-    padding: 2px;
-    font-size: 9px;
-    max-width: 15px;
-    
-  }
-  .person-details2-table th, .person-details2-table td {
-    padding: 2px 2px;
-    font-size: 9px;
-    max-width: 20px;
-    text-align: center;
   }
 
   #childrenButton{
@@ -639,6 +599,29 @@ body.dark-mode .highlight-id {
   .dupPersonName {
     font-size: 16px;
     padding: 6px 12px;
+  }
+
+  .person-side-table{
+    padding: 2px;
+    margin: auto;
+    margin-top: 20px;
+    width: auto;
+    
+  }
+  .view-toggle-buttons button{
+    font-size: 16px;
+    padding: 2px;
+  }
+  .person-side-table td, .person-side-table th{
+    font-size: 15px;
+    text-align: center;
+  }
+
+  .person-card-containter, .cin-back{
+    padding: 0;
+    margin: auto;
+    width: 100%;
+
   }
 }
 
