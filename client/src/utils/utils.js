@@ -23,7 +23,7 @@ export function splitName(fullName) {
     console.error("fullName is not a string:", fullName);
     return [];
   }
-  const parts = fullName.replace(/\s*(بن|بنت|ben|bent)\s*/gi, ' ').trim().split(/\s+/);
+  const parts = fullName.replace(/\s*(بنت|بن|ben|bent)\s*/gi, ' ').trim().split(/\s+/);
   const bentCount = countBenAndBent(fullName);
   console.log(bentCount, parts);
   if (isCompoundName(parts[0] + " " + parts[1])) {
@@ -295,7 +295,6 @@ function _translate(
     .join(' ');
 };
 
-// 3) your two exports
 export const translateName = (fullName, toEnglish = true) =>
   _translate(fullName, toEnglish, nameTranslation, compoundNameTranslation);
 

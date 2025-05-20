@@ -341,6 +341,80 @@ h1 a{
   }
 }
 
+@media (max-width: 480px) {
+  /* Header adjustments */
+  .header-top {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .logo {
+    margin-bottom: 6px;
+  }
+
+  .title h1 {
+    font-size: 22px;
+  }
+
+  .title h2 {
+    font-size: 12px;
+  }
+
+  /* Sidebar (mobile navigation bar) */
+  .sidebar ul {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sidebar ul li {
+    padding: 10px 0;
+    width: 100%;
+  }
+
+  .sidebar ul li a {
+    font-size: 16px;
+  }
+  .sidebar {
+    display: block;
+  }
+  /* Main container spacing */
+  .main-container {
+    flex-direction: column;
+    padding: 10px;
+    gap: 5px;
+  }
+
+  .content {
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  /* Footer responsiveness */
+  .footer-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .footer-column {
+    min-width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .footer-column h4 {
+    font-size: 18px;
+  }
+
+  .footer-column p,
+  .footer-column li,
+  .footer-column a {
+    font-size: 14px;
+  }
+
+  .footer-bottom {
+    font-size: 13px;
+  }
+}
 /* Dark mode */
 body.dark-mode {
   background-color: #121212;
@@ -503,8 +577,6 @@ body.dark-mode .discoverNow {
 body.dark-mode button:hover {
   background-color: #444;
 }
-
-
 
 body.dark-mode .app-container,
 body.dark-mode .content{

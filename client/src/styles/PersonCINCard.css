@@ -165,8 +165,27 @@
     object-fit: contain;
 }
 
-@media screen and (max-width: 480px) {
-  .cin-card .cin-inner {
+/* Desktop: still flip on hover */
+@media (hover: hover) {
+  .cin-card:hover .cin-inner {
+    transform: rotateY(180deg);
+  }
+  
+}
+
+/* Always allow click-flip via .flipped */
+.cin-card.flipped .cin-inner {
   transform: rotateY(180deg);
 }
+
+@media (max-width: 480px){
+  .cin-card{
+    width: 95%;
+  }
+  .search-header h1{
+    font-size: 26px;
+  }
+  .search-header p{
+    font-size: 14px;
+  }
 }

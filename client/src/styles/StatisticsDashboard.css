@@ -344,6 +344,8 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   direction: rtl; /* Since it's Arabic */
   font-family: 'Cairo', sans-serif;
+  flex-wrap: wrap;
+  display: flex;
 }
 
 #funFacts h1 {
@@ -729,14 +731,20 @@ body.dark-mode .category-title{
   background-color: #333;
   color: whitesmoke;
 }
-/* ====== Breakpoint: Mobile Phones ====== */
+
 @media (max-width: 480px) {
   .stats-dashboard{
     padding: 0;
     margin: 0;
   }
+  .stats-dashboard p{
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    text-align: justify;
+  }
   .dashboard-title {
-    font-size: 22px;
+    font-size: 26px;
   }
 
   .category-title {
@@ -755,17 +763,21 @@ body.dark-mode .category-title{
     padding: 8px;
   }
 
-  .stat-number {
-    font-size: 10px;
+  .stat-card .stat-number {
+    font-size: 12px;
+    text-align: center;
   }
 
   .stat-card h4 {
-    font-size: 12px;
+    font-size: 14px;
   }
 
-  .stat-note {
-    font-size: 10px;
-    padding: 2px 8px;
+  .stat-card .stat-note {
+    font-size: 12px;
+    margin-top: 4px;
+    padding: 2px 4px;
+    text-align: center;
+
   }
 
   .marriage-averages {
@@ -796,15 +808,27 @@ body.dark-mode .category-title{
 
   .chart-container{
     min-height: 150px;
+    padding: 0;
+    margin: 0;
   }
   .chart-container h3 {
     font-size: 20px;
   }
-
-  .fun-fact {
-    padding: 15px 10px;
+  .charts{
+    padding: 1px;
+    margin: 0;
   }
-
+  #FunFact{
+    flex-wrap: wrap;
+    display: flex;
+  }
+  .fun-fact {
+    padding: 2px;
+    width: 40%;
+  }
+  .fun-fact p{
+    font-size: 12px;
+  }
   .fun-chart {
     font-size: 32px;
   }
@@ -828,4 +852,5 @@ body.dark-mode .category-title{
   .cta-content p {
     font-size: 14px;
   }
+  
 }

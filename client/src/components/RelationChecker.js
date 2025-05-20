@@ -27,39 +27,149 @@ const RelationPage = () => {
   const handleReset = async () => {
     setPerson1('');
     setPerson2('');
+    setSelectedPerson1('');
+    setSelectedPerson2('');
+    setLoading(false);
+    setError(false);
+    setRelationship('');
+    
   };
 
-  const fetchRelationship = async (e, customPerson1 = person1, customPerson2 = person2) => {
+  const fetchRelationship = async (e, person1ID = null, person2ID = null) => {
+    person1ID = person1ID ?? selectedPerson1?.id ?? null;
+    person2ID = person2ID ?? selectedPerson2?.id ?? null;
+  
+    console.log("ID 1: ", person1ID, "ID 2: ", person2ID);
     if (e) e.preventDefault();
-
-    console.log("🚀 fetchRelationship START");
-    console.log("➡️ person1:", customPerson1);
-    console.log("➡️ person2:", customPerson2);
-
-    if (!customPerson1 || !customPerson2) {
-      console.error("❌ One of the names is undefined or empty");
-      setError(true);
-      setRelationship({ relationshipDescription: 'أدخل اسمي الشخصين بشكل صحيح', relationshipScore: null });
-      return;
-    }
-
+    const errorContainer = document.getElementById('error-container');
     setLoading(true);
     setError(false);
     setLoadingMessage("🔎 بداية البحث عن العلاقة...");
 
     try {
-      const result = await getRelationship(customPerson1, customPerson2);
+      let result;
 
-      console.log("✅ Result received:", result);
+      if (!person1ID || !person2ID) {
+        const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } =
+          utils.splitName(person1);
+        const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } =
+          utils.splitName(person2);
+        
+        const translatedperson1FullName = await getFullTranslatedName(person1Name, person1FatherName, person1GrandfatherName, person1LastName);
+        const translatedPerson1Name = translatedperson1FullName.translatedPersonName;
+        const translatedPerson1FatherName = translatedperson1FullName.translatedPersonFatherName;
+        const translatedPerson1GrandfatherName = translatedperson1FullName.translatedPersonGrandfatherName;
+        const translatedPerson1LastName = translatedperson1FullName.translatedPersonLastName;
 
+        const translatedperson2FullName = await getFullTranslatedName(person2Name, person2FatherName, person2GrandfatherName, person2LastName);
+        const translatedPerson2Name = translatedperson2FullName.translatedPersonName;
+        const translatedPerson2FatherName = translatedperson2FullName.translatedPersonFatherName;
+        const translatedPerson2GrandfatherName = translatedperson2FullName.translatedPersonGrandfatherName;
+        const translatedPerson2LastName = translatedperson2FullName.translatedPersonLastName;
+
+        const person1Matches = await getPersonMatches(
+          translatedPerson1Name,
+          translatedPerson1FatherName,
+          translatedPerson1GrandfatherName,
+          translatedPerson1LastName
+        );
+        
+
+        if (person1Matches.length === 0)
+          throw new Error(`لا يوجد أشخاص بإسم ${person1} الرجاء التثبت في الإسم جيدا`);
+
+        if (person1Matches.length === 1)
+          setSelectedPerson1(person1Matches[0]);
+
+        const person2Matches = await getPersonMatches(
+          translatedPerson2Name,
+          translatedPerson2FatherName,
+          translatedPerson2GrandfatherName,
+          translatedPerson2LastName
+        );
+
+        if (person2Matches.length === 0)
+          throw new Error(`لا يوجد أشخاص بإسم ${person2} الرجاء التثبت في الإسم جيدا`);
+
+        if (person2Matches.length === 1)
+          setSelectedPerson2(person2Matches[0]);
+
+        setLoadingMessage("جاري البحث عن الأشخاص");
+        console.log("P1 matches : ", person1Matches);
+        console.log("P2 matches : ", person2Matches);
+
+        // 🔴 Handle duplicates
+        if (person1Matches.length > 1 || person2Matches.length > 1) {
+          result = {
+            error: 'non-unique-name',
+            message: 'تم العثور على عدة أشخاص بنفس الاسم. الرجاء اختيار الصحيح.',
+            duplicates: {
+              person1: person1Matches.length > 1 ? person1Matches : [],
+              person2: person2Matches.length > 1 ? person2Matches : []
+            },
+            selected: {
+              person1: person1Matches.length === 1 ? person1Matches[0] : null,
+              person2: person2Matches.length === 1 ? person2Matches[0] : null
+            }
+          };
+        } else {
+          // ✅ Unique matches — proceed with relationship
+          person1ID = person1Matches[0].id;
+          person2ID = person2Matches[0].id;
+          const gender1 = person1Matches[0].gender;
+          const gender2 = person2Matches[0].gender;
+
+          const translatedName1 = utils.translateName(person1Matches[0].name) + " " + utils.translateFamilyName(person1Matches[0].lastName);
+          const translatedName2 = utils.translateName(person2Matches[0].name) + " " + utils.translateFamilyName(person2Matches[0].lastName);
+
+          result = await findRelationship(
+            person1ID,
+            person2ID,
+            gender1,
+            gender2,
+            translatedName1,
+            translatedName2,
+            person1Matches,
+            person2Matches
+          );
+        }
+      } else {
+        // If IDs were passed directly
+        if (!selectedPerson1 || !selectedPerson2) {
+          throw new Error("يجب تحديد الشخصين قبل المتابعة.");
+        }
+        console.log(selectedPerson1, selectedPerson2);
+        const gender1 = selectedPerson1.gender;
+        const gender2 = selectedPerson2.gender;
+
+        const translatedName1 = utils.translateName(selectedPerson1.name) + " " + utils.translateFamilyName(selectedPerson1.lastName);
+        const translatedName2 = utils.translateName(selectedPerson2.name) + " " + utils.translateFamilyName(selectedPerson2.lastName);
+
+        // Wrap in arrays to simulate the matches list (since they're selected)
+        result = await findRelationship(
+          selectedPerson1.id,
+          selectedPerson2.id,
+          gender1,
+          gender2,
+          translatedName1,
+          translatedName2,
+          [selectedPerson1],
+          [selectedPerson2]
+        );
+      }
+
+      // 🔴 Handle duplicate names
       if (result.error === 'non-unique-name') {
-        setSelectedPerson1(null);
-        setSelectedPerson2(null);
         setDuplicates(result.duplicates ?? { person1: [], person2: [] });
+        setSelectedPerson1(result.selected?.person1 ?? null);
+        setSelectedPerson2(result.selected?.person2 ?? null);
         setRelationship(result.message);
+        setLoading(false);
         return;
       }
 
+      // ✅ Valid result — display relationship
+      console.log("✅ Result received:", result);
       setDuplicates({ person1: [], person2: [] });
       setRelationship({
         relationshipDescription: result.relation,
@@ -74,21 +184,29 @@ const RelationPage = () => {
         commonAncestor: result.ancestor ?? null,
         ancestorstreeData: result.treeData ?? null,
         person1ID: result.person1ID ?? null,
-        person2ID: result.person2ID ?? null
+        person2ID: result.person2ID ?? null,
+        gender1: result.gender1,
+        gender2: result.gender2,
+        ancestorGender: result.ancestorGender
       });
+
     } catch (error) {
       console.error('❌ Error fetching relationship:', error);
       setRelationship({ relationshipDescription: 'حدث خطأ أثناء البحث', relationshipScore: null });
       setError(true);
+      if (errorContainer) {
+        errorContainer.innerText = `❌ خطأ: ${error.message || error}`;
+      }
     } finally {
-      console.log("🛑 fetchRelationship END");
       setLoading(false);
+      console.log("🛑 fetchRelationship END");
     }
   };
-  
+
+
   const findRelationship = async (person1ID, person2ID, gender1, gender2, translatedName1, translatedName2, person1Matches, person2Matches) => {
     let relationshipType;
-    let relation = '', score = 0;
+    let relation = '', score = -1;
     let explanation;
     let relationshipExplanation = [
       {
@@ -117,7 +235,7 @@ const RelationPage = () => {
       },
       {
         type: "صهر / نسيب",
-        explanation: "هذان الشخصان مرتبطان عبر الزواج وليس النسب الدموي."
+        explanation: "هذان الشخصان مرتبطان عبر نسب الزواج ، سواءا عبر عائلة الزوج أو الزوجة أو عبر أزواج الإخوة ، ."
       },
       {
         type: "لا توجد علاقة",
@@ -146,7 +264,7 @@ const RelationPage = () => {
         let relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
         if (relation){
           relationshipType = "Marriage-related";
-          explanation = relationshipType[5];
+          explanation = relationshipExplanation[6];
           return {relation, relationshipType, explanation, person1: person1Matches[0], person2: person2Matches[0]};
         }
         else {
@@ -175,7 +293,6 @@ const RelationPage = () => {
         let pathToP1 = pathFromAncestorToP1;
         let pathToP2 = pathFromAncestorToP2;
         let ancestor;
-        console.log(spouseOfAncestor);
 
         if ((spouseOfAncestor !== null) && (ancestorID !== person1ID) && (ancestorID !== person2ID) && (spouseOfAncestor.gender === 'Male')) {
             pathToP1[0] = {
@@ -226,7 +343,7 @@ const RelationPage = () => {
           score = 100;
           explanation = relationshipExplanation[0];
         }
-    
+        
         else if (p1Level === 1 && p2Level === 0) {
           if (gender1 === 'Male'){
             relation = `${translatedName1} هو ابن ${translatedName2}`;
@@ -1320,7 +1437,7 @@ const RelationPage = () => {
           }
         }
 
-        else if (p1Level === p1Level){
+        else if (p1Level === p2Level){
           switch (p1Level){
             case 5: relation = 'هذان الشخصان يشتركان في الجد الثالث'; break;
             case 6: relation = 'هذان الشخصان يشتركان في الجد الرابع'; break;
@@ -1347,7 +1464,7 @@ const RelationPage = () => {
                     person2ID,
                     person1: person1Matches[0], person2: person2Matches[0]};
         }
-
+        
         if (relation != ''){
             setLoading(false);
             relationshipType = "Blood";
@@ -1364,9 +1481,6 @@ const RelationPage = () => {
                     person2ID,
                     person1: person1Matches[0], 
                     person2: person2Matches[0],
-                    gender1: person1Matches[0].gender,
-                    gender2: person2Matches[0].gender,
-                    ancestorGender
                   };
         }
       }
@@ -1755,92 +1869,13 @@ const RelationPage = () => {
     }
   };
 
-  const getRelationship = async (person1FullName, person2FullName) => {
+  const getFullTranslatedName = async(personName, personFatherName, personGrandfatherName, personLastName) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
-    let gender1, gender2;
-    const { personName: person1Name, fatherName: person1FatherName, grandfatherName: person1GrandfatherName, familyName: person1LastName } = utils.splitName(person1FullName);
-    const { personName: person2Name, fatherName: person2FatherName, grandfatherName: person2GrandfatherName, familyName: person2LastName } = utils.splitName(person2FullName);
-    let translatedPerson1Name = isArabic(person1Name) ? utils.translateName(person1Name, false) : person1Name;
-    let translatedPerson1FatherName = isArabic(person1FatherName) ? utils.translateName(person1FatherName, false) : person1FatherName;
-    let translatedPerson1GrandfatherName = isArabic(person1GrandfatherName) ? utils.translateName(person1GrandfatherName, false) : person1GrandfatherName;
-    let translatedPerson1LastName = isArabic(person1LastName) ? utils.translateFamilyName(person1LastName, false) : person1LastName;
-    let translatedPerson2Name = isArabic(person2Name) ? utils.translateName(person2Name, false) : person2Name;
-    let translatedPerson2FatherName = isArabic(person2FatherName) ? utils.translateName(person2FatherName, false) : person2FatherName;
-    let translatedPerson2GrandfatherName = isArabic(person2GrandfatherName) ? utils.translateName(person2GrandfatherName, false) : person2GrandfatherName;
-    let translatedPerson2LastName = isArabic(person2LastName) ? utils.translateFamilyName(person2LastName, false) : person2LastName;
-
-    const errorContainer = document.getElementById('error-container');
-    try {
-      const person1Matches = await getPersonMatches(
-        translatedPerson1Name,
-        translatedPerson1FatherName,
-        translatedPerson1GrandfatherName,
-        translatedPerson1LastName
-      );
-
-      if (person1Matches.length === 0) {
-        throw new Error(`لا يوجد أشخاص بإسم ${person1FullName} الرجاء التثبت في الإسم جيدا`);
-      }
-      if (person1Matches.length === 1) {
-        setSelectedPerson1(person1Matches[0]);
-      }
-      const person2Matches = await getPersonMatches(
-        translatedPerson2Name,
-        translatedPerson2FatherName,
-        translatedPerson2GrandfatherName,
-        translatedPerson2LastName
-      );
-
-      if (person2Matches.length === 0) {
-        throw new Error(`لا يوجد أشخاص بإسم ${person2FullName} الرجاء التثبت في الإسم جيدا`);
-      }
-      
-      if (person2Matches.length === 1) {
-        setSelectedPerson2(person2Matches[0]);
-      }
-      setLoadingMessage("جاري البحث عن الأشخاص");
-
-      console.log("P1 matches : ", person1Matches);
-      console.log("P2 matches : ", person2Matches);
-      
-      let person1ID, person2ID;
-      if (person1Matches.length > 1 || person2Matches.length > 1) {
-      return {
-        error: 'non-unique-name',
-        message: 'تم العثور على عدة أشخاص بنفس الاسم. الرجاء اختيار الصحيح.',
-        duplicates: {
-          person1: person1Matches.length > 1 ? person1Matches : [],
-          person2: person2Matches.length > 1 ? person2Matches : []
-        }
-      };
-      }
-      else{
-        person1ID = person1Matches[0].id;
-        person2ID = person2Matches[0].id;
-        gender1 = person1Matches[0].gender;
-        gender2 = person2Matches[0].gender;
-      }
-
-      const translatedName1 = utils.translateName(person1Matches[0].name) + " " + 
-                              utils.translateFamilyName(person1Matches[0].lastName);
-      const translatedName2 = utils.translateName(person2Matches[0].name) + " " + 
-                              utils.translateFamilyName(person2Matches[0].lastName);
-      
-      console.log(person1Matches[0], person2Matches[0]);
-      
-      return findRelationship(person1ID, person2ID, gender1, gender2, translatedName1, translatedName2, person1Matches, person2Matches);
-    } 
-    catch (error) {
-      console.error('Error in relationship lookup:', error);
-    
-      setError(`❌ خطأ: ${error.message || error}`);
-    
-      if (errorContainer) {
-        errorContainer.innerText = `❌ خطأ: ${error.message || error}`;
-      }
-      setLoading(false);
-      return '';
-    }
+    let translatedPersonName = isArabic(personName) ? utils.translateName(personName, false) : personName;
+    let translatedPersonFatherName = isArabic(personFatherName) ? utils.translateName(personFatherName, false) : personFatherName;
+    let translatedPersonGrandfatherName = isArabic(personGrandfatherName) ? utils.translateName(personGrandfatherName, false) : personGrandfatherName;
+    let translatedPersonLastName = isArabic(personLastName) ? utils.translateFamilyName(personLastName, false) : personLastName;
+    return {translatedPersonName, translatedPersonFatherName, translatedPersonGrandfatherName, translatedPersonLastName}
   };
 
   return (
@@ -1863,7 +1898,10 @@ const RelationPage = () => {
               type="text"
               placeholder="الإسم الكامل الأول"
               value={person1}
-              onChange={(e) => setPerson1(e.target.value)}
+              onChange={(e) =>{
+                setSelectedPerson1(e.target.value); 
+                setPerson1(e.target.value)}
+              }
               className="inputNames"
               />
             </div>
@@ -1876,7 +1914,10 @@ const RelationPage = () => {
                 type="text"
                 placeholder="الإسم الكامل الثاني"
                 value={person2}
-                onChange={(e) => setPerson2(e.target.value)}
+                onChange={(e) =>{
+                  setSelectedPerson2(e.target.value); 
+                  setPerson2(e.target.value)}
+                }
                 className="inputNames"
               />
             </div>
@@ -1904,6 +1945,7 @@ const RelationPage = () => {
                 <table className="person-info-table">
                   <thead>
                     <tr>
+                      <th className='IDC'>الرقم التسلسلي</th>
                       <th>الاسم</th>
                       <th>سنة الميلاد</th>
                       <th>سنة الوفاة</th>
@@ -1913,12 +1955,17 @@ const RelationPage = () => {
                   <tbody>
                     {duplicates.person1.map((p, idx) => {
                       const fullName =
-                        (p.name ? `${utils.translateName(p.name)} بن ` : '') +
-                        (p.father ? `${utils.translateName(p.father)} بن ` : '') +
-                        (p.grandfather ? `${utils.translateName(p.grandfather)} ` : '') +
-                        (p.lastName ? `${utils.translateFamilyName(p.lastName)}` : '');
+                        (utils.translateName(p.name)) +
+                      (p.father
+                        ? (p.gender === 'Female'
+                            ? ` بنت ${utils.translateName(p.father)} `
+                            : ` بن ${utils.translateName(p.father)} `)
+                        : '') +
+                      (p.grandfather ? ` بن ${utils.translateName(p.grandfather)} ` : '') +
+                      (p.lastName ? `${utils.translateFamilyName(p.lastName)}` : '');
                       return (
                         <tr key={`p1-${idx}`}>
+                          <td className='IDC'>{p.id}</td>
                           <td>{fullName}</td>
                           <td>{p.YoB !== -1 ? p.YoB : ''}</td>
                           <td>{p.YoD !== -1 ? p.YoD : ''}</td>
@@ -1926,8 +1973,12 @@ const RelationPage = () => {
                             <button
                               type="button"
                               className="duplicate-button"
-                              onClick={() => {
-                                setSelectedPerson1(fullName);
+                              onClick={(e) => {
+                                setSelectedPerson1(p);
+                                setPerson1(fullName);
+                                if (selectedPerson2) {
+                                  fetchRelationship(e, p.id, selectedPerson2.id);
+                                }
                               }}
                             >
                               اختيار
@@ -1947,6 +1998,7 @@ const RelationPage = () => {
                 <table className="person-info-table">
                   <thead>
                     <tr>
+                      <th className='IDC'>الرقم التسلسلي</th>
                       <th>الاسم</th>
                       <th>سنة الميلاد</th>
                       <th>سنة الوفاة</th>
@@ -1955,13 +2007,19 @@ const RelationPage = () => {
                   </thead>
                   <tbody>
                     {duplicates.person2.map((p, idx) => {
-                      const fullName =
-                        (p.name ? `${utils.translateName(p.name)} بن ` : '') +
-                        (p.father ? `${utils.translateName(p.father)} بن ` : '') +
-                        (p.grandfather ? `${utils.translateName(p.grandfather)} ` : '') +
-                        (p.lastName ? `${utils.translateFamilyName(p.lastName)}` : '');
+                    const fullName =
+                      (utils.translateName(p.name)) +
+                      (p.father
+                        ? (p.gender === 'Female'
+                            ? ` بنت ${utils.translateName(p.father)} `
+                            : ` بن ${utils.translateName(p.father)} `)
+                        : '') +
+                      (p.grandfather ? ` بن ${utils.translateName(p.grandfather)} ` : '') +
+                      (p.lastName ? ` ${utils.translateFamilyName(p.lastName)}` : '');
+
                       return (
                         <tr key={`p2-${idx}`}>
+                          <td className='IDC'>{p.id}</td>
                           <td>{fullName}</td>
                           <td>{p.YoB !== -1 ? p.YoB : ''}</td>
                           <td>{p.YoD !== -1 ? p.YoD : ''}</td>
@@ -1969,8 +2027,12 @@ const RelationPage = () => {
                             <button
                               type="button"
                               className="duplicate-button"
-                              onClick={() => {
-                                setSelectedPerson2(fullName);
+                              onClick={(e) => {
+                                setSelectedPerson2(p);
+                                setPerson2(fullName);
+                                if (selectedPerson1) {
+                                  fetchRelationship(e, selectedPerson1.id, p.id);
+                                }
                               }}
                             >
                               اختيار
@@ -1989,7 +2051,12 @@ const RelationPage = () => {
         )}
       </section>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-message">
+        {error}
+        </div>}
+        {selectedPerson1 && selectedPerson2  && error && (
+          <div id="confirm"><p>الرجاء تأكيد الاختيار عبر الضغط على زر التحقق من العلاقة.</p></div>
+        )}
       {loading && (
         <div className="loading-message">
           <div className="spinner"></div>
@@ -2005,7 +2072,7 @@ const RelationPage = () => {
               <h4>
                 {utils.translateName(relationship.relationshipPerson1Details?.name ?? '')} 
                 {relationship.relationshipPerson1Details?.father &&
-                (relationship.gender1 === 'Male'
+                (relationship.relationshipPerson1Details.gender === 'Male'
                   ? ` بن ${utils.translateName(relationship.relationshipPerson1Details.father)}`
                   : ` بنت ${utils.translateName(relationship.relationshipPerson1Details.father)}`)}
                    {relationship.relationshipPerson1Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson1Details.grandfather)}`} 
@@ -2016,7 +2083,7 @@ const RelationPage = () => {
             <h4>
               {utils.translateName(relationship.relationshipPerson2Details?.name ?? '')} 
                 {relationship.relationshipPerson2Details?.father &&
-                (relationship.gender2 === 'Male'
+                (relationship.relationshipPerson1Details.gender === 'Male'
                   ? ` بن ${utils.translateName(relationship.relationshipPerson2Details.father)}`
                   : ` بنت ${utils.translateName(relationship.relationshipPerson2Details.father)}`)}              {relationship.relationshipPerson2Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson2Details.grandfather)}`} 
               {relationship.relationshipPerson2Details?.lastName && ` ${utils.translateFamilyName(relationship.relationshipPerson2Details.lastName)}`}
@@ -2062,7 +2129,7 @@ const RelationPage = () => {
                   <td className="relationship-tag">
                     <span className={`tag ${relationship.relationshipType}`}>
                       {relationship.relationshipType === "Blood" ? "دم" :
-                      relationship.relationshipType === "Marriage-related" ? "زواج مرتبط" :
+                      relationship.relationshipType === "Marriage-related" ? "علاقة نسب" :
                       relationship.relationshipType === "Marriage" ? "زواج" :
                       relationship.relationshipType}
                     </span>
@@ -2102,7 +2169,7 @@ const RelationPage = () => {
                     {relationship.commonAncestor && (
                       <>
                         {utils.translateName(relationship.commonAncestor.ancestorName)}{' '}
-                        {relationship.ancestorGender === 'Male'
+                        {relationship.commonAncestor.ancestorGender === 'Male'
                             ? `بن ${utils.translateName(relationship.commonAncestor.ancestorFatherName)} `
                             : `بنت ${utils.translateName(relationship.commonAncestor.ancestorFatherName)} `}
                         {relationship.commonAncestor.ancestorGrandFatherName && (
@@ -2116,19 +2183,20 @@ const RelationPage = () => {
                 </tr>
               </tbody>
             </table>
-              <h2 id="resultTitle">شجرة العائلة الي تجمع الشخصين :</h2>
+                {relationship.ancestorstreeData && (
+                  <>
+                                    <h2 id="resultTitle">شجرة العائلة الي تجمع الشخصين :</h2>
 
-            <div className="tree-wrapper" style={{
+                  <div className="tree-wrapper" style={{
               height: `${Math.max(
                 ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
                 100
               ) + 1}px`
             }}>
-
-                <div className='titleTree'>
-                </div>
-                {relationship.ancestorstreeData && (
-                <div className="tree-container">
+                  <>
+                  
+                  
+                  <div className="tree-container">
                   <Tree
                     data={relationship.ancestorstreeData}
                     orientation="vertical"
@@ -2186,8 +2254,11 @@ const RelationPage = () => {
                     )}
                   />
                 </div>
+                  </>
+                </div>
+                </>
               )}
-              </div>
+              
           </div>
         </section>
       )}
