@@ -9,6 +9,8 @@ import CommingSoon from './index';
 import MainPage from './components/mainPage';
 import './styles/app.css';  // Import styles
 import { useEffect, useState } from "react";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -59,6 +61,7 @@ const App = () => {
 
       <div className="main-container">
         
+        <ToastContainer position="top-center" autoClose={2000} />
 
         <div className="content">
           <Routes>
@@ -107,7 +110,6 @@ const App = () => {
           <p>© 2025 جميع الحقوق محفوظة - عرش قصر أولاد بوبكر</p>
         </div>
       </footer>
-
     </div>
   );
 };

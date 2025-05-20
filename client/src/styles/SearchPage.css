@@ -233,13 +233,17 @@ button{
 }
 
 .highlight-id {
-  color: #333;
+  color: white;
   font-weight: bold;
-  padding: 4px 8px;
+  padding: 4px 14px;
   border-radius: 6px;
+  background-color:#daa428;
   font-family: 'Courier New', monospace;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  font-size: 24px;
+  width: max-content;
 }
+
 
 body.dark-mode .highlight-id {
   background-color: #2c2c2c;
@@ -639,13 +643,9 @@ body.dark-mode .reset-button {
   background: linear-gradient(20deg, #6e1c0c, #746608);
 }
 
-body.dark-mode .person-details{
-  background-color: #333;
-}
-
-body.dark-mode .person-details td{
-  background-color: #333;
-  border: 1px solid #6a6a6a;
+body.dark-mode td{
+  color: #12e362;
+  background-color: #444;
 }
 
 .loading-message {
@@ -655,7 +655,6 @@ body.dark-mode .person-details td{
   color: #007bff;
   padding: 10px;
   text-align: center;
-
 }
 
 .loading-message .spinner {

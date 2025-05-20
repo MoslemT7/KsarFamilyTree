@@ -53,14 +53,14 @@ const PersonCINCard = ({ person }) => {
               </p>
               <p>
                 {person.fatherName
-                  ? ' بن ' + utils.translateName(person.fatherName)
+                  ? (person.gender === 'Male' ? ' بن ': ' بنت ') + utils.translateName(person.fatherName)
                   : ''}
                 {person.grandfatherName
                   ? ' بن ' + utils.translateName(person.grandfatherName)
                   : ''}
               </p>
               <p>
-                <strong>سنة الميلاد:</strong>{' '}
+                <strong>سنة الولادة  </strong>{' '}
                 {person.age
                   ? `${new Date().getFullYear() - person.age} (${
                       person.age === 1
@@ -75,6 +75,10 @@ const PersonCINCard = ({ person }) => {
                     })`
                   : ''}
               </p>
+              <p>
+                <strong>مكانها  </strong>
+                قصر أولاد بوبكر
+              </p>
             </div>
 
             <div className="cin-photo">
@@ -88,17 +92,17 @@ const PersonCINCard = ({ person }) => {
           <div className="cin-info-back">
             <p>
               <strong>إسم ولقب الأم:</strong>{' '}
-              {utils.translateName(person.motherName) || 'غير معروف'}{' '}
-              {utils.translateFamilyName(person.motherFamilyName) ||
-                'غير معروف'}
+              {person.motherName || person.motherFamilyName
+              ? `${utils.translateName(person.motherName || '')} ${utils.translateFamilyName(person.motherFamilyName || '')}`.trim()
+              : 'غير معروف'}
             </p>
             <p>
               <strong>الحالة:</strong>{' '}
               {person.lifeStatus === true ? (
-                'حـي'
+                  'على قيد الحياة'
               ) : (
                 <>
-                  متوفـى
+                  'متوفى'
                   <br />
                   <strong>تاريخ الوفاة:</strong>{' '}
                   {person.deathYear || 'غير معروف'}
@@ -111,22 +115,25 @@ const PersonCINCard = ({ person }) => {
             </p>
             <p>
               <strong>عدد الإخوة: </strong>
-              {/* insert siblingsCount if you have it */}
+              {person?.childrenCount === 0
+                      ? "لا إخوة"
+                      : person.childrenCount === 1
+                      ? "أخ واحد (1)"
+                      : person.childrenCount === 2
+                      ? "أخوان (2)"
+                      : person.childrenCount >= 3 && person.childrenCount <= 10
+                      ? `${person.childrenCount} إخوة`
+                      : `${person.childrenCount} أخـًا`
+              }
             </p>
             <p>
               <strong>الحالة الإجتماعـية :</strong>{' '}
-              {person.lifeStatus === true
-                ? person.maritalStatus === true
-                  ? 'متزوج'
-                  : 'أعزب'
-                : ' - '}
+               {person?.maritalStatus === true
+                      ? (person.gender === 'Male' ? 'متزوج' : 'متزوجة')
+                      : (person.gender === 'Male' ? 'عازب' : 'عزباء')
+                }
             </p>
           </div>
-          <img
-            src={barcode}
-            alt="Barcode"
-            className="cin-barcode"
-          />
         </div>
       </div>
     </div>

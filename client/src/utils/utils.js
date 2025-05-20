@@ -19,13 +19,15 @@ export function isCompoundName(name) {
 };
 
 export function splitName(fullName) {
+  console.log(fullName);
   if (typeof fullName !== 'string') {
     console.error("fullName is not a string:", fullName);
     return [];
   }
-  const parts = fullName.replace(/\s*(بنت|بن|ben|bent)\s*/gi, ' ').trim().split(/\s+/);
+  const parts = fullName.replace(/\s*(بنت|بن|bent|ben)\s*/gi, ' ').trim().split(/\s+/);
+  console.log(parts);
   const bentCount = countBenAndBent(fullName);
-  console.log(bentCount, parts);
+  console.log(bentCount);
   if (isCompoundName(parts[0] + " " + parts[1])) {
     console.log("It's a compound name!");
   }
