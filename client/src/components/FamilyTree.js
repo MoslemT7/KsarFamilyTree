@@ -281,11 +281,11 @@ const FamilyTree = ({ searchQuery }) => {
   };
 
   const handleRootTreeClick = async () => {
-    await loadFamilyTree(85, true); // assuming it’s async
-    setFocusAfterLoadId(85);
+    await loadFamilyTree(20, true); // assuming it’s async
+    setFocusAfterLoadId(20);
   };
   const handleRootWomenTreeClick = async () =>{
-    loadFamilyTree(85, false)
+    loadFamilyTree(20, false)
   };
   
   const loadFamilyTree = async (rootID, type) => {

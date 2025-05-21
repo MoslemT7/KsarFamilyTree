@@ -5,16 +5,6 @@ import Tree from 'react-d3-tree';
 import * as utils from '../utils/utils';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import {
-  Box,
-  Heading,
-  Text,
-  Input,
-  Button,
-  Stack,
-  VStack,
-  useColorModeValue,
-} from '@chakra-ui/react';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -655,14 +645,14 @@ const SearchPage = () => {
                   </tr>
                   <tr>
                     <th>سنة الولادة</th>
-                    <td>{personDetails.age
+                    <td>{personDetails.age !== -1
                       ? `${new Date().getFullYear() - personDetails.age}`
                       : 'غير معروف'}
                     </td>
                   </tr>
                   <tr>
                     <th>العمر</th>
-                    <td>{personDetails?.age || '—'}</td>
+                    <td>{personDetails?.age !== -1 ? personDetails.age : '—'}</td>
                   </tr>
                   <tr>
                     <th>سنة الوفاة</th>

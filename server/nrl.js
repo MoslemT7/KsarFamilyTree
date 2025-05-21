@@ -171,8 +171,6 @@ const createMarriage = async (maleFullName, femaleFullName, marriageYear = null,
   }
 };
 
-
-
 const getPeopleWithSameName = async (name, lastName) => {
   const query = `
     MATCH (p:Person {name: $name, lastName: $lastName})
@@ -218,7 +216,6 @@ const promptUserForSelection = (people) => {
         const selectedIndex = parseInt(answer, 10) - 1;
         if (!isNaN(selectedIndex) && selectedIndex >= 0 && selectedIndex < people.length) {
           const selectedPersonId = people[selectedIndex].personId.toNumber ? people[selectedIndex].personId.toNumber() : people[selectedIndex].personId;
-          rl.close();
           resolve(selectedPersonId);
         } else {
           console.log('Invalid selection, please enter a valid number.');

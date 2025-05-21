@@ -15,14 +15,22 @@ const driver = require('neo4j-driver').driver(
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
 
-function groupAgesByRange(ages, rangeSize = 5) {
+function groupAgesByRange(ages, rangeSize = 5, maxRange = 80) {
   const grouped = {};
+
   ages.forEach(age => {
-    const group = `${Math.floor(age / rangeSize) * rangeSize}-${Math.floor(age / rangeSize) * rangeSize + rangeSize - 1}`;
-    grouped[group] = (grouped[group] || 0) + 1;
+    if (age >= maxRange) {
+      grouped[`${maxRange}+`] = (grouped[`${maxRange}+`] || 0) + 1;
+    } else {
+      const lower = Math.floor(age / rangeSize) * rangeSize;
+      const upper = lower + rangeSize - 1;
+      const label = `${lower}-${upper}`;
+      grouped[label] = (grouped[label] || 0) + 1;
+    }
   });
+
   return grouped;
-};
+}
 
 function buildPyramidData(maleAges, femaleAges, rangeSize = 5) {
   const maleGroups = groupAgesByRange(maleAges, rangeSize);
@@ -153,9 +161,8 @@ const StatisticsDashboard = () => {
         const unmariedMalesCount = await statistics.unmariedMales();
         const top5families = await statistics.mostUsedFamilyName();
         const mostUsedFamilyNameCount = top5families[0];
-        const mostUsedNameCount = await statistics.mostUsedName();
+        const mostUsedNameCount = (await statistics.mostUsedName())[0];
         const GenderStats = await statistics.getAgeGenderData();
-        console.log(GenderStats);
         const fetchedAgeDistribution = await ageBins();
         const fetchedCumGrowth = await populationGrowth();
         const familiesCount = await statistics.familiesNumber();
@@ -172,7 +179,8 @@ const StatisticsDashboard = () => {
           oldestPerson: oldest,
           biggestFamily: biggestFamilyCount,
           mostUsedFamilyNameCount,
-          mostUsedNameCount: mostUsedNameCount[0],
+          mostUsedNameCount: mostUsedNameCount.occurences,
+          mostUsedNameCountName: mostUsedNameCount.name,
           unmariedMalesCount,
           abroadPeoplePercentage,
           avgMarAgeMale,
@@ -182,7 +190,6 @@ const StatisticsDashboard = () => {
           averageChildrenPerFamily: avgChild,
           familiesCount,
           yearlyWeddings
-          
         });
         setAgeDistribution(fetchedAgeDistribution);
         setpopulationGrowth(fetchedCumGrowth);
@@ -312,7 +319,7 @@ const StatisticsDashboard = () => {
   return () => {
     chartInstance.current?.destroy();
   };
-  }, []);
+  }, [ageGenderDATA]);
 
   useEffect(() => {
     if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
@@ -550,7 +557,6 @@ const StatisticsDashboard = () => {
             <div class="stat-card"> <h4>نسبة الأحياء مقابل المتوفين</h4> <p class="stat-number">%{(stats.totalAlivePopulation * 100 / stats.totalPopulation).toFixed(2)} أحياء</p> </div>
           </div>
         </div>
-
         <div class="category-block demographics">
           <h3 class="category-title" id="demo">العمر والديموغرافيا</h3>
           <div class="stats-grid">
@@ -571,7 +577,6 @@ const StatisticsDashboard = () => {
             <div class="stat-card"> <h4>عدد المعمرين (+100 سنة)</h4> <p class="stat-number">{stats.agedPeopleCount}</p> </div>
           </div>
         </div>
-
         <div class="category-block family-structure">
           <h3 class="category-title" id="family">بنية العائلة</h3>
           <div class="stats-grid">
@@ -594,10 +599,7 @@ const StatisticsDashboard = () => {
             </div>
           </div>
         </div>
-
         </section>
-
-
       <h1 class="dashboard-title">عرض البيانات الرسومية</h1>
       <div className="charts">
         <div className="row">
@@ -606,7 +608,7 @@ const StatisticsDashboard = () => {
             <canvas id="ageChart" ref={ageDistributionChartRef}></canvas>
           </div>
           <div className="chart-container">
-            <h3>الرجال VS النساء</h3>
+            <h3>الهرم السكّانـي</h3>
             <canvas id="genderChart" ref={chartRef}></canvas>
           </div>
         </div>
@@ -633,12 +635,12 @@ const StatisticsDashboard = () => {
       <h1 class="dashboard-title">هل تعلم؟ </h1>
       <div class="fun-facts-container">
         <div className="fun-fact">
-        <h2 className="fun-chart">{stats.mostUsedNameCount.occurrences}</h2>
-        <p>
-          <strong>{stats.mostUsedNameCount.occurrences}</strong> شخص، يحملون لقب {stats.mostUsedNameCount.name} كأكثر لقب شائع، ويمثل  
-          <strong>{((stats.mostUsedNameCount.occurrences * 100) / stats.totalPopulation).toFixed(1)}%</strong> من السكان.
-        </p>
-      </div>
+          <h2 className="fun-chart">{stats.mostUsedNameCount}</h2>
+          <p>
+            <strong>{stats.mostUsedNameCount}</strong> شخص، يحملون لقب <strong>{stats.mostUsedNameCountName}</strong> كأكثر لقب شائع، ويمثل  
+            <strong>{((stats.mostUsedNameCount * 100) / stats.totalPopulation).toFixed(1)}%</strong> من السكان.
+          </p>
+        </div>
 
         <div class="fun-fact">
           <h2 class="fun-chart">{stats.mostUsedFamilyNameCount.occurences}</h2>
@@ -710,24 +712,37 @@ const StatisticsDashboard = () => {
           </div>
         </div>
 
-
-
-
         <div class="important-info">
           <h2>دقة توثيق التاريخ القديم</h2>
           <p>تم تسجيل <strong><span class="highlight">{(stats.deadPopulation*100/1400).toFixed(1)}%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
         </div>
         </div>
-        <div className="engagement-panel">
-          <h2>مشاركة المجتمع في توثيق شجرة العائلة</h2>
-          <p className="engagement-text">
-            بفضل جهود المجتمع، ساهم <strong>150 شخصًا</strong> حتى الآن في توثيق شجرة العائلة، مما يعكس روح التعاون والانتماء القوي لهذا المشروع العائلي الفريد.
-          </p>
-          <div className="progress-bar">
-            <div className="progress" style={{ width: '70%' }}></div>
-          </div>
+        <div className="data-accuracy-note">
+        <p className="minor-tip">
+          🧾 تعتمد هذه الإحصائيات على بيانات تم جمعها بعناية من مصادر موثوقة، إلا أنها قد لا تكون مكتملة بنسبة 100٪.
+          يمكنك معرفة المزيد عن{' '}
+          <a href="/docs/data-collection-method.html" target="_blank" rel="noopener noreferrer">
+            طريقة جمع المعلومات
+          </a>{' '}
+          أو الاطلاع على{' '}
+          <a href="/stats/data-accuracy.html" target="_blank" rel="noopener noreferrer">
+            نسب دقة البيانات
+          </a>{' '}
+          المعروضة (مثل نسبة توفر سنة الولادة).
+        </p>
+
         </div>
-    </div>
+
+        <div className="tipsFooter">
+            <p className="minor-tip">📊 تعرض هذه الصفحة إحصائيات حيّة ومُحدّثة عن عائلة قصر أولاد بوبكر.</p>
+            <p className="minor-tip">🧓 الأعمار تحسب تلقائيًا استنادًا إلى سنة الميلاد المتوفرة.</p>
+            <p className="minor-tip">🚻 يتم فصل الإحصائيات حسب الجنس لتقديم رؤية أوضح.</p>
+            <p className="minor-tip">📉 بعض الإحصائيات قد لا تكون دقيقة 100٪ بسبب نقص البيانات أو عدم التحديث.</p>
+            <p className="minor-tip">🔄 يتم تحديث البيانات تلقائيًا عند إضافة أو تعديل الأفراد في الشجرة.</p>
+            <p className="minor-tip">📥 يمكنك اقتراح تحسينات أو ملاحظات على طريقة عرض الإحصائيات عبر التواصل معنا.</p>
+            <p className="minor-tip">🔎 قريبًا: ستتمكن من استكشاف الإحصائيات حسب الفروع العائلية والمناطق.</p>
+        </div>
+      </div>
   );
 };
 

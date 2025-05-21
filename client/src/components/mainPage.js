@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 
 const MainPage = () => {
   const navigate = useNavigate(); // Initialize navigate function
-
+  
   const handleClick = () => {
     navigate('/weddingsDates'); // This will navigate to the WeddingPage
   };

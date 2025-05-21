@@ -1931,6 +1931,8 @@ const RelationPage = () => {
               onClick={() => {
                 setPerson1(person2);
                 setPerson2(person1);
+                setSelectedPerson1(selectedPerson2);
+                setSelectedPerson2(selectedPerson1);
               }}
             >
               تبديل الأشخاص
@@ -2083,7 +2085,7 @@ const RelationPage = () => {
             <h4>
               {utils.translateName(relationship.relationshipPerson2Details?.name ?? '')} 
                 {relationship.relationshipPerson2Details?.father &&
-                (relationship.relationshipPerson1Details.gender === 'Male'
+                (relationship.relationshipPerson2Details.gender === 'Male'
                   ? ` بن ${utils.translateName(relationship.relationshipPerson2Details.father)}`
                   : ` بنت ${utils.translateName(relationship.relationshipPerson2Details.father)}`)}              {relationship.relationshipPerson2Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson2Details.grandfather)}`} 
               {relationship.relationshipPerson2Details?.lastName && ` ${utils.translateFamilyName(relationship.relationshipPerson2Details.lastName)}`}
@@ -2168,14 +2170,20 @@ const RelationPage = () => {
                   <td className="generation-distance">
                     {relationship.commonAncestor && (
                       <>
-                        {utils.translateName(relationship.commonAncestor.ancestorName)}{' '}
-                        {relationship.commonAncestor.ancestorGender === 'Male'
+                        {relationship.commonAncestor?.ancestorName &&
+                          utils.translateName(relationship.commonAncestor.ancestorName)}{' '}
+                        
+                        {relationship.commonAncestor?.ancestorFatherName && (
+                          relationship.commonAncestor.ancestorGender === 'Male'
                             ? `بن ${utils.translateName(relationship.commonAncestor.ancestorFatherName)} `
-                            : `بنت ${utils.translateName(relationship.commonAncestor.ancestorFatherName)} `}
-                        {relationship.commonAncestor.ancestorGrandFatherName && (
+                            : `بنت ${utils.translateName(relationship.commonAncestor.ancestorFatherName)} `
+                        )}
+
+                        {relationship.commonAncestor?.ancestorGrandFatherName && (
                           `بن ${utils.translateName(relationship.commonAncestor.ancestorGrandFatherName)} `
                         )}
-                        {relationship.commonAncestor.ancestorLastName &&
+
+                        {relationship.commonAncestor?.ancestorLastName &&
                           utils.translateFamilyName(relationship.commonAncestor.ancestorLastName)}
                       </>
                     )}
@@ -2185,8 +2193,7 @@ const RelationPage = () => {
             </table>
                 {relationship.ancestorstreeData && (
                   <>
-                                    <h2 id="resultTitle">شجرة العائلة الي تجمع الشخصين :</h2>
-
+                  <h2 id="resultTitle">شجرة العائلة الي تجمع الشخصين :</h2>
                   <div className="tree-wrapper" style={{
               height: `${Math.max(
                 ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,

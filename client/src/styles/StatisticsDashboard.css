@@ -1,15 +1,22 @@
 .stats-dashboard {
-  margin: 35px auto;
-  width: 95%;
-  padding: 15px;
+  margin: 25px auto;
+  width: 100%;
+  padding: 10px;
   direction: rtl;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Cairo', sans-serif;
 }
 
-.statistics-dashboard {
+.statistics-dashboard p{
   padding: 5px 20px;
+  margin-bottom: 20px;
   font-family: 'Cairo', sans-serif;
   direction: rtl;
+  text-align: justify;
+}
+
+.statistics-dashboard p{
+  font-family: 'Cairo', sans-serif;
+  text-align: center;
 }
 
 .dashboard-title {
@@ -50,8 +57,7 @@
 }
 
 .stat-card {
-  flex: calc(20% - 18px);
-  min-width: 250px;
+  flex: calc(25% - 15px);
   background-color: #fff;
   padding: 15px;
   border-radius: 8px;
@@ -128,7 +134,9 @@
 #men {
   background: linear-gradient(135deg, #2196F3, #0D47A1);
   border: 2px solid #0D47A1;
+  
 }
+
 
 /* Unique Style for Women */
 #women {
@@ -222,9 +230,6 @@
 
 }
 
-
-
-/* Unique category background accents */
 .population-overview {
   border-right: 8px solid #3498db;
   background: linear-gradient(145deg, #ecf4fc, #dfeffc);
@@ -243,12 +248,11 @@
 .charts {
   border: 2px dotted #0056b3;
   border-radius: 10px;
-  padding: 20px;
-  margin: 30px 0;
+  padding: 5px;
+  margin: 5px 0;
   background-color: #f9f9f9; /* Optional: light background for contrast */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Optional: subtle shadow */
 }
-
 
 .charts-container-title {
   text-align: center;
@@ -280,23 +284,22 @@
 .charts {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 .row {
   display: flex;
-  gap: 20px;
+  gap: 10px;
   justify-content: space-between;
 }
 
 .chart-container {
   background: #fff;
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  padding: 25px;
-  min-height: 100;
+  box-shadow: 8px 4px 10px rgba(0, 0, 0, 0.08);
+  padding: 15px 2px;
+  height: 100%;
   box-sizing: border-box;
-  display: flex;
   flex-direction: column;
   align-items: center;
   width: calc(50% - 10px); /* Take half the width for each chart in the row */
@@ -304,7 +307,7 @@
 
 .chart-container.full-width {
   width: 100%; /* Makes the cumulative chart span the full width */
-  height: 75%;
+  height: 95%;
 }
 
 #genderChart {
@@ -312,25 +315,21 @@
   max-height: 300px; /* Limit the height for consistency */
 }
 
-
 .chart-container h3 {
   font-size: 22px;
-  background: linear-gradient(90deg, #007BFF, #00C9A7);
   background-clip: text;
   -webkit-background-clip: text;
-  color: transparent;
-  -webkit-text-fill-color: transparent;
   text-align: center;
   margin-bottom: 15px;
   font-weight: bold;
-  letter-spacing: 1.5px;
+  font-family: "Cairo";
+  letter-spacing: 1px;
+  color: #053b5e;
 }
-
-
 
 .chart-container canvas {
   width: 100% !important;
-  height: auto !important; /* Ensure aspect ratio is preserved */
+  height: auto !important;
 }
 
 #cumulativeGrowth{
@@ -342,17 +341,16 @@
   background-color: #f4f6fb;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  direction: rtl; /* Since it's Arabic */
   font-family: 'Cairo', sans-serif;
   flex-wrap: wrap;
-  display: flex;
 }
+
 
 #funFacts h1 {
   text-align: center;
-  margin-bottom: 25px;
+  margin-bottom: 20px;
   color: #2c3e50;
-  font-size: 30px;
+  font-size: 32px;
   font-weight: bold;
 }
 
@@ -426,31 +424,26 @@
   color: #12e362;
 }
 
-/* Container to divide content and percentage */
 .content-wrapper {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-/* Main content - description part */
 .data-completeness-content {
   flex: 1; /* Take up remaining space */
 }
 
-/* Percentage part */
 .percentage {
-  font-size: 42px; /* Larger font for percentage */
+  font-size: 42px;
   font-weight: bold;
-  color: #12e362; /* Match the heading color */
-  margin-left: 10px; /* Small gap between percentage and description */
+  color: #12e362;
+  margin-left: 10px;
   flex-direction: column;
   align-items: flex-end;
-  width: 20%; /* Make percentage section narrower to match layout */
+  width: 20%;
 }
 
-
-/* Progress bar container */
 .progress-bar {
   width: 100%;
   height: 10px;
@@ -460,7 +453,6 @@
   overflow: hidden;
 }
 
-/* Progress bar itself */
 .progress {
   height: 100%;
   background-color: #92cd12;
@@ -474,11 +466,13 @@
   padding: 40px;
   border-radius: 12px; /* Slightly rounded corners */
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Stronger shadow for depth */
-  margin-top: 40px;
+  margin-top: 20px;
   font-size: 18px; /* Larger text for emphasis */
   text-align: center; /* Center text */
   position: relative;
   overflow: hidden;
+    width: 100%;
+
 }
 
 .important-info h2 {
@@ -559,7 +553,6 @@
   font-weight: bold;
 }
 
-/* ====== Breakpoint: Tablets and Small Desktops ====== */
 @media (max-width: 768px) {
   .stats-dashboard {
     padding: 0;
@@ -813,6 +806,7 @@ body.dark-mode .category-title{
   }
   .chart-container h3 {
     font-size: 20px;
+    
   }
   .charts{
     padding: 1px;
@@ -853,4 +847,19 @@ body.dark-mode .category-title{
     font-size: 14px;
   }
   
+}
+
+.data-accuracy-note {
+  margin-top: 30px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #ccc;
+  font-size: 14px;
+  color: #444;
+  direction: rtl;
+}
+
+.data-accuracy-note a {
+  color: #1d56c7;
+  text-decoration: underline;
 }

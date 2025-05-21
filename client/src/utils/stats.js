@@ -63,7 +63,7 @@ export const mostUsedName = async () => {
           WHERE p.name IS NOT NULL
           RETURN p.name AS name, count(*) AS Count
           ORDER BY Count DESC
-          LIMIT 5
+          LIMIT 1
         `);
         return result.records.map(record => ({
           name: utils.translateName(record.get('name')),
@@ -316,7 +316,7 @@ export const getAgeGenderData = async () => {
   try {
     const result = await session.run(`
       MATCH (n:Person)
-      WHERE n.gender IN ['Male', 'Female'] AND n.YoB IS NOT NULL
+      WHERE n.gender IN ['Male', 'Female'] AND n.YoB IS NOT NULL AND n.isAlive = true
       RETURN n.gender AS gender, date().year - n.YoB AS age
     `);
 
@@ -352,16 +352,15 @@ export const getAgeGenderData = async () => {
   }
 };
 
-
 export const unmariedMales = async () => {
   const session = driver.session();
     try {
       const result = await session.run(`
-       MATCH (p:Person)
+      MATCH (p:Person)
       WHERE p.gender = 'Male' 
         AND p.YoB IS NOT NULL 
         AND (2025 - p.YoB) > 35 
-        AND NOT EXISTS((p)-[:HUSBAND_OF]->()) // Check if there are no marriage relations
+        AND NOT EXISTS((p)-[:MARRIED_TO]->())
       RETURN COUNT(p) AS unmarriedMenOver35
       `);
       return result.records[0].get('unmarriedMenOver35').toNumber();
@@ -416,7 +415,7 @@ export const families6pluschildren = async () => {
       const result = await session.run(`
         MATCH (f:Person)-[:FATHER_OF]->(c:Person)
         WITH f, count(c) AS childrenCount
-        WHERE childrenCount >= 3
+        WHERE childrenCount >= 6
         RETURN count(f) AS familiesWith6PlusChildren
       `);
   
