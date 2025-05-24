@@ -1,9 +1,5 @@
 /* General Reset and Base Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+
 .fade-slide-enter {
   opacity: 0;
   transform: translateY(20px);
@@ -35,13 +31,10 @@ body {
 .main-container {
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
-  padding: 10px;
   height: 100%; /* Ensure it uses the full height */
 }
 
 .content {
-  padding: 10px;
   overflow: hidden; /* Prevent horizontal overflow */
 }
 
@@ -609,4 +602,10 @@ body.dark-mode .sidebar ul li a{
 body.dark-mode .title h1{
   color: #00d1b2;
   background-color: #0d1f2d;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }

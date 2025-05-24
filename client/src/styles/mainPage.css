@@ -1,12 +1,14 @@
 .welcome {
-  background-color: rgba(255, 255, 255, 0.85); /* خلفية شفافة للنص */
-  padding: 25px;
-  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.85);
+  padding: 15px;
+  border-radius: 15px;
   min-height: 500px;
   background-image: url('../media/pic4.jpg');
+  margin-bottom: 20px;
   background-size: cover;
-  background-position: center right; /* Adjusting position */
-  background-position: center 60%; /* Adjust this percentage to move the image lower */  position: relative;
+  background-position: center right; 
+  background-position: center 60%;
+  position: relative;
   background-repeat: no-repeat;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   text-align: right;
@@ -130,48 +132,64 @@
   margin-bottom: 15px;
 }
 
-
-
 .wedding-feature-card p {
-  color: #0c022d;
+  color: #011a05;
   font-size: 32px;
   font-family: 'Cairo', sans-serif;
   text-shadow: 2px 6px 6px rgba(0, 0, 0, 0.7);
   font-weight: bold;
-  line-height: 1.6;
+  line-height: 1.5;
   margin-bottom: 10%;
-  padding: 20px;
-  text-align: right;
+  padding: 5px;
+  border-radius: 12px;
 }
 
 .weddingfeaturetext{
-    padding: 5px 5px;
-    width: 60%;
-    margin-top: -10%;
+  padding: 5px 5px;
+  width: 60%;
+  text-align: right;
+  margin-top: -200px;
+  
 }
 
-.discoverNow {
-  background: linear-gradient(135deg, #6c6f46, #b37b0a); /* Green gradient */
-  color: white; /* White text */
-  font-family: 'Cairo', sans-serif; /* Smooth Arabic font */
-  font-size: 24px; /* Large font size for better visibility */
-  font-weight: bold; /* Bold text to make it stand out */
-  padding: 5px 10px; /* Add padding for more clickable area */
-  border-radius: 15px; /* Rounded corners */
-  cursor: pointer; /* Pointer cursor on hover */
-  width: 25%;
-  margin-top: -25px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease; /* Smooth transition effects */
+.graph-tree {
+  width: 100%;
+  height: 500px;
+  background-image: url('../media/graph.png'); /* ضع مسار الصورة هنا */
+  background-size: cover;
+  background-position: center right; /* Adjusting position */
+  background-position: center 40%; /* Adjust this percentage to move the image lower */  position: relative;
+  border-radius: 12px;
+  margin: 30px 0;
+  text-align: right;
+  box-shadow: 0 8px 8px rgba(0, 0, 0, 0.2);
 }
 
-.discoverNow:hover {
-  background: linear-gradient(135deg, #388e3c, #66bb6a); /* Slightly darker gradient on hover */
-  transform: scale(1.05); /* Slightly enlarge on hover */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* Add a shadow effect */
+.graph-tree .overlay {
+  background-color: rgba(255, 255, 255, 0.2);
+  height: 100%;
+  width: 100%;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Cairo', sans-serif;
+  color: #2c3e50;
+  border-radius: 12px;
+  
 }
 
-.discoverNow:focus {
-  outline: none; /* Remove the outline when the button is clicked */
+.graphDescription{
+  text-align: center;
+  width: 100%;
+  color: #000000;
+}
+
+.viewTreeButton{
+  background-color: #083757;
+  color: #07eb2d;
+  padding: 4px;
+  border-radius: 10px;
+  font-size: 22px;
 }
 
 /* Card Container */
@@ -291,10 +309,9 @@ opacity: 0.6; /* Slight transparency */
 }
 
 .ksour-bg {
-  background-image: url('../media/ksour.png'); /* Replace with your image URL */
+  background-image: url('../media/ksour.png');
 }
 
-/* Card Content */
 .card-content {
   position: relative;
   z-index: 2;
@@ -311,9 +328,6 @@ opacity: 0.6; /* Slight transparency */
   font-weight: bold;
   margin-bottom: 10px;
   color: #0c022d;
-
-
-
 }
 
 .card-background-school-bg {
@@ -360,85 +374,6 @@ opacity: 0.6; /* Slight transparency */
   font-weight: 800;
   font-family: 'Cairo', sans-serif;
   color: #0c022d;
-}
-
-.cta-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 50px 20px;
-  background: linear-gradient(135deg, #21b37d, #4fc3f7); /* Gradient background */
-  background-image: url(../media/sign.png);
-  background-position: center right;
-  background-position: center 20%;
-  background-size: cover;
-  border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  margin: 20px 0;
-}
-
-.cta-content {
-  max-width: 450px;
-  margin-left: 2px;
-}
-
-.cta-content h2 {
-  font-family: 'Cairo', sans-serif;
-  font-size: 36px;
-  font-weight: bold;
-  color: white;
-  margin-bottom: 15px;
-}
-
-.cta-content p {
-  font-family: 'Cairo', sans-serif;
-  font-size: 18px;
-  color: #f1f1f1;
-  line-height: 1.5;
-  margin-bottom: 30px;
-}
-
-.cta-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.cta-button {
-  background-color: #66bb6a;
-  color: white;
-  font-size: 18px;
-  padding: 12px 24px;
-  border: none;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 85%;
-}
-
-.cta-button:hover {
-  background-color: #ffffff;
-  color: #66bb6a;
-  transform: scale(1.05);
-}
-
-.cta-secondary-button {
-  background-color: #f1f1f1;
-  color: #66bb6a;
-  font-size: 18px;
-  padding: 12px 24px;
-  border: 2px solid #66bb6a;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 85%;
-
-}
-
-.cta-secondary-button:hover {
-  background-color: #66bb6a;
-  color: white;
-  transform: scale(1.05);
 }
 
 @media (max-width: 768px) {
@@ -552,7 +487,6 @@ opacity: 0.6; /* Slight transparency */
   }
 }
 
-/* === Dark Mode Global Background & Text === */
 body.dark-mode .mainPage,
 body.dark-mode .welcome,
 body.dark-mode .description,
@@ -561,27 +495,23 @@ body.dark-mode .cta-section {
   color: #e0e0e0;
 }
 
-/* === Welcome Message === */
 body.dark-mode .welcomeMessage h1,
 body.dark-mode .welcomeMessage p {
   color: #f1f1f1;
 }
 
-/* === Description Titles === */
 body.dark-mode .description h2,
 body.dark-mode .description p,
 body.dark-mode .description strong {
   color: #e6e6e6;
 }
 
-/* === Feature Cards === */
 body.dark-mode .feature-card {
   background: linear-gradient(135deg, #2e2d2d, #25282a);
   border: 1px solid #333;
   color: #ffffff;
 }
 
-/* === Wedding Feature Section === */
 body.dark-mode .wedding-feature-card .overlay {
   background: rgba(40, 39, 39, 0.85);
   color: #ffffff;
@@ -591,7 +521,6 @@ body.dark-mode .wedding-feature-card strong {
   color: #ffd700;
 }
 
-/* === Cards Section (School, Mosque, Ksour) === */
 body.dark-mode .card {
   background-color: #1b1b1b;
   border: 1px solid #333;
@@ -603,24 +532,8 @@ body.dark-mode .card-content p {
   color: #f1f1f1;
 }
 
-/* === CTA Section === */
 body.dark-mode .cta-section {
   background-color: #1a1a1a;
-}
-
-body.dark-mode .cta-content h2,
-body.dark-mode .cta-content p {
-  color: #ffffff;
-}
-
-/* === Buttons in Dark Mode === */
-body.dark-mode button,
-body.dark-mode .cta-button,
-body.dark-mode .cta-secondary-button,
-body.dark-mode .discoverNow {
-  background-color: #2d2d2d;
-  color: #ffffff;
-  border: 1px solid #555;
 }
 
 body.dark-mode button:hover {
