@@ -1,26 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { ChakraProvider} from '@chakra-ui/react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
-
-const ComingSoonPhaseOne = () => {
-
-  return (
-    <div className="coming-soon-container">
-      <div className="coming-soon-text wave">...شيءٌ كبير قادم</div>
-      <div className="coming-soon-orb"></div>
-    </div>
-  );
-};
+import ComingSoonPhaseOne from './ComingSoonPhaseOne';
+import './styles/CommingSoon.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <ChakraProvider>
-    <App />
-  </ChakraProvider>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<ComingSoonPhaseOne />} />
+        <Route path="/06610326mos/*" element={<App />} />
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>
 );
-
-
-export default ComingSoonPhaseOne;

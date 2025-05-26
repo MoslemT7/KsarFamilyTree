@@ -1,0 +1,82 @@
+td{
+    font-size: 24px;
+    border-left: 2px solid black;
+    border-top: 2px solid black;
+    font-family: "Cairo";
+    text-align: right;
+    padding: 8px;
+
+}
+
+tr{
+    border: 2px solid black;
+}
+th{
+    font-family: "Cairo";
+    text-align: center;
+    background-color: #0d3b5a;
+    color: #12e362;
+}
+
+table{
+    margin: 6px 12px;
+}
+
+h2{
+    text-align: right;
+    font-family: "Cairo";
+}
+
+form {
+  width: 100%;
+  max-width: 400px;
+  margin: 50px auto;
+  background-color: #f9f9f9;
+  padding: 25px 30px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  direction: rtl;
+  font-family: 'Arial', sans-serif;
+}
+
+form label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+  color: #333;
+}
+
+form input[type="date"] {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 18px;
+  box-sizing: border-box;
+  text-align: center;
+  font-family: 'Cairo';
+}
+
+.submitButton {
+  background-color: #3498db;
+  color: white;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 22px;
+  cursor: pointer;
+  width: 100%;
+  font-family: "Cairo";
+  transition: background-color 0.3s ease;
+}
+
+.submitButton:hover {
+  background-color: #2980b9;
+}
+
+.mainHeader{
+    text-align: center;
+    font-size: 32px;
+}
+

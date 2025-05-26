@@ -405,4 +405,11 @@ input {
     height: 40px;
     border-width: 3px;
   }
+
+  .rootButton{
+    display: flex;
+    flex-direction: row;
+    margin: 2px;
+    padding: 2px;
+  }
 }

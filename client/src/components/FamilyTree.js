@@ -3,6 +3,8 @@ import Tree from 'react-d3-tree';
 import '../styles/FamilyTree.css';
 import neo4j from 'neo4j-driver';
 import * as utils from '../utils/utils';
+import usePageTracking from '../utils/trackers';
+
 const ROOT = 15;
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
@@ -183,7 +185,7 @@ const FamilyTree = ({ searchQuery }) => {
   const nodePositions = useRef({});
   const [personID, setPersonID] = useState(null);
   const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
-
+  usePageTracking();
   const goToPersonById = async (personId) => {
     const coords = nodePositions.current[personId];
     const container = treeContainerRef.current;
@@ -281,11 +283,11 @@ const FamilyTree = ({ searchQuery }) => {
   };
 
   const handleRootTreeClick = async () => {
-    await loadFamilyTree(20, true); // assuming it’s async
-    setFocusAfterLoadId(20);
+    await loadFamilyTree(15, true); // assuming it’s async
+    setFocusAfterLoadId(15);
   };
   const handleRootWomenTreeClick = async () =>{
-    loadFamilyTree(20, false)
+    loadFamilyTree(15, false)
   };
   
   const loadFamilyTree = async (rootID, type) => {

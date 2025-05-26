@@ -59,3 +59,11 @@
   display: inline-block;
   font-family: 'Courier New', Courier, monospace;
 }
+
+
+#secretButton{
+  font-size: 18px;
+  width: 25%;
+  background-color: #0e1a2b;
+  color: red;
+}

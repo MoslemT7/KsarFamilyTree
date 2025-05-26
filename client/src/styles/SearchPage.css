@@ -314,6 +314,55 @@ body.dark-mode .highlight-id {
   background-color: #007bff;
 }
 
+
+
+body.dark-mode .search-header,
+body.dark-mode .search-page{
+  background-color: #333;
+  border: #333;
+}
+
+body.dark-mode .search-button {
+  background: linear-gradient(20deg, #074f22, #0d3b5a);
+}
+
+body.dark-mode .reset-button {
+  background: linear-gradient(20deg, #6e1c0c, #746608);
+}
+
+body.dark-mode td{
+  color: #12e362;
+  background-color: #444;
+}
+
+.loading-message {
+  display: flex;
+  gap: 10px;
+  font-size: 18px;
+  color: #007bff;
+  padding: 10px;
+  text-align: center;
+}
+
+.loading-message .spinner {
+  border: 4px solid #e3e3e3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  text-align: center;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-message p {
+  margin: 0;
+}
+
 @media screen and (max-width: 1024px) {
 
   .search-page {
@@ -506,7 +555,7 @@ body.dark-mode .highlight-id {
   }
 
   .serach-header h1 {
-    font-size: 18px;
+    font-size: 20px;
   }
   .serach-header p{
     font-size: 10px;
@@ -627,51 +676,8 @@ body.dark-mode .highlight-id {
     width: 100%;
 
   }
-}
-
-body.dark-mode .search-header,
-body.dark-mode .search-page{
-  background-color: #333;
-  border: #333;
-}
-
-body.dark-mode .search-button {
-  background: linear-gradient(20deg, #074f22, #0d3b5a);
-}
-
-body.dark-mode .reset-button {
-  background: linear-gradient(20deg, #6e1c0c, #746608);
-}
-
-body.dark-mode td{
-  color: #12e362;
-  background-color: #444;
-}
-
-.loading-message {
-  display: flex;
-  gap: 10px;
-  font-size: 18px;
-  color: #007bff;
-  padding: 10px;
-  text-align: center;
-}
-
-.loading-message .spinner {
-  border: 4px solid #e3e3e3;
-  border-top: 4px solid #007bff;
-  border-radius: 50%;
-  text-align: center;
-  width: 20px;
-  height: 20px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-message p {
-  margin: 0;
+  .tipsFooter{
+    text-align: center;
+    padding: 0;
+  }
 }

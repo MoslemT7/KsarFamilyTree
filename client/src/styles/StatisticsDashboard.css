@@ -280,11 +280,15 @@
   background-color: #e9ecef;
   transform: translateY(-2px);
 }
-
+/*----------------------------------------
+  Charts: Desktop Styles
+----------------------------------------*/
 .charts {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .row {
@@ -294,47 +298,43 @@
 }
 
 .chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   background: #fff;
   border-radius: 10px;
   box-shadow: 8px 4px 10px rgba(0, 0, 0, 0.08);
-  padding: 15px 2px;
-  height: 100%;
+  padding: 15px 10px;
   box-sizing: border-box;
-  flex-direction: column;
-  align-items: center;
-  width: calc(50% - 10px); /* Take half the width for each chart in the row */
+  width: calc(50% - 5px); /* two columns with 10px gap */
 }
 
 .chart-container.full-width {
-  width: 100%; /* Makes the cumulative chart span the full width */
-  height: 95%;
-}
-
-#genderChart {
-  max-width: 100%; /* Ensure it doesn't exceed the parent container width */
-  max-height: 300px; /* Limit the height for consistency */
+  width: 100%;
 }
 
 .chart-container h3 {
   font-size: 22px;
-  background-clip: text;
-  -webkit-background-clip: text;
+  font-family: "Cairo", sans-serif;
+  font-weight: bold;
+  color: #053b5e;
   text-align: center;
   margin-bottom: 15px;
-  font-weight: bold;
-  font-family: "Cairo";
   letter-spacing: 1px;
-  color: #053b5e;
 }
 
 .chart-container canvas {
   width: 100% !important;
   height: auto !important;
+  max-height: 300px;
 }
 
-#cumulativeGrowth{
-  width: 100%;
+/* Specific override if needed */
+#cumulativeGrowth {
+  width: 100% !important;
+  max-height: none;
 }
+
 
 #funFacts {
   padding: 30px 20px;
@@ -725,6 +725,23 @@ body.dark-mode .category-title{
   color: whitesmoke;
 }
 
+
+
+.data-accuracy-note {
+  margin-top: 30px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-top: 1px solid #ccc;
+  font-size: 14px;
+  color: #444;
+  direction: rtl;
+}
+
+.data-accuracy-note a {
+  color: #1d56c7;
+  text-decoration: underline;
+}
+
 @media (max-width: 480px) {
   .stats-dashboard{
     padding: 0;
@@ -757,12 +774,16 @@ body.dark-mode .category-title{
   }
 
   .stat-card .stat-number {
-    font-size: 12px;
+    font-size: 14px;
+    padding: 0;
     text-align: center;
+    margin-top: 5px;
   }
 
   .stat-card h4 {
-    font-size: 14px;
+    font-size: 18px;
+    padding: 0;
+    margin: 0;
   }
 
   .stat-card .stat-note {
@@ -786,45 +807,68 @@ body.dark-mode .category-title{
     
   }
   .average-item .label{
-    font-size: 12px;
+    font-size: 16px;
     color: white;
   }
   .average-item .value{
-    font-size: 10px;
+    font-size: 14px;
     color: white;
   }
-  .charts-container-title,
-  .dashboard-stats-title {
-    font-size: 24px;
-    
+  .row {
+    flex-direction: column;
   }
 
-  .chart-container{
-    min-height: 150px;
-    padding: 0;
-    margin: 0;
+  .chart-container {
+    width: 100%;
+    max-height: 400px;
+    position: relative; /* needed for responsive canvas */
   }
+
+  .chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .chart-container.full-width {
+    margin-top: 10px;
+  }
+
   .chart-container h3 {
-    font-size: 20px;
-    
+    font-size: 18px;
+    margin-bottom: 10px;
   }
-  .charts{
-    padding: 1px;
-    margin: 0;
-  }
-  #FunFact{
-    flex-wrap: wrap;
+
+  #FunFact {
     display: flex;
+    flex-wrap: wrap;
+    gap: 2px;                 /* spacing between cards */
+    justify-content: space-between;
   }
+
+  /* Flexible fun-fact cards */
   .fun-fact {
+    width: 32%;
+    min-width: 100px;
+    flex-grow: 1;             /* allow to grow */
+    padding: 8px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+  }
+
+  /* Text inside fun-fact */
+  .fun-fact p {
+    font-size: 14px;
+    color: #333;
     padding: 2px;
-    width: 40%;
   }
-  .fun-fact p{
-    font-size: 12px;
-  }
+
+  /* Emoji or chart element */
   .fun-chart {
     font-size: 32px;
+    margin-bottom: 4px;
   }
 
   .important-info {
@@ -849,17 +893,102 @@ body.dark-mode .category-title{
   
 }
 
-.data-accuracy-note {
-  margin-top: 30px;
-  padding: 10px;
-  background-color: #f9f9f9;
-  border-top: 1px solid #ccc;
-  font-size: 14px;
-  color: #444;
-  direction: rtl;
-}
+@media (min-width: 481px) and (max-width: 1024px) {
+  .stats-dashboard {
+    padding: 10px;
+  }
 
-.data-accuracy-note a {
-  color: #1d56c7;
-  text-decoration: underline;
+  .stats-dashboard p {
+    font-size: 16px;
+  }
+
+  .dashboard-title {
+    font-size: 32px;
+  }
+
+  .category-title {
+    font-size: 26px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .stat-card {
+    flex: 1 1 calc(50% - 12px);
+    padding: 12px;
+  }
+
+  .stat-card .stat-number {
+    font-size: 20px;
+  }
+
+  .stat-card h4 {
+    font-size: 24px;
+  }
+
+  .stat-card .stat-note {
+    font-size: 16px;
+  }
+
+  .marriage-averages {
+    gap: 14px;
+  }
+
+  .average-item {
+    font-size: 16px;
+    padding: 8px;
+  }
+
+  .average-item .label {
+    font-size: 18px;
+  }
+
+  .average-item .value {
+    font-size: 16px;
+  }
+
+  .row {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .charts{
+    gap: 18px;
+  }
+  .chart-container {
+    height: 400px;
+  }
+
+  .chart-container h3 {
+    font-size: 20px;
+  }
+
+  .fun-fact {
+    width: 30%;
+  }
+
+  .fun-fact p {
+    font-size: 16px;
+  }
+
+  .fun-chart {
+    font-size: 36px;
+  }
+
+  .important-info h2 {
+    font-size: 32px;
+  }
+
+  .cta-section {
+    padding: 22px;
+  }
+
+  .cta-content h2 {
+    font-size: 28px;
+  }
+
+  .cta-content p {
+    font-size: 18px;
+  }
 }

@@ -1,81 +1,114 @@
-import React from 'react';
-import { Disclosure } from '@headlessui/react';
-import { BrowserRouter as Router, Route, Link, Routes } from 'react-router-dom';
-import FamilyTree from './components/FamilyTree';  // Correct import
-import RelationPage from './components/RelationChecker'; // Correct import
-import StatisticsDashboard from './components/StatisticsDashboard'; // Correct import
-import SearchPage from './components/SearchPage'; // Correct import
-import WeddingPage from './components/weddings';
-import CommingSoon from './index';
-import MainPage from './components/mainPage';
-import './styles/app.css';  // Import styles
-import { useEffect, useState } from "react";
-import { ToastContainer, toast } from 'react-toastify';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+import FamilyTree from './components/FamilyTree';
+import RelationPage from './components/RelationChecker';
+import StatisticsDashboard from './components/StatisticsDashboard';
+import SearchPage from './components/SearchPage';
+import MainPage from './components/mainPage';
+import usePageTracking from './utils/trackers';
+import './styles/app.css';
+
+// Component to display the static wedding.html inside an iframe
+const WeddingPage = () => {
+  return (
+    <iframe
+      src="/weddings/wedding.html"
+      style={{ width: '100%', height: '90vh', border: 'none' }}
+      title="أعراسنا"
+    />
+  );
+};
 const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const toggleMenu = () => setMenuOpen(!menuOpen);
+  const toggleMenu = () => setMenuOpen(open => !open);
+
+  usePageTracking();
+
+  // Dark mode setup
   useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "light") {
-      document.body.classList.add("dark-mode");
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      document.body.classList.add('dark-mode');
     }
   }, []);
 
   const toggleDarkMode = () => {
-    document.body.classList.toggle("dark-mode");
-    const isDark = document.body.classList.contains("dark-mode");
-    localStorage.setItem("theme", isDark ? "light" : "dark");
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
   };
-  
+
+  // Detect when we're on the /weddings route
+  const location = useLocation();
+  const isWeddingsRoute = location.pathname === '/weddings';
+
   return (
     <div className="app-container">
-      <Router>
-      <header className="header">
-        <div className="header-left">
-          <div className="logo"></div>
-          <button className="menu-toggle" onClick={toggleMenu}>☰</button>
-          <div className="title">
-            <h1><a href='https://shorturl.at/Ktu6p'>موقع قصر أولاد بوبكر</a></h1>
+      <>
+        <header className="header">
+          <div className="header-top">
+            <div className="logo-title">
+              <div className="logo" />
+              <div className="title">
+                <h1>
+                  <a href="https://shorturl.at/Ktu6p" target="_blank" rel="noopener noreferrer">
+                    موقع قصر أولاد بوبكر
+                  </a>
+                </h1>
+              </div>
+              
+            </div>
+            <button
+              className="menu-tog"
+              onClick={() => setMenuOpen(o => !o)}
+              aria-label="Toggle menu"
+            >☰</button>
           </div>
-        </div>
+        </header>
 
+        {/* off-canvas sidebar */}
         <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
+          <button className="close-btn" onClick={toggleMenu}>×</button>
           <ul>
-            <li><Link to="/">الرئيسية</Link></li>
-            <li><Link to="/familyTree">شجرة العائلة</Link></li>
-            <li><Link to="/search">البحث</Link></li>
-            <li><Link to="/statistics">إحصائيات</Link></li>
-            <li><Link to="/relationChecker">ماهي العلاقة بينهما؟</Link></li>
-            <li><Link to="/weddingsDates">أعراسنا</Link></li>
-            <li id="contactUs"><a>إتصل بنا</a></li>
+            <li><Link to="">الرئيسية</Link></li>
+            <li><Link to="familyTree">شجرة العائلة</Link></li>
+            <li><Link to="search">البحث</Link></li>
+            <li><Link to="statistics">إحصائيات</Link></li>
+            <li><Link to="relationChecker">ماهي العلاقة بينهما؟</Link></li>
+            <li>
+              <Link to="weddings" onClick={() => sessionStorage.setItem('allowWedding','true')}>
+                أعراسنا
+              </Link>
+            </li>
+            <li id="contactUs"><Link to="/contact">إتصل بنا</Link></li>
           </ul>
         </nav>
-        <div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="darkModeToggle" onClick={toggleDarkMode}></input>
-            <span class="slider">🌙      ☀️</span>
-          </label>
-        </div>
-      </header>
+      </>
 
       <div className="main-container">
-        
         <ToastContainer position="top-center" autoClose={2000} />
 
-        <div className="content">
-          <Routes>
-            <Route path="/" element={<MainPage />} />
-            <Route path="/familyTree" element={<FamilyTree />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/statistics" element={<StatisticsDashboard />} />
-            <Route path="/relationChecker" element={<RelationPage />} />
-            <Route path="/weddingsDates" element={<WeddingPage />} />
-          </Routes>
-        </div>
+        {isWeddingsRoute ? (
+          // When on /weddings, show the iframe
+          <WeddingPage />
+        ) : (
+          // Otherwise, render our React routes
+          <div className="content">
+            <Routes>
+              <Route path="" element={<MainPage />} />
+              <Route path="familyTree" element={<FamilyTree />} />
+              <Route path="search" element={<SearchPage />} />
+              <Route path="statistics" element={<StatisticsDashboard />} />
+              <Route path="relationChecker" element={<RelationPage />} />
+              <Route path="weddings" element={<WeddingPage />} />
+            </Routes>
+          </div>
+        )}
       </div>
-      </Router>
+
       <footer className="footer">
         <div className="footer-container">
           <div className="footer-column">
@@ -84,29 +117,46 @@ const App = () => {
               هذا الموقع يهدف إلى توثيق شجرة عرش قصر أولاد بوبكر، ويجمع بين التكنولوجيا والتراث، لتقديم تجربة تفاعلية فريدة لكل أفراد العائلة.
             </p>
           </div>
+
           <div className="footer-column">
             <h4>روابط مهمة</h4>
             <ul>
-              <li><a href="/">الصفحة الرئيسية</a></li>
-              <li><a href="/tree">شجرة العائلة</a></li>
-              <li><a href="/search">البحث عن فرد</a></li>
-              <li><a href="/weddings">أعراسنا</a></li>
-              <li><a href="https://github.com/MoslemT7/KsarFamilyTree" target="_blank" rel="noopener noreferrer" title="Tech & Source code on GitHub">
-              GitHub
-              </a></li>
+              <li><Link to="">الصفحة الرئيسية</Link></li>
+              <li><Link to="familyTree">شجرة العائلة</Link></li>
+              <li><Link to="search">البحث عن فرد</Link></li>
+              <li><Link to="weddings">أعراسنا</Link></li>
+              <li>
+                <a
+                  href="https://github.com/MoslemT7/KsarFamilyTree"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  GitHub
+                </a>
+              </li>
             </ul>
           </div>
+
           <div className="footer-column">
             <h4>تواصل معنا</h4>
             <ul>
-              <li>📧 البريد الإلكتروني: contact@elkasr-family.tn</li>
-              <li><a href="https://shorturl.at/Ktu6p">📍 قصر أولاد بوبكر، تطاوين، تونس</a></li>
+              <li>📧 contact@elkasr-family.tn</li>
+              <li>
+                <a href="https://shorturl.at/Ktu6p" target="_blank" rel="noopener noreferrer">
+                  📍 قصر أولاد بوبكر، تطاوين، تونس
+                </a>
+              </li>
               <li>📞 +216 98 695 061</li>
               <li>📞 +216 27 200 162</li>
-              <li><a href='https://www.facebook.com/infosKOB' id='fblink'>صفحة الفايسبوك</a></li>
+              <li>
+                <a href="https://www.facebook.com/infosKOB" id="fblink" target="_blank" rel="noopener noreferrer">
+                  صفحة الفايسبوك
+                </a>
+              </li>
             </ul>
           </div>
         </div>
+
         <div className="footer-bottom">
           <p>© 2025 جميع الحقوق محفوظة - عرش قصر أولاد بوبكر</p>
         </div>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Tree from 'react-d3-tree';
 import '../styles/RelationChecker.css';
 import * as utils from '../utils/utils';
+import usePageTracking from '../utils/trackers';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -23,7 +24,7 @@ const RelationPage = () => {
   const [selectedPerson2, setSelectedPerson2] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
-
+  usePageTracking();
   const handleReset = async () => {
     setPerson1('');
     setPerson2('');
@@ -203,7 +204,6 @@ const RelationPage = () => {
     }
   };
 
-
   const findRelationship = async (person1ID, person2ID, gender1, gender2, translatedName1, translatedName2, person1Matches, person2Matches) => {
     let relationshipType;
     let relation = '', score = -1;
@@ -258,7 +258,6 @@ const RelationPage = () => {
       return {relation, score, relationshipType, explanation, person1: person1Matches[0], person2: person2Matches[0]}
     } 
     else {
-      console.log("Checking relations");
       let relationRecord = await getAncestors(person1ID, person2ID);
       if (relationRecord === null){
         let relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
@@ -859,7 +858,7 @@ const RelationPage = () => {
         else if (p1Level === 2 && p2Level === 3) {         
           const p1AncestorGender = pathToP1[1].gender;
           const p2AncestorGender = pathToP2[1].gender;
-          const p2GreatAncestorGender = pathToP1[2].gender;
+          const p2GreatAncestorGender = pathToP2[2].gender;
 
           if (gender1 === 'Male') { 
             if (p1AncestorGender === 'Male') {
@@ -1444,9 +1443,10 @@ const RelationPage = () => {
             case 7: relation = 'هذان الشخصان يشتركان في الجد الخامس'; break;
             case 8: relation = 'هذان الشخصان يشتركان في الجد السادس'; break;
             case 9: relation = 'هذان الشخصان يشتركان في الجد السابع'; break;
+            case 10: relation = 'هذان الشخصان يشتركان في الجد الثامن'; break;
+            case 11: relation = 'هذان الشخصان يشتركان في الجد التاسع'; break;
             default: relation = 'هذان الشخصان يشتركان في جد بعيد.';
           }
-          
         }
 
         else {
@@ -1880,6 +1880,7 @@ const RelationPage = () => {
 
   return (
   <div className="relation-page">
+  
     <main className="main-panel">
       <section className="relation-form-section">
         <h1 className="section-title">ماهي العلاقة بينهما؟</h1>
@@ -2276,7 +2277,7 @@ const RelationPage = () => {
         <li>اختر الأشخاص بدقة لضمان نتائج صحيحة.</li>
         <li>إذا كان أحد الطرفين متزوج، تأكد من اختيار الزوج أو الزوجة المناسبة.</li>
         <li>يمكنك استخدام زر "إلغاء" لإعادة التحديد بسهولة.</li>
-        <li>يمكن لهذه الأداء التعرف على أكثر من 200 ممكنة بين الشخصين .</li>
+        <li>يمكن لهذه الأداء التعرف على أكثر من 200 علاقة ممكنة بين الشخصين .</li>
       </ul>
     </div>
 

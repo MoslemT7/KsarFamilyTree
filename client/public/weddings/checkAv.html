@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>فحص تواريخ الأعراس</title>
+    <link rel="stylesheet" href="availability.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@200..1000&family=Lalezar&family=Noto+Kufi+Arabic:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h2 class="mainHeader">التثبت من تواريخ الأعراس</h2>
+
+  <form method="POST" action="checkAvailability.php" onsubmit="return checkDate()">
+    <label>
+      تاريخ البداية:
+    </label>
+      <input type="date" id="start_date" name="start_date" required>
+    
+    <label>
+      تاريخ النهاية:
+    </label>
+      <input type="date" id="end_date" name="end_date" required>
+    
+    <br><br>
+    <button type="submit" class="submitButton">تحقق</button>
+  </form>
+
+  <!-- load your script at the end so DOM elements exist -->
+  <script src="script.js"></script>
+</body>
+</html>

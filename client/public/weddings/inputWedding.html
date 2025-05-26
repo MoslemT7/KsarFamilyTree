@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إضافة عرس جديد</title> 
+    <script src="script.js" defer></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@200..1000&family=Lalezar&family=Noto+Kufi+Arabic:wght@100..900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <h1>إضافة عرس جديد</h1> <!-- 🔺 Title -->
+    <p class="form-description">
+        هذه الصفحة مخصصة لإدخال معلومات الأعراس الخاصة بعائلة قصر أولاد بوبكر، بما في ذلك بيانات العريس والعروس وتواريخ المناسبات المرتبطة بالعرس،
+        وذلك لحفظها وتوثيقها في قاعدة البيانات الخاصة . ولتسهيل عملية التنسيق بين العائلات في تواريخ الأعراس لتجنب وجود أكثر من عًرس في يوم واحد
+    </p>
+    <p class="warning">الرجاء التثبت من كل المعطيات ، سوم نقوم في أقرب وقت من تأكيد تاريخ العًرس وجعله للعموم. شكرا لحسن التفهم.</p>
+    <form method="POST" onsubmit="return check()" action="addWedding.php" novalidate>
+        <div class="forms">
+            <fieldset>
+                <legend>معلومات العريس</legend>
+                <table>
+                    <tr>
+                        <td>إسم العريس</td>
+                        <td><input type="text" name="menName" id="menName"></td>
+                    </tr>
+                    <tr>
+                        <td>إسم أب العريس</td>
+                        <td><input type="text" name="menFather" id="menFather"></td>
+                    </tr>
+                    <tr>
+                        <td>إسم جد العريس</td>
+                        <td><input type="text" name="menGrandFatherName" id="menGrandFatherName"></td>
+                    </tr>
+                    <tr>
+                        <td>لقب العريس</td>
+                        <td><input type="text" name="menLastName" id="menLastName"></td>
+                    </tr>
+                </table>
+            </fieldset>
+
+            <fieldset>
+                <legend>معلومات العروس</legend>
+                <table>
+                    <tr>
+                        <td>إسم العروس</td>
+                        <td><input type="text" name="womenName" id="womenName"></td>
+                    </tr>
+                    <tr>
+                        <td>إسم أب العروس</td>
+                        <td><input type="text" name="womenFatherName" id="womenFatherName"></td>
+                    </tr>
+                    <tr>
+                        <td>إسم جد العروس</td>
+                        <td><input type="text" name="womenGrandFatherName" id="womenGrandFatherName"></td>
+                    </tr>
+                    <tr>
+                        <td>لقب العروس</td>
+                        <td><input type="text" name="womenLastName" id="womenLastName"></td>
+                    </tr>
+                </table>
+            </fieldset>
+
+            <fieldset>
+                <legend>تفاصيل العرس</legend>
+                <table>
+                    <tr>
+                        <td>سهرة النساء</td>
+                        <td><input type="date" name="WomenParty" id="WomenParty"></td>
+                    </tr>
+                    <tr>
+                        <td>يوم الوليمة</td>
+                        <td><input type="date" name="DinnerDay" id="DinnerDay"></td>
+                    </tr>
+                    <tr>
+                        <td>يوم السهرة</td>
+                        <td><input type="date" name="PartyDay" id="PartyDay"></td>
+                    </tr>
+                    <tr>
+                        <td>يوم الجحفة</td>
+                        <td><input type="date" name="LastDay" id="LastDay"></td>
+                    </tr>
+                </table>
+            </fieldset>
+        </div>
+
+        <div class="buttons">
+            <button type="submit" id="submitButton">أضف عرس</button>
+            <button type="reset">إلغاء الإضافة</button>
+        </div>
+    </form>
+    <div class="footer-tip">💡 تلميح: تأكد من إدخال كل التواريخ الصحيحة لتجنب التضارب في الحجوزات.</div> <!-- 🔺 Footer tip -->
+
+</body>
+</html>

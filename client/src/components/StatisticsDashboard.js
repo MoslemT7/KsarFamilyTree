@@ -4,7 +4,7 @@ import '../styles/StatisticsDashboard.css';
 import Chart from 'chart.js/dist/chart.js';
 import * as utils from '../utils/utils';
 import * as statistics from '../utils/stats';
-import AIPredictionZone from "./AIPredictionZone";
+import usePageTracking from '../utils/trackers';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -60,7 +60,8 @@ const StatisticsDashboard = () => {
   const topFamiliesRef = useRef(null);
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
-
+  usePageTracking();
+  
   let ageDistributionChartInstance = useRef(null);
   let weddingChartInstance = useRef(null);
   let cumulativePopulationGrowthInstance = useRef(null);
@@ -207,329 +208,357 @@ const StatisticsDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!ageDistributionChartRef.current || ageDistribution.length === 0) return;
+  if (!ageDistributionChartRef.current || ageDistribution.length === 0) return;
 
-    if (ageDistributionChartInstance.current) {
-      ageDistributionChartInstance.current.destroy();
-    }
+  // Set canvas height dynamically: 40px per age bin (adjust if needed)
+  ageDistributionChartRef.current.height = ageDistribution.length * 40;
 
-    const ctx = ageDistributionChartRef.current.getContext('2d');
+  if (ageDistributionChartInstance.current) {
+    ageDistributionChartInstance.current.destroy();
+  }
 
-    ageDistributionChartInstance.current = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: ageDistribution.map((item) => item.ageBin),
-        datasets: [
-          {
-            label: 'توزيع السكّان',
-            data: ageDistribution.map((item) => item.count),
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
+  const ctx = ageDistributionChartRef.current.getContext('2d');
+
+  ageDistributionChartInstance.current = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ageDistribution.map((item) => item.ageBin),
+      datasets: [
+        {
+          label: 'توزيع السكّان',
+          data: ageDistribution.map((item) => item.count),
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false, // let canvas height control chart height
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'عدد السكان',
           },
-        ],
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'عدد السكان',
-            },
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'مجالات الأعمار',
           },
-          x: {
-            title: {
-              display: true,
-              text: 'مجالات الأعمار',
-            },
-          }
         },
       },
-    });
+    },
+  });
 
-    return () => {
-      ageDistributionChartInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
-    };
-  }, [ageDistribution]);
+  return () => {
+    ageDistributionChartInstance.current?.destroy();
+  };
+}, [ageDistribution]);
+
 
   useEffect(() => {
-    if (!chartRef.current) return;
-    const DATA = ageGenderDATA;
-    const maleAges = DATA.maleAges;
-    const femaleAges = DATA.femaleAges;
-    const { labels, maleData, femaleData } = buildPyramidData(maleAges, femaleAges);
-    
-    const ctx = chartRef.current.getContext('2d');
-    if (chartInstance.current) chartInstance.current.destroy();
+  if (!chartRef.current) return;
+  const DATA = ageGenderDATA;
+  const maleAges = DATA.maleAges;
+  const femaleAges = DATA.femaleAges;
+  const { labels, maleData, femaleData } = buildPyramidData(maleAges, femaleAges);
 
-    chartInstance.current = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'ذكور',
-            data: maleData,
-            backgroundColor: '#36A2EB',
+  // Dynamically set canvas height based on number of labels
+  // e.g. 40px height per label, adjust as needed
+  chartRef.current.height = labels.length * 40;
+
+  const ctx = chartRef.current.getContext('2d');
+  if (chartInstance.current) chartInstance.current.destroy();
+
+  chartInstance.current = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'ذكور',
+          data: maleData,
+          backgroundColor: '#36A2EB',
+        },
+        {
+          label: 'إناث',
+          data: femaleData,
+          backgroundColor: '#FF6384',
+        },
+      ],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false, // allow canvas height to control chart height
+      scales: {
+        x: {
+          stacked: true,
+          ticks: {
+            callback: value => Math.abs(value),
           },
-          {
-            label: 'إناث',
-            data: femaleData,
-            backgroundColor: '#FF6384',
-          },
-        ],
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        scales: {
-          x: {
-            stacked: true,
-            ticks: {
-              callback: value => Math.abs(value),
-            },
-            title: {
-              display: true,
-              text: 'عدد الأشخاص',
-            },
-          },
-          y: {
-            stacked: true,
-            title: {
-              display: true,
-              text: 'الفئة العمرية',
-            },
+          title: {
+            display: true,
+            text: 'عدد الأشخاص',
           },
         },
-        plugins: {
-          legend: {
-            position: 'bottom',
-          },
-          tooltip: {
-            callbacks: {
-              label: tooltipItem =>
-                `${tooltipItem.dataset.label}: ${Math.abs(tooltipItem.raw)} أشخاص`,
-            },
+        y: {
+          stacked: true,
+          title: {
+            display: true,
+            text: 'الفئة العمرية',
           },
         },
       },
-    });
+      plugins: {
+        legend: {
+          position: 'bottom',
+        },
+        tooltip: {
+          callbacks: {
+            label: tooltipItem =>
+              `${tooltipItem.dataset.label}: ${Math.abs(tooltipItem.raw)} أشخاص`,
+          },
+        },
+      },
+    },
+  });
+
   return () => {
     chartInstance.current?.destroy();
   };
-  }, [ageGenderDATA]);
+}, [ageGenderDATA]);
 
   useEffect(() => {
-    if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
-    const ctx = cumulativePopulationGrowthRef.current.getContext('2d');
+  // Simple mobile check (adjust breakpoint as needed)
+  const isMobile = window.innerWidth <= 768;
+
+  if (!isMobile) {
+    // If not mobile, destroy the chart if exists and skip rendering
     if (cumulativePopulationGrowthInstance.current) {
       cumulativePopulationGrowthInstance.current.destroy();
+      cumulativePopulationGrowthInstance.current = null;
     }
-  
-    const labels = cumulativePopulationGrowth.map(item => item.year);
-    const cumulativeValues = cumulativePopulationGrowth.map(item => item.cumulativePopulation);
-    const aliveValues = cumulativePopulationGrowth.map(item => item.alivePopulation);
-    cumulativePopulationGrowthInstance.current = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'عدد السكان التراكمي',
-            data: cumulativeValues,
-            borderColor: '#36A2EB',
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 3,
-          },
-          {
-            label: 'الأشخاص الأحياء',
-            data: aliveValues,
-            borderColor: '#FF6384', // Red color for alive population
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 3,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function (tooltipItem) {
-                return tooltipItem.raw + ' نسمة';
-              },
-            },
-          },
-          legend: {
-            position: 'bottom',
+    return;
+  }
+
+  if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
+
+  const ctx = cumulativePopulationGrowthRef.current.getContext('2d');
+
+  if (cumulativePopulationGrowthInstance.current) {
+    cumulativePopulationGrowthInstance.current.destroy();
+  }
+
+  const labels = cumulativePopulationGrowth.map(item => item.year);
+  const cumulativeValues = cumulativePopulationGrowth.map(item => item.cumulativePopulation);
+  const aliveValues = cumulativePopulationGrowth.map(item => item.alivePopulation);
+
+  cumulativePopulationGrowthInstance.current = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'عدد السكان التراكمي',
+          data: cumulativeValues,
+          borderColor: '#36A2EB',
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+        },
+        {
+          label: 'الأشخاص الأحياء',
+          data: aliveValues,
+          borderColor: '#FF6384',
+          backgroundColor: 'rgba(255, 99, 132, 0.2)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => tooltipItem.raw + ' نسمة',
           },
         },
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'السنة',
-            },
+        legend: {
+          position: 'bottom',
+        },
+      },
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'السنة',
           },
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'السكّان',
-            },
+        },
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'السكّان',
           },
         },
       },
-    });
-  
-    return () => {
-      cumulativePopulationGrowthInstance.current?.destroy();
-    };
-  }, [cumulativePopulationGrowth]);
+    },
+  });
+
+  return () => {
+    cumulativePopulationGrowthInstance.current?.destroy();
+  };
+}, [cumulativePopulationGrowth]);
 
   useEffect(() => {
-    if (!weddingChartRef.current || weddingData.length === 0) return;
+  if (!weddingChartRef.current || weddingData.length === 0) return;
 
   // Destroy previous chart if it exists
   if (weddingChartInstance.current) {
     weddingChartInstance.current.destroy();
   }
-    // Count the occurrences of each year in the wedding data
-    const countOccurrences = (data) => {
-      const counts = {};
-      data.forEach(year => {
-        counts[year] = (counts[year] || 0) + 1;
-      });
-      return counts;
-    };
 
-    const weddingCount = countOccurrences(weddingData);
-    // Convert the object to arrays for labels and data
-    const labels = Object.keys(weddingCount);
-    const data = Object.values(weddingCount);
+  // Count the occurrences of each year in the wedding data
+  const countOccurrences = (data) => {
+    const counts = {};
+    data.forEach(year => {
+      counts[year] = (counts[year] || 0) + 1;
+    });
+    return counts;
+  };
 
-    // Destroy previous chart if it exists
-    if (weddingChartInstance.current) {
-      weddingChartInstance.current.destroy();
-    }
+  const weddingCount = countOccurrences(weddingData);
+  // Convert the object to arrays for labels and data
+  const labels = Object.keys(weddingCount);
+  const data = Object.values(weddingCount);
 
-    // Create a new chart instance
-    const ctx = weddingChartRef.current.getContext('2d');
-    
-    weddingChartInstance.current = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'عدد حفلات الزواج حسب السنة',
-            data: data,
-            backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue color
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 1,
+  // Dynamically set canvas height: 50px per bar (adjust as needed)
+  weddingChartRef.current.height = labels.length * 50;
+
+  // Create a new chart instance
+  const ctx = weddingChartRef.current.getContext('2d');
+
+  weddingChartInstance.current = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'عدد حفلات الزواج حسب السنة',
+          data: data,
+          backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue color
+          borderColor: 'rgba(54, 162, 235, 1)',
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,  // important to respect canvas height
+      plugins: {
+        title: {
+          display: true,
+          font: {
+            size: 20,
           },
-        ],
+        },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem) => {
+              return `${tooltipItem.raw} حفلة زواج`;
+            },
+          },
+        },
       },
-      options: {
-        responsive: true,
-        plugins: {
+      scales: {
+        x: {
           title: {
             display: true,
-            font: {
-              size: 20,
-            },
-          },
-          tooltip: {
-            callbacks: {
-              label: (tooltipItem) => {
-                return `${tooltipItem.raw} حفلة زواج`;
-              },
-            },
+            text: 'السنة',
           },
         },
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'السنة',
-            },
+        y: {
+          title: {
+            display: true,
+            text: 'عدد الحفلات',
           },
-          y: {
-            title: {
-              display: true,
-              text: 'عدد الحفلات',
-            },
-            beginAtZero: true,
-          },
+          beginAtZero: true,
         },
       },
-    });
+    },
+  });
 
-    return () => {
-      weddingChartInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
-    };
-  }, [weddingData]);
+  return () => {
+    weddingChartInstance.current?.destroy(); // Clean up chart instance when unmounting/updating
+  };
+}, [weddingData]);
 
   useEffect(() => {
-    if (!topFamiliesRef.current || topFamiliesData.length === 0) return;
+  if (!topFamiliesRef.current || topFamiliesData.length === 0) return;
 
-    if (topFamiliesInstance.current) {
-      topFamiliesInstance.current.destroy();
-    }
+  if (topFamiliesInstance.current) {
+    topFamiliesInstance.current.destroy();
+  }
 
-    const ctx = topFamiliesRef.current.getContext('2d');
+  const ctx = topFamiliesRef.current.getContext('2d');
 
-    topFamiliesInstance.current = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: topFamiliesData.map(f => f.familyName),
-        datasets: [{
-          label: 'عدد الأفراد في العائلة',
-          data: topFamiliesData.map(f => f.occurences),
-          backgroundColor: 'rgba(255, 99, 132, 0.5)',
-          borderColor: 'rgba(255, 99, 132, 1)',
-          borderWidth: 1
-        }]
+  // Dynamically set canvas height before chart creation
+  const barCount = topFamiliesData.length;
+  topFamiliesRef.current.height = barCount * 50; // 50px per bar — adjust as needed
+
+  topFamiliesInstance.current = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: topFamiliesData.map(f => f.familyName),
+      datasets: [{
+        label: 'عدد الأفراد في العائلة',
+        data: topFamiliesData.map(f => f.occurences),
+        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false, // important for dynamic height
+      indexAxis: 'y',
+      plugins: {
+        title: {
+          display: true,
+          text: 'أكثر 5 عائلات عددًا في قصر أولاد بوبكر'
+        }
       },
-      options: {
-        responsive: true,
-        indexAxis : 'y',
-        plugins: {
+      scales: {
+        y: {
+          beginAtZero: true,
           title: {
             display: true,
-            text: 'أكثر 5 عائلات عددًا في قصر أولاد بوبكر'
+            text: 'اللقب'
           }
         },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'اللقب'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: "عدد الأشخاص الحاملين لـاللقب"
-            }
+        x: {
+          title: {
+            display: true,
+            text: "عدد الأشخاص الحاملين لـاللقب"
           }
         }
       }
-    });
+    }
+  });
 
+  return () => {
+    topFamiliesInstance.current?.destroy();
+  };
 
-    return () => {
-      topFamiliesInstance.current?.destroy(); // Clean up chart instance when the component unmounts or updates
-    };
-
-  }, [topFamiliesData]);
+}, [topFamiliesData]);
 
   if (loading) return (
     <div className="loading-container">

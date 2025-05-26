@@ -1,11 +1,11 @@
 import React from 'react';
 import '../styles/mainPage.css';  // تأكد من استيراد ملف الـ CSS
-import WeddingPage from './weddings';
 import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
+import usePageTracking from '../utils/trackers';
 
 const MainPage = () => {
   const navigate = useNavigate(); // Initialize navigate function
-  
+  usePageTracking();
   const handleClick = () => {
     navigate('/weddingsDates'); // This will navigate to the WeddingPage
   };
@@ -59,20 +59,6 @@ const MainPage = () => {
               معرفة تواريخ الأعراس القادمة وتفاصيلها بكل سهولة واحترافية.
               </p>
               <button type='button' className='discoverNow' onClick={handleClick}>إكتشف الآن</button>
-            </div>
-          </div>
-        </div>
-        <div className='graph-tree'>
-          <div className="graph-tree">
-            <div className="overlay">
-              <div className="graphDescription">
-                <h2>شجرة عائلة تفاعلية</h2>
-                <p>
-                  شجرة العائلة مبنية على شبكة مترابطة من العلاقات باستخدام تقنيات
-                  حديثة، مما يتيح عرضاً بصرياً تفاعلياً للأشخاص والأنساب.
-                </p>
-                <a className="viewTreeButton" href="/familyTree">عرض الشجرة</a>
-              </div>
             </div>
           </div>
         </div>

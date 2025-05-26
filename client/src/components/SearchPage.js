@@ -5,6 +5,7 @@ import Tree from 'react-d3-tree';
 import * as utils from '../utils/utils';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import usePageTracking from '../utils/trackers';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -35,68 +36,8 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [viewMode, setViewMode] = useState('card');
+  usePageTracking();
   
-  const getChildrenOfFather = async (fatherId) => {
-    const session = driver.session();
-    try {
-      const result = await session.run(
-        `
-        MATCH (father:Person)
-        WHERE id(father) = $fatherId
-        OPTIONAL MATCH (father)-[:FATHER_OF|MOTHER_OF]->(child:Person)
-        RETURN father, collect(child) AS children
-        `,
-        { fatherId }
-      );
-  
-      if (result.records.length > 0) {
-        const record = result.records[0];
-        const fatherNode = record.get('father');
-        const childrenNodes = record.get('children');
-  
-        const father = {
-          id: fatherNode.identity.toNumber(),
-          ...fatherNode.properties,
-        };
-  
-        const children = childrenNodes
-          .filter(child => child) // filter out nulls if no children
-          .map(child => ({
-            id: child.identity.toNumber(),
-            ...child.properties,
-          }));
-  
-        return { father, children };
-      } else {
-        return null;
-      }
-    } catch (error) {
-      console.error('Error fetching father and children:', error);
-      return null;
-    } finally {
-      await session.close();
-    }
-  };
-  
-  const handleShowChildren = async (e) => {
-    setTreeVisible(true);
-    e.stopPropagation();
-    const { father, children } = await getChildrenOfFather(personDetails.personID);
-  
-    // Transform into correct format for Tree component
-    const formattedData = {
-      id: father.id,
-      name: father.name,
-      children: children.map(child => ({
-        id: child.id,
-        name: child.name
-      }))
-    };
-  
-    setTreeData(formattedData);
-    
-  };
-
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
