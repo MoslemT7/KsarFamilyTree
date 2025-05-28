@@ -862,12 +862,13 @@ body.dark-mode .category-title{
   .fun-fact p {
     font-size: 14px;
     color: #333;
-    padding: 2px;
+    padding: 1px;
+    text-align: center;
   }
 
   /* Emoji or chart element */
   .fun-chart {
-    font-size: 32px;
+    font-size: 34zpx;
     margin-bottom: 4px;
   }
 
@@ -975,7 +976,25 @@ body.dark-mode .category-title{
   .fun-chart {
     font-size: 36px;
   }
+  #FunFact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;                 /* spacing between cards */
+    justify-content: space-between;
+  }
 
+  /* Flexible fun-fact cards */
+  .fun-fact {
+    width: 32%;
+    min-width: 100px;
+    flex-grow: 1;             /* allow to grow */
+    padding: 8px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+  }
   .important-info h2 {
     font-size: 32px;
   }

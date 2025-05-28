@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Tree from 'react-d3-tree';
 import '../styles/RelationChecker.css';
 import * as utils from '../utils/utils';
@@ -24,7 +24,17 @@ const RelationPage = () => {
   const [selectedPerson2, setSelectedPerson2] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
+  const treeContainerRef = useRef(null);
+  const nodePositions = useRef({});
+  const [config, setConfig] = useState({
+    translate: { x: 0, y: 0 },
+    nodeSize: { x: 0, y: 0 },
+    separation: { siblings: 0, nonSiblings: 0 },
+  });
+
   usePageTracking();
+
   const handleReset = async () => {
     setPerson1('');
     setPerson2('');
@@ -33,7 +43,7 @@ const RelationPage = () => {
     setLoading(false);
     setError(false);
     setRelationship('');
-    
+    setFocusAfterLoadId(-1);
   };
 
   const fetchRelationship = async (e, person1ID = null, person2ID = null) => {
@@ -190,7 +200,7 @@ const RelationPage = () => {
         gender2: result.gender2,
         ancestorGender: result.ancestorGender
       });
-
+      setFocusAfterLoadId(result.ancestor.ancestorID);
     } catch (error) {
       console.error('❌ Error fetching relationship:', error);
       setRelationship({ relationshipDescription: 'حدث خطأ أثناء البحث', relationshipScore: null });
@@ -1470,6 +1480,7 @@ const RelationPage = () => {
             relationshipType = "Blood";
             const ancestorGender = ancestor.ancestorGender;
             ancestor.ancestorGender = ancestorGender;
+
             return {relation, score, 
                     generation:Math.abs(p1Level-p2Level), 
                     levelsTuple: {levelFromP1, levelFromP2},
@@ -1878,6 +1889,45 @@ const RelationPage = () => {
     return {translatedPersonName, translatedPersonFatherName, translatedPersonGrandfatherName, translatedPersonLastName}
   };
 
+  useEffect(() => {
+    const updateConfig = () => {
+      const screenWidth = window.innerWidth;
+      const containerWidth = treeContainerRef.current?.offsetWidth || screenWidth;
+
+      let nodeSize = { x: 60, y: 90 };
+      let separation = { siblings: 3, nonSiblings: 3 };
+      let yTranslate = 30;
+
+      if (screenWidth < 400) {
+        nodeSize = { x: 50, y: 110 };
+        separation = { siblings: 3, nonSiblings: 3   };
+        yTranslate = 30;
+      } else if (screenWidth < 500) {
+        nodeSize = { x: 50, y: 100  };
+        separation = { siblings: 3, nonSiblings: 3 };
+        yTranslate = 30;
+      } else if (screenWidth < 1024) {
+        nodeSize = { x: 55, y: 100 };
+        separation = { siblings: 3, nonSiblings: 3 };
+        yTranslate = 30;
+      } else {
+        nodeSize = { x: 65, y: 100 };
+        separation = { siblings: 3, nonSiblings: 3 };
+        yTranslate = 30;
+      }
+
+      // ⚡ Center horizontally
+      setConfig({
+        translate: { x: containerWidth / 2 - 50, y: yTranslate },
+        nodeSize,
+        separation,
+      });
+    };
+    
+    updateConfig();
+    window.addEventListener('resize', updateConfig);
+    return () => window.removeEventListener('resize', updateConfig);
+  }, []);
   return (
   <div className="relation-page">
   
@@ -1905,9 +1955,6 @@ const RelationPage = () => {
               }
               className="inputNames"
               />
-            </div>
-            <div>
-              <span className='relationEmoji'>🧬</span>
             </div>
             <div className='inputSection'>
               <h2>الشخص الثاني</h2>
@@ -2071,7 +2118,8 @@ const RelationPage = () => {
         <section className="relationship-result">
           <div className="foundPersons">
             <h2 id="resultTitle">الأشخاص الذين تم البحث عنهم:</h2>
-            <div className="person-card">
+            <div className='personsCards'>
+              <div className="person-card">
               <h4>
                 {utils.translateName(relationship.relationshipPerson1Details?.name ?? '')} 
                 {relationship.relationshipPerson1Details?.father &&
@@ -2081,17 +2129,19 @@ const RelationPage = () => {
                    {relationship.relationshipPerson1Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson1Details.grandfather)}`} 
                 {relationship.relationshipPerson1Details?.lastName && ` ${utils.translateFamilyName(relationship.relationshipPerson1Details.lastName)}`}
               </h4>
+              </div>
+              <div className="person-card">
+                <h4>
+                  {utils.translateName(relationship.relationshipPerson2Details?.name ?? '')} 
+                    {relationship.relationshipPerson2Details?.father &&
+                    (relationship.relationshipPerson2Details.gender === 'Male'
+                      ? ` بن ${utils.translateName(relationship.relationshipPerson2Details.father)}`
+                      : ` بنت ${utils.translateName(relationship.relationshipPerson2Details.father)}`)}              {relationship.relationshipPerson2Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson2Details.grandfather)}`} 
+                  {relationship.relationshipPerson2Details?.lastName && ` ${utils.translateFamilyName(relationship.relationshipPerson2Details.lastName)}`}
+                </h4>
+              </div>
             </div>
-          <div className="person-card">
-            <h4>
-              {utils.translateName(relationship.relationshipPerson2Details?.name ?? '')} 
-                {relationship.relationshipPerson2Details?.father &&
-                (relationship.relationshipPerson2Details.gender === 'Male'
-                  ? ` بن ${utils.translateName(relationship.relationshipPerson2Details.father)}`
-                  : ` بنت ${utils.translateName(relationship.relationshipPerson2Details.father)}`)}              {relationship.relationshipPerson2Details?.grandfather && ` بن ${utils.translateName(relationship.relationshipPerson2Details.grandfather)}`} 
-              {relationship.relationshipPerson2Details?.lastName && ` ${utils.translateFamilyName(relationship.relationshipPerson2Details.lastName)}`}
-            </h4>
-          </div>
+            
         </div>
 
           <h2 id="resultTitle">نتيجة العلاقة</h2>
@@ -2196,22 +2246,22 @@ const RelationPage = () => {
                   <>
                   <h2 id="resultTitle">شجرة العائلة الي تجمع الشخصين :</h2>
                   <div className="tree-wrapper" style={{
-              height: `${Math.max(
-                ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
-                100
-              ) + 1}px`
-            }}>
+                    height: `${Math.max(
+                      ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
+                      100
+                    ) + 1}px`
+                  }}>
                   <>
-                  
-                  
+
                   <div className="tree-container">
                   <Tree
                     data={relationship.ancestorstreeData}
                     orientation="vertical"
+                    ref={treeContainerRef}
                     pathFunc="step"
-                    nodeSize={{ x: 60, y: 90 }} 
-                    separation={{ siblings: 3, nonSiblings: 3 }}
-                    translate={{ x: 500, y: 30 }} 
+                    translate={config.translate}
+                    nodeSize={config.nodeSize}
+                    separation={config.separation}
                     renderCustomNodeElement={({ nodeDatum }) => (
                     <g className="tree-node">
                         <title>{nodeDatum.id}</title>

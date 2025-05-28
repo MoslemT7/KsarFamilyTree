@@ -11,7 +11,6 @@ import MainPage from './components/mainPage';
 import usePageTracking from './utils/trackers';
 import './styles/app.css';
 
-// Component to display the static wedding.html inside an iframe
 const WeddingPage = () => {
   return (
     <iframe
@@ -21,13 +20,13 @@ const WeddingPage = () => {
     />
   );
 };
+
 const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const toggleMenu = () => setMenuOpen(open => !open);
 
   usePageTracking();
 
-  // Dark mode setup
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') {
@@ -41,7 +40,6 @@ const App = () => {
     localStorage.setItem('theme', isDark ? 'light' : 'dark');
   };
 
-  // Detect when we're on the /weddings route
   const location = useLocation();
   const isWeddingsRoute = location.pathname === '/weddings';
 
@@ -51,7 +49,6 @@ const App = () => {
         <header className="header">
           <div className="header-top">
             <div className="logo-title">
-              <div className="logo" />
               <div className="title">
                 <h1>
                   <a href="https://shorturl.at/Ktu6p" target="_blank" rel="noopener noreferrer">
@@ -67,10 +64,7 @@ const App = () => {
               aria-label="Toggle menu"
             >☰</button>
           </div>
-        </header>
-
-        {/* off-canvas sidebar */}
-        <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
+          <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
           <button className="close-btn" onClick={toggleMenu}>×</button>
           <ul>
             <li><Link to="">الرئيسية</Link></li>
@@ -86,16 +80,15 @@ const App = () => {
             <li id="contactUs"><Link to="/contact">إتصل بنا</Link></li>
           </ul>
         </nav>
+        </header>        
       </>
 
       <div className="main-container">
         <ToastContainer position="top-center" autoClose={2000} />
 
         {isWeddingsRoute ? (
-          // When on /weddings, show the iframe
           <WeddingPage />
         ) : (
-          // Otherwise, render our React routes
           <div className="content">
             <Routes>
               <Route path="" element={<MainPage />} />
@@ -140,7 +133,7 @@ const App = () => {
           <div className="footer-column">
             <h4>تواصل معنا</h4>
             <ul>
-              <li>📧 contact@elkasr-family.tn</li>
+              <li>📧 contact@ouledboubaker.tn</li>
               <li>
                 <a href="https://shorturl.at/Ktu6p" target="_blank" rel="noopener noreferrer">
                   📍 قصر أولاد بوبكر، تطاوين، تونس

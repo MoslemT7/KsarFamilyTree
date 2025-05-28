@@ -69,13 +69,20 @@ body,
 
 .description h2 {
   margin-bottom: 20px;
-  font-size: 28px;
+  border-bottom: 2px solid #2c3e50;
+  font-size: 32px;
   color: #2c3e50;
 }
 
+.description h3{
+  font-size: 32px;
+  border-bottom: 2px solid #2c3e50;
+  text-align: center;
+  margin-bottom: 20px;
+}
 .description p {
   margin-bottom: 25px;
-  font-size: 22px;
+  font-size: 18px;
   line-height: 1.8;
 }
 
@@ -98,6 +105,8 @@ body,
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.1);
   transition: transform .3s ease;
+  text-align: center;
+
 }
 
 .feature-card:hover {
@@ -111,58 +120,67 @@ body,
 }
 
 .feature-card p {
-  text-align: center;
   font-size: 22px;
   line-height: 1.6;
   color: #333;
+  line-height: 2;
 }
 
 /*----------------------------------------
   Wedding Feature Card
 ----------------------------------------*/
-.wedding-feature-card {
-  position: relative;
-  width: 100%;
-  height: 500px;
-  margin: 30px 0;
+.wedding-picture {
+  width: 70%;
+  min-height: 300px;
   background: url('../media/pic2.jpg') center 40%/cover no-repeat;
   border-radius: 12px;
   box-shadow: 0 8px 8px rgba(0,0,0,0.2);
 }
 
-.wedding-feature-card .overlay {
-  position: absolute;
-  inset: 0;
+.wedding-feature-card{
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 30px;
-  background: rgba(255,255,255,0.2);
-  border-radius: 12px;
+  flex-direction: row;
+  margin-top: 16px;  
+  background: linear-gradient(135deg,#fff,#e3f2fd);
+  border: 1px solid #b2ebf2;
+  border-radius: 8px;
+  box-shadow: 0 8px 8px rgba(255, 255, 255, 0.2);
+  text-align: center;
 }
 
-.wedding-feature-card .emoji {
-  font-size: 36px;
-  margin-bottom: 15px;
+.weddingfeaturetext p{
+  font-size: 16px;
+  padding: 0; margin: 0;
+  margin-top: 50px;
+  padding: 6px 18px;
+  text-align: center;
+  line-height: 3;
+}
+.discoverNow{
+  text-align: center;
+  padding: 4px 8px;
+  align-items: center;
+  color: #00d1b2;
+  font-family: "Cairo";
+  font-size: 22px;
+  width: 40%;
+  background-color: #121212;
+}
+.cta-content {
+  text-align: center;
+  margin-top: 6px;
 }
 
-.wedding-feature-card p {
-  margin-bottom: 10%;
-  padding: 5px;
-  font-size: 32px;
-  font-weight: bold;
-  line-height: 1.5;
-  color: #011a05;
-  text-shadow: 2px 6px 6px rgba(0,0,0,0.7);
-  border-radius: 12px;
+.cta-button{
+  color: rgb(19, 215, 137);
+  background-color: #2c3e50;
+  
 }
 
-.weddingfeaturetext {
-  width: 60%;
-  margin-top: -200px;
-  padding: 5px;
+.cta-content button{
+  font-family: "Cairo";
+  padding: 6px 18px;
 }
-
 /*----------------------------------------
   Dark Mode Overrides
 ----------------------------------------*/
@@ -220,120 +238,179 @@ body.dark-mode button:hover {
 ========================================*/
 
 /* Small screens (≤ 480px) */
+/* Small screens (max-width: 480px) */
 @media (max-width: 480px) {
   .welcome {
-    min-height: 600px;
-    padding: 5px;
+    min-height: auto;
+    padding: 10px;
     margin-bottom: 15px;
   }
 
   .welcomeMessage {
-    max-width: 90%;
-    margin: 0px auto;
+    max-width: 100%;
+    margin: 0 auto;
     padding: 10px;
+    text-align: center;
+  }
+
+  .welcomeMessage h1 {
+    font-size: 22px;
+    line-height: 1.4;
+  }
+
+  .welcomeMessage p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .description {
+    padding: 15px;
+    text-align: justify;
+  }
+
+  .description h2 {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+
+  .description p {
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 4px 0;
+  }
+
+  .features-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+  }
+
+  .feature-card {
+    width: 48%;
+    text-align: center;
+    padding: 5px;
+  }
+
+  .feature-card p {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .discoverNow {
+    width: 80%;
+    font-size: 14px;
+    padding: 8px 12px;
+  }
+
+  #ring {
+    display: none;
+  }
+
+  .header-top{
+    display: flex;
+    flex-direction: row;
+    direction: ltr;
+    align-items: center;
+  }
+
+  .title h1{
+    margin: 0;
+  }
+
+
+}
+
+/* Medium screens (481px – 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  
+
+  .welcome {
+    padding: 20px;
+    min-height: auto;
+  }
+
+  .welcomeMessage {
+    max-width: 85%;
+    margin: 0 auto;
+    padding: 20px;
+    text-align: center;
   }
 
   .welcomeMessage h1 {
     font-size: 28px;
   }
+
   .welcomeMessage p {
     font-size: 16px;
   }
 
   .description {
-    padding: 10px;
-    text-align: justify;
-  }
-  .description h2 {
-    font-size: 24px;
-  }
-  .description p {
-    font-size: 18px;
-    line-height: 1.6;
-  }
-
-  .features-cards {
-    flex-direction: row;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-  .feature-card {
-    width: 40%;
-    text-align: center;
-  }
-  .feature-card p {
-    font-size: 18px;
-  }
-
-  .wedding-feature-card {
-    height: 300px;
-  }
-  .wedding-feature-card .overlay {
     padding: 20px;
   }
-  .wedding-feature-card p {
-    font-size: 18px;
-  }
-  .weddingfeaturetext {
-    width: 100%;
-    margin-top: -50px;
-  }
-}
 
-/* Medium screens (481px – 768px) */
-@media (min-width: 481px) and (max-width: 768px) {
-  .welcome {
-    min-height: 400px;
-  }
-
-  .welcomeMessage {
-    max-width: 70%;
-    margin-left: auto;
-    padding: 25px;
-  }
-
-  .welcomeMessage h1 {
-    font-size: 32px;
-  }
-  .welcomeMessage p {
-    font-size: 17px;
-  }
-
-  .description {
-    padding: 30px;
-  }
   .description h2 {
-    font-size: 26px;
+    font-size: 24px;
+    margin-bottom: 10px;
   }
+
   .description p {
-    font-size: 20px;
+    font-size: 18px;
+    line-height: 1.7;
   }
 
   .features-cards {
-    gap: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: space-between;
   }
+
   .feature-card {
-    flex: 1 1 45%;
+    flex: 1 1 48%;
+    padding: 10px;
   }
+
   .feature-card p {
-    font-size: 20px;
+    font-size: 16px;
+    line-height: 1.5;
   }
 
   .wedding-feature-card {
-    height: 400px;
-  }
-  .wedding-feature-card .overlay {
-    padding: 25px;
+    height: auto;
+    padding: 10px 0;
   }
   .wedding-feature-card p {
-    font-size: 28px;
+    background: rgba(255, 255, 255, 0.75);
+    font-size: 16px;
+    text-align: center;
+    padding: 10px;
   }
+
   .weddingfeaturetext {
-    width: 80%;
-    margin-top: -180px;
+    gap: 15px;
+    width: 100%;
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .discoverNow {
+    width: 60%;
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+
+  #ring {
+    display: none;
+  }
+  .cta-content button{
+    width: 40%;
+    font-size: 16px;
   }
 }
+
 
 /* Large screens (≥ 769px) */
 @media (min-width: 769px) {
@@ -372,18 +449,33 @@ body.dark-mode button:hover {
   .feature-card p {
     font-size: 22px;
   }
-
-  .wedding-feature-card {
-    height: 500px;
-  }
-  .wedding-feature-card .overlay {
-    padding: 30px;
-  }
+  
   .wedding-feature-card p {
-    font-size: 32px;
+    font-size: 22px;
+    text-align: center;
+    padding: 10px;
   }
+
   .weddingfeaturetext {
+    gap: 15px;
+    width: 100%;
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .discoverNow {
     width: 60%;
-    margin-top: -200px;
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+
+  #ring {
+    display: none;
+  }
+  .cta-content button{
+    width: 40%;
+    font-size: 16px;
   }
 }

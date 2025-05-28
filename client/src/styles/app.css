@@ -8,63 +8,42 @@
 }
 
 body {
-  font-family: Arial, sans-serif;
   background-color: #f4f4f4;
   color: #333;
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 100vh;
 }
 
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  flex: 1;
   overflow: hidden;
 }
+
 /*========================================
 =               Header & Nav            =
 ========================================*/
-
-/* Base reset (once) */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 .header {
-  display: flex;
-  flex-wrap: wrap;
+  display: block;
   align-items: center;
-  justify-content: space-between;
   background-color: #f0f2f3;
-  padding: 10px 20px;
+  padding: 5px 10px;
   border-bottom: 5px solid #0d1f2d;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.logo-title{
   width: 100%;
+  align-items: center;
 }
 
-.logo {
-  width: 60px;
-  height: 60px;
-  margin: 10px;
-  background: url('../media/logo.png') center/contain no-repeat;
-}
-
-.title {
-  flex-grow: 1;
-  text-align: center;
+.menu-tog{
+  display: none;
 }
 
 .title h1 {
-  margin: 0;
   font-size: 28px;
   color: #0d1f2d;
   background: whitesmoke;
@@ -76,92 +55,81 @@ body {
 .title h1:hover { transform: translateY(-5px); }
 .title h1 a { all: unset; }
 .title h2 {
-  margin: 0;
-  font-size: 14px;
+  font-size: 18px;
   color: #d1d8e0;
 }
+
+/* Sidebar (mobile off-canvas) */
 .sidebar {
   position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
+  top: 0; right: 0;
   width: 250px;
-  background: linear-gradient(145deg, #ffffff, #e6e6e6);
-  box-shadow: -4px 0 15px rgba(0, 0, 0, 0.2);
-  padding: 30px 20px;
+  height: 100vh;
+  background: linear-gradient(145deg,#fff,#e6e6e6);
+  box-shadow: -4px 0 15px rgba(0,0,0,0.2);
+  padding: 20px 20px;
   transform: translateX(100%);
-  transition: transform 0.4s ease-in-out;
+  transition: transform .4s ease-in-out;
   z-index: 1000;
   overflow-y: auto;
-  border-left: 4px solid #00d1b2;
-  border-radius: 10px 0 0 10px;
+  border: 1px solid #00d1b2;
+  border-radius: 10px;
 }
-
-/* Open state */
 .sidebar.open {
   transform: translateX(0);
 }
-
-/* Links inside sidebar */
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar ul li {
-  margin: 20px 0;
-}
-
-.sidebar ul li a {
-  color: #0d1f2d;
-  font-size: 18px;
-  text-decoration: none;
-  font-weight: bold;
-  font-family: "Cairo", sans-serif;
-  position: relative;
-  transition: all 0.3s;
-}
-
-.sidebar ul li a::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: -4px;
-  width: 0%;
-  height: 2px;
-  background-color: #00d1b2;
-  transition: width 0.3s ease-in-out;
-}
-
-.sidebar ul li a:hover::after {
-  width: 100%;
-  left: 0;
-  right: auto;
-}
-
-/* overlay to dim the page when sidebar is open */
-.sidebar.open ~ .overlay {
-  display: block;
-}
-
 .sidebar .close-btn {
   position: absolute;
-  top: 10px;
-  left: 15px;
+  top: 10px; left: 15px;
   font-size: 24px;
   background: none;
   border: none;
   cursor: pointer;
   color: #0d1f2d;
 }
+.sidebar ul {
+  list-style: none;
+  margin-top: 40px;
+}
+.sidebar ul li {
+  margin: 20px 0;
+}
+.sidebar ul li a {
+  display: block;
+  font-family: "Cairo", sans-serif;
+  font-weight: bold;
+  color: #0d1f2d;
+  text-decoration: none;
+  position: relative;
+  transition: color .3s;
+  border-radius: 4px;
+  font-size: 26px;
+}
+
+.sidebar ul li a::after {
+  content: "";
+  position: absolute;
+  right: 0; bottom: -4px;
+  width: 0; height: 2px;
+  background: #00d1b2;
+  transition: width .3s;
+}
+.sidebar ul li a:hover{
+  color: #00d1b2;
+  background-color: #0d1f2d;
+}
 .overlay {
   position: fixed;
-  top:0; left:0; right:0; bottom:0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0,0,0,0.4);
   display: none;
   z-index: 900;
 }
+
+.emoji{
+  text-align: center;
+}
+
 .menu-toggle {
   display: none;
   background: none;
@@ -172,25 +140,6 @@ body {
 }
 
 /*========================================
-=             Main & Content            =
-========================================*/
-.main-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  gap: 10px;
-}
-
-.content {
-  flex-grow: 1;
-  background: #f9f9f9;
-  border-radius: 15px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
-  overflow: hidden;
-}
-
-/*========================================
 =               Footer                  =
 ========================================*/
 .footer {
@@ -198,20 +147,19 @@ body {
   color: #fff;
   padding: 40px 20px 20px;
   font-family: 'Cairo', sans-serif;
-  margin-top: 60px;
+  margin-top: auto;
 }
 
 .footer-container {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 30px;
+  gap: 20px;
 }
 
 .footer-column {
   flex: 1;
   min-width: 250px;
-  margin-bottom: 20px;
 }
 
 .footer-column h4 {
@@ -230,13 +178,13 @@ body {
   line-height: 1.8;
   color: #d3d3d3;
   text-align: center;
+  list-style: none;
 }
 
 .footer-column a {
   text-decoration: none;
-  transition: color 0.3s;
+  transition: color .3s;
 }
-
 .footer-column a:hover {
   color: #fff;
 }
@@ -253,383 +201,154 @@ body {
 /*========================================
 =            Dark Mode Overrides        =
 ========================================*/
-
-/* === Dark Mode Global Background & Text === */
-body.dark-mode .mainPage,
-body.dark-mode .welcome,
-body.dark-mode .description,
-body.dark-mode .cta-section {
-  background-color: #121212;
+body.dark-mode {
+  background: #121212;
   color: #e0e0e0;
 }
-
-/* === Welcome Message === */
-body.dark-mode .welcomeMessage h1,
-body.dark-mode .welcomeMessage p {
-  color: #f1f1f1;
-}
-
-/* === Description Titles === */
-body.dark-mode .description h2,
-body.dark-mode .description p,
-body.dark-mode .description strong {
-  color: #e6e6e6;
-}
-
-/* === Feature Cards === */
-body.dark-mode .feature-card {
-  background-color: #1e1e1e;
-  border: 1px solid #333;
-  color: #ffffff;
-}
-
-/* === Wedding Feature Section === */
-body.dark-mode .wedding-feature-card .overlay {
-  background: rgba(30, 30, 30, 0.85);
-  color: #ffffff;
-}
-
-body.dark-mode .wedding-feature-card strong {
-  color: #ffd700;
-}
-
-/* === Cards Section (School, Mosque, Ksour) === */
-body.dark-mode .card {
-  background-color: #1b1b1b;
-  border: 1px solid #333;
-  color: #ffffff;
-}
-
-
-body.dark-mode .card-content h4,
-body.dark-mode .card-content p {
-  color: #f1f1f1;
-}
-
-/* === CTA Section === */
-body.dark-mode .cta-section {
-  background-color: #1a1a1a;
-}
-
-body.dark-mode .cta-content h2,
-body.dark-mode .cta-content p {
-  color: #ffffff;
-}
-
-/* === Buttons in Dark Mode === */
-body.dark-mode button,
-body.dark-mode .cta-button,
-body.dark-mode .cta-secondary-button,
-body.dark-mode .discoverNow {
-  background-color: #2d2d2d;
-  color: #ffffff;
-  border: 1px solid #555;
-}
-
-body.dark-mode button:hover {
-  background-color: #444;
-}
-
-body.dark-mode .app-container,
-body.dark-mode .content{
-  background-color: #2d2d2d;
-  border: 0px;
-  padding: 2px;
-}
-
 body.dark-mode .header,
 body.dark-mode .sidebar,
-body.dark-mode nav{
-  background-color: #444;
-  
+body.dark-mode nav {
+  background: #444;
 }
-
-body.dark-mode .sidebar ul li a{
+body.dark-mode .title h1 {
+  color: #00d1b2;
+  background: #0d1f2d;
+}
+body.dark-mode .sidebar ul li a {
   color: #00d1b2;
 }
 
-body.dark-mode .title h1{
-  color: #00d1b2;
-  background-color: #0d1f2d;
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-/*--------------------------------------
-  Media queries
---------------------------------------*/
-/* Small mobiles (<480px) */
-
-/* ======= Small screens (mobile ≤ 480px) ======= */
+/*========================================
+=            Media Queries              =
+========================================*/
+/* Small screens (≤480px) */
 @media (max-width: 480px) {
-  .header {
-    display: block;
-    text-align: center;
+  .menu-tog { display: block; }
+  .header { text-align: center; padding: 10px; }
+  .header-left { width: 100%; justify-content: center; }
+  .logo { margin: 0 auto 10px; }
+  .title h1 { font-size: 24px; }
+  .title h2 { font-size: 12px; }
+
+  .sidebar { /* keep off-canvas */ }
+  .sidebar.open ~ .overlay { display: block; }
+  .sidebar.open ul li a{
+    font-size: 16px;
+    padding: 0px;
     margin: 0;
-    padding: 0;
   }
-
-  .header-top {
+  .sidebar.open ul{
+    font-size: 16px;
+    padding: 0px;
+    margin: 0;
+  }
+  /* hide header links container if present */
+  .links { display: none; }
+  .header-top{
     display: flex;
-    width: 100%;
+    flex-direction: row;
+    direction: ltr;
     align-items: center;
-    justify-content: space-between; /* ensures spacing */
   }
 
-  .menu-tog {
-    width: auto; /* or set to a fixed width like 40px */
-    margin-left: auto; /* push to the right */
-    padding: 5px;
-    text-align: right;
+  .title h1{
+    margin: 0;
   }
 
-  /* Example button styling (optional) */
-  .menu-tog button {
-    font-size: 24px;
+  .wedding-feature-card{
+    display: block;
+
+  }
+
+  .wedding-picture{
+    width: 100%;
+  }
+  
+  #r {
+    position: relative; /* required for absolute child */
+    height: 300px;
+    border: 1px solid #ccc;
+  }
+
+  #r .wedding-picture {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+
+  #r .weddingfeaturetext{
+    margin: 50px; 
+  }
+}
+@media (max-width: 760px){
+  .header-top{
+    display: flex;
+    flex-direction: row;
+    direction: ltr;
+    align-items: center;
+  }
+
+  .title h1{
+    margin: 0;
+  }
+  .menu-tog { display: block; }
+  .header { text-align: center; }
+  .header-left { width: 100%; justify-content: center; flex-direction: column; }
+  .logo { margin-bottom: 10px; }
+  .title h1 { font-size: 26px; }
+  .title h2 { font-size: 13px; }
+  .links { display: none; }
+  .sidebar.open ul li a{
+    font-size: 18px;
+    padding: 0px;
+    margin: 0;
+  }
+  .sidebar.open ul{
+    padding: 0px;
+    margin: 0;
+  }
+}
+
+/* Large screens (≥1025px) */
+@media (min-width: 761px) {
+  .menu-toggle,
+  .sidebar .close-btn,
+  .overlay {
+    display: none !important;
+  }
+
+  .sidebar {
+    position: static;
+    transform: none;
+    width: auto;
+    height: auto;
+    flex-direction: row;
     background: none;
-    border: none;
-    cursor: pointer;
-    color: #0d1f2d;
-  }
-
-  .logo-title {
-    width: 80%;
-    display: flex;
-    align-items: center;
-    text-align: left;
-  }
-  
-  .title h1 { 
-    font-size: 24px; 
-    height: 50px;
-    width: 100%;
-    text-align: center;
-    font-family: "Cairo";
-  }
-
-  .title h2 { font-size: 12px; }
-
-  .links {
-    display: flex;
-    width: 100%;
-    margin-top: 10px;
-    justify-content: center;
-  }
-
-  .links ul {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
+    box-shadow: none;
     padding: 0;
+    text-align: center;
+  }
+
+  .sidebar ul {
+    display: flex;
+    gap: 25px;
     margin: 0;
-  }
-
-  .links ul li {
-    padding: 4px 0;
-    text-align: center;
-    list-style: none;
-  }
-
-  .links ul li a {
-    font-size: 18px;
-    color: #1b3e61;  
-    font-family: "Cairo";
-    margin: 1px 14px;
-    font-weight: bold;
-    text-decoration: none;
-  }
-  
-
-  /* hide any top-level links container if you had one */
-  .links {
-    display: none;
-  }
-  .footer-column {
-    min-width: 100%;
-  }
-
-  .tipsFooter {
-    width: 100%;
-  }
-
-  .footer-column h4 { font-size: 18px; }
-
-  .footer-column p,
-  .footer-column li,
-  .footer-column a { font-size: 14px; }
-
-  .footer-bottom { font-size: 13px; }
-}
-
-/* ======= Medium screens (tablets: 481px – 768px) ======= */
-@media (min-width: 481px) and (max-width: 768px) {
-  .header {
-    display: block;
-    text-align: center;
-  }
-
-  .header-left {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .logo-title {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    text-align: center;
-    flex-direction: column;
-  }
-
-  .logo {
-    margin-bottom: 6px;
-  }
-
-  .title h1 { 
-    font-size: 24px; 
-    height: 50px;
-    font-family: "Cairo";
-  }
-
-  .title h2 { font-size: 12px; }
-
-  .links {
-    display: flex;
-    width: 100%;
-    margin-top: 10px;
-    justify-content: center;
-  }
-
-  .links ul {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
     padding: 0;
-    margin: 0;
-  }
-
-  .links ul li {
-    padding: 4px 0;
-    text-align: center;
     list-style: none;
-  }
-
-  .links ul li a {
-    font-size: 18px;
-    color: #1b3e61;  
-    font-family: "Cairo";
-    margin: 1px 18px;
-    font-weight: bold;
-    text-decoration: none;
-  }
-  .menu-tog {
-    display: block;
-    text-align: right;
-  }
-
-  /* hide any top-level links container if you had one */
-  .links {
-    display: none;
-  }
-  .footer-column {
-    min-width: 100%;
-  }
-
-  .tipsFooter {
-    width: 100%;
-  }
-
-  .footer-column h4 { font-size: 18px; }
-
-  .footer-column p,
-  .footer-column li,
-  .footer-column a { font-size: 14px; }
-
-  .footer-bottom { font-size: 13px; }
-}
-
-/* ======= Large screens (≥ 769px) ======= */
-@media (min-width: 769px) {
-  .header {
-    flex-direction: column;
     text-align: center;
   }
 
-  .header-left {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .logo-title {
-    width: 100%;
-    display: flex;
-    align-items: center;
+  .sidebar ul li { 
     text-align: center;
-    flex-direction: column;
-  }
-
-  .logo {
-    margin-bottom: 6px;
-  }
-
-  .title h1 { 
-    font-size: 24px; 
-    height: 50px;
-    font-family: "Cairo";
-  }
-
-  .title h2 { font-size: 12px; }
-
-  .links {
-    display: flex;
-    width: 100%;
-    margin-top: 10px;
-    justify-content: center;
-  }
-
-  .links ul {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-  }
-
-  .links ul li {
-    padding: 4px 0;
-    text-align: center;
-    list-style: none;
-  }
-
-  .links ul li a {
-    font-size: 18px;
-    color: #1b3e61;  
-    font-family: "Cairo";
-    margin: 1px 18px;
-    font-weight: bold;
-    text-decoration: none;
-  }
-
-  .footer-column {
-    min-width: 100%;
-  }
-
-  .tipsFooter {
+    margin: auto;
+    margin: 0; 
     width: 100%;
   }
+  .sidebar ul li a { 
+    font-size: 16px; 
 
-  .footer-column h4 { font-size: 18px; }
+  }
 
-  .footer-column p,
-  .footer-column li,
-  .footer-column a { font-size: 14px; }
-
-  .footer-bottom { font-size: 13px; }
 }

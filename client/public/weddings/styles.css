@@ -146,3 +146,100 @@ body {
   text-align: center;
   margin: 8px auto;
 }
+
+@media (max-width: 1024px) {
+  body {
+    padding: 0 16px;
+  }
+
+  h1 {
+    font-size: 28px;
+    text-align: center;
+    margin: 16px 0;
+  }
+
+  .form-description,
+  .warning,
+  .footer-tip {
+    font-size: 16px;
+    margin: 12px 0;
+    width: 100%;
+  }
+
+  .forms {
+    flex-direction: column;     /* stack the fieldsets */
+    gap: 16px;
+  }
+
+  fieldset {
+    width: 100% !important;     /* full width */
+    margin: 0 auto;
+  }
+
+  table {
+    width: 100%;
+  }
+  td {
+    display: block;
+    width: 100%;
+    padding: 8px 0;
+  }
+  td:first-child {
+    font-weight: bold;
+  }
+  td input {
+    width: 100%;
+  }
+
+  .buttons {
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  button {
+    width: 100%;
+    font-size: 20px;
+  }
+}
+
+/*----------------------------------------
+  Phone: ≤480px
+----------------------------------------*/
+@media (max-width: 480px) {
+  h1 {
+    font-size: 24px;
+  }
+
+  .form-description,
+  .warning,
+  .footer-tip {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  legend {
+    font-size: 18px;
+  }
+
+  fieldset {
+    padding: 8px;
+  }
+
+  td {
+    padding: 6px 0;
+  }
+  td input {
+    padding: 6px;
+    font-size: 16px;
+  }
+
+  button {
+    font-size: 18px;
+    padding: 10px;
+  }
+
+  .footer-tip {
+    font-size: 14px;
+    margin: 16px 0;
+  }
+}

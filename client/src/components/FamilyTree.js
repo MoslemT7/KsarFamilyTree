@@ -185,6 +185,7 @@ const FamilyTree = ({ searchQuery }) => {
   const nodePositions = useRef({});
   const [personID, setPersonID] = useState(null);
   const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
+  
   usePageTracking();
   const goToPersonById = async (personId) => {
     const coords = nodePositions.current[personId];
@@ -286,6 +287,7 @@ const FamilyTree = ({ searchQuery }) => {
     await loadFamilyTree(15, true); // assuming it’s async
     setFocusAfterLoadId(15);
   };
+
   const handleRootWomenTreeClick = async () =>{
     loadFamilyTree(15, false)
   };
@@ -333,144 +335,174 @@ const FamilyTree = ({ searchQuery }) => {
       setFocusAfterLoadId(null); // reset
     }
   }, [focusAfterLoadId, nodePositions.current]);
+
   return (
     <div className="treePage">
       <header>
         <h2>شجرة عائلة قصر أولاد بوبكر</h2>
-        <div className="description">
-          <p>في هذه الصفحة، يمكنك تصفح شجرة عرش قصر أولاد بوبكر بشكل كامل ومفصل.
-             تبدأ الشجرة من الجد الأول بوبكر، الذي يمثل الجذور الأساسية لهذا العرش العريق،
-             مرورًا بالأجيال التي تلت ذلك حتى الوصول إلى الجيل الحالي.
-             يمكنك استكشاف تاريخ العائلة عبر الأجيال المختلفة،
-             والتعرف على الأفراد الذين شكلوا جزءًا من هذه الشجرة العائلية على مر العصور.
-             هذه الصفحة تتيح لك رؤية العلاقات بين الأفراد وكيف تطورت العائلة على مر الزمن،
-             مما يعزز فهمك للتاريخ العائلي والعلاقات الاجتماعية بين الأفراد في هذا العرش.</p>
+        <div className="d">
+          <p id="pd">
+  في هذه الصفحة، يمكنك تصفح شجرة عائلة قصر أولاد بوبكر من الجد المؤسس بوبكر وصولًا إلى الجيل الحالي. 
+  تهدف الصفحة إلى عرض العلاقات العائلية بشكل دقيق ومنظم، مما يتيح لك فهم تسلسل الأنساب، 
+  وتاريخ تطور العرش، والتعرف على أفراد العائلة عبر الأجيال. 
+  استكشف كيف ترابطت العائلات، وتعمّق في جذورك وهويتك العائلية.
+</p>
 
         </div>
-        {showTree && familyTree && (
-        <div
-          id="treeWrapper"
-          ref={treeContainerRef}
-          style={{
-            width: "100%", // Ensure full width of the parent container
-            height: "100vh", // Full height of the viewport
-            overflow: 'auto', // Allow scrolling if the tree overflows
-            padding: '20px', // Add some padding around the tree
-            boxSizing: 'border-box', // Ensure padding is included in the size calculations
-            position: 'relative', // Allow absolute positioning of title
-            display: 'flex', // Allow flexbox for centering
-            justifyContent: 'center', // Center the content horizontally
-            alignItems: 'center', // Center the content vertically
-          }}
-          >
+      </header>
+      <div className="screen">
+    {/* Left panel: inputs & controls */}
+    <aside className="panel panel--controls">
+      <div className="filterChoice">
+        {/* Card R1 */}
+        <div className="card" id="R1">
+          <p className="info-text">
+  يتيح زر <strong style={{ color: 'blue' }}>شجرة العائلة التقليدية</strong> تصفح الشجرة العائلية ابتداءً من الجدّ الأول وحتى الأجيال الحالية.
+</p>
+
+<p className="info-text">
+  أما <strong style={{ color: '#b52155' }}>شجرة العائلة مع أبناء الأمهات</strong>، فتُظهر أيضًا أبناء الأمهات، مما يجعل الشجرة أكثر شمولًا، 
+  <strong id="warning">لكن احذر من التكرارات وضخامة الشجرة!</strong>
+</p>
+
+          <div className="rootButton">
+            <button id="men" onClick={handleRootTreeClick}>
+              شجرة العائلة التقليدية
+            </button>
+            <button id="women" onClick={handleRootWomenTreeClick}>
+              شجرة مع أبناء الأمهات
+            </button>
+          </div>
+        </div>
+
+        {/* Card R2 */}
+        <div className="card" id="R2">
+          <p className="info-text">
+            للحصول على رقم الهوية، استخدم صفحة <a href="/search" target="_blank" style={{ color: '#007bff' }}>البحث</a>، ثم انسخ الرقم الظاهر فوق الاسم والصقه هنا.
+          </p>
+          <input id="rootID" type="number" placeholder="أدخل رقم الشخص" />
+          <button className="btn-person" onClick={handlePersonTreeDisplay}>
+            شجرة ابتداءً من شخص
+          </button>
+        </div>
+
+        {/* Card R3 */}
+        <div className="card" id="R3">
+          <p className="info-text">
+            للحصول على رقم الهوية، ابحث عن الشخص من <a href="/search">صفحة البحث</a>، ثم انسخ الرقم الظاهر فوق اسمه والصقه هنا.
+          </p>
+
+          <input id="personsearchName" type="text" placeholder="ابحث عن شخص" />
+          <button className="btn-search" onClick={handleIDPersonSearch}>
+            ابحث في الشجرة
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    {/* Right panel: tree & loading */}
+    <main className="panel panel--tree">
+      {loading && !showTree && (
+        <div className="loading-indicator">
+          <p>جارٍ تحميل الشجرة...</p>
+          <div className="spinner" />
+        </div>
+      )}
+
+      {showTree && familyTree && (
+        <div id="treeWrapper" ref={treeContainerRef}>
           <Tree
             data={familyTree}
             orientation="vertical"
             pathFunc="step"
             translate={translate}
             nodeSize={{ x: 100, y: 100 }}
-            separation={{ siblings: 1.1, nonSiblings: 1.5 }}
+            separation={{ siblings: 1.5, nonSiblings: 1.5 }}
             renderCustomNodeElement={({ nodeDatum, hierarchyPointNode }) => {
-              const isSpouse = nodeDatum.id === husbandId || nodeDatum.id === wifeId;
               nodePositions.current[nodeDatum.id] = {
                 x: hierarchyPointNode.x,
                 y: hierarchyPointNode.y,
               };
-
+              const fill = nodeDatum.id === husbandId
+                ? '#66bb6a'
+                : nodeDatum.id === wifeId
+                  ? '#ff8a65'
+                  : nodeDatum.id === personID
+                    ? '#cf14d9'
+                    : '#4fc3f7';
               return (
                 <g
                   onClick={() => handlePersonClick(nodeDatum)}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <title>{nodeDatum.id}</title>
+                  <defs>
+                    <linearGradient id={`grad-${nodeDatum.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6"/>
+                      <stop offset="100%" stopColor={fill} stopOpacity="1"/>
+                    </linearGradient>
+                    <filter id={`shadow-${nodeDatum.id}`} x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#000" floodOpacity="0.3"/>
+                    </filter>
+                  </defs>
+
                   <rect
-                    x="-50"
-                    y="-20"
-                    width="100"
-                    height="40"
-                    fill={
-                      nodeDatum.id === husbandId
-                        ? "#66bb6a" 
-                        : nodeDatum.id === wifeId
-                        ? "#ff8a65" 
-                        : nodeDatum.id === personID 
-                        ? "#cf14d9"
-                        : "#4fc3f7"      
-                    }                    
-                    stroke="black"
-                    strokeWidth="2"
-                    rx="8"
+                    x="-60" y="-25"
+                    width="120" height="50"
+                    rx="10" ry="10"
+                    fill={`url(#grad-${nodeDatum.id})`}
+                    stroke="#333"
+                    strokeWidth="0.8"
+                    filter={`url(#shadow-${nodeDatum.id})`}
                   />
-                  <text
-                    x="0"
-                    y="5"
-                    style={{
-                      fontSize: "22px",
-                      fontFamily: 'Cairo',
-                      dominantBaseline: 'middle',
-                      letterSpacing: '1px',
-                      strokeWidth: '0px',
-                      textAnchor: "middle",
-                      fill: "white",
-                    }}
-                  >
-                    {nodeDatum.name}
-                  </text>
+
+                  {(() => {
+                    const words = nodeDatum.name.split(' ');
+                    const lines = [];
+                    let current = '';
+                    words.forEach(word => {
+                      const test = current ? `${current} ${word}` : word;
+                      if (test.length > 12) {
+                        lines.push(current);
+                        current = word;
+                      } else {
+                        current = test;
+                      }
+                    });
+                    if (current) lines.push(current);
+
+                    return lines.map((line, i) => (
+                      <text
+                        key={i}
+                        x="0" y={ i * 18 - (lines.length - 1) * 9 }
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: '24px',
+                          fontFamily: 'Cairo, sans-serif',
+                          fill: '#fff',
+                          pointerEvents: 'none',
+
+                        }}
+                      >
+                        {line}
+                      </text>
+                    ));
+                  })()}
                 </g>
               );
             }}
           />
         </div>
       )}
-        <p id="rotateSuggestion">ننحصحك بتدوير الهاتف</p>
-        <div className="filterChoice">
-          <div className="card" id="R1">
-              <p className="info-text">
-                يتيح لك زر <strong style={{color: 'blue'}}>شجرة العائلة التقليدية</strong> تصفح شجرة عائلة كامل العرش بدءًا منذ الجد الأول
-                حتى الوصول الي الأجيال الحالية. <br></br>
-                أما زر <strong style={{color: '#b52155'}}>شجرة العائلة مع أبناء الأمهات</strong> فيتيح لك اضافة أبناء الأمهات الى الشجرة أيضا، ولكن إحذر ،
-                <strong id="warning">سوف تبدو لك الشجرة كبيرة جدا لإحتوائها على العديد من الأشخاص المكررين</strong>
-              </p>
 
-              <div className="rootButton">
-                <button type="button" id="men" onClick={handleRootTreeClick}>
-                  شجرة العائلة التقليدية
-                </button>
-                <button type="button" id="women" onClick={handleRootWomenTreeClick}>
-                  شجرة العائلة مع أبناء الأمهات
-                </button>
-              </div>
-          </div>
-
-          <div className="card" id="R2">
-            <p className="info-text">
-              للحصول على رقم الهوية (رقم التسلسل) للشخص، يجب عليك التوجه إلى صفحة البحث ثم البحث عن الشخص المطلوب.
-              بعد إجراء البحث، سيظهر رقم التسلسل (رقم الهوية) مباشرةً فوق الاسم الكامل للشخص في قسم النتائج. يمكنك نسخ
-              هذا الرقم ومن ثم لصقه هنا لرؤية شجرة العائلة بدءًا من ذلك الشخص.
-            </p>
-            <input id="rootID" type="number" placeholder="أدخل رقم الشخص" />
-            <button className="btn-person" type="button" onClick={handlePersonTreeDisplay}>
-              شجرة العائلة ابتداءا من شخص معين
-            </button>
-          </div>
-          
-          <div className="card" id="R3">
-          <p className="info-text">هذه القسم يتيح لك رؤية مكان الشخص داخل شجرة العائلة.
-             كل ما عليك فعله هو إدخال رقم هوية الشخص (رقم التسلسل) في الخانة المخصصة. للحصول على رقم الهوية،
-              توجه إلى صفحة البحث وابحث عن الشخص المطلوب.
-              بعد إجراء البحث،
-              ستجد رقم التسلسل يظهر فوق اسم الشخص في نتائج البحث. قم بنسخ هذا الرقم وأدخله هنا لرؤية مكانه داخل الشجرة.</p>
-
-            <input id="personsearchName" type="text" placeholder="ابحث عن شخص في الشجرة" />
-            <button type='button' className='btn-search' onClick={handleIDPersonSearch}>إبحث عن شخص في شجرة العائلة</button>
-          </div>
-        </div>
-
-      </header>
+      <p id="rotateSuggestion">ننصحك بتدوير الهاتف</p>
+    </main>
+  </div>
+    
       {loading && !showTree && !familyTree && (
         <div className="loading-indicator">
           <p>جار تحميل الشجرة...</p>
-          <div className="spinner"></div> {/* Loading spinner */}
+          <div className="spinner"></div>
         </div>
       )}
       

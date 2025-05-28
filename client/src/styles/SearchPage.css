@@ -372,7 +372,7 @@ body.dark-mode td{
     text-align: center;
   }
   .search-header h1 {
-    font-size: 16px; 
+    font-size: 24px; 
   }
 
   .search-bar {
@@ -447,10 +447,15 @@ body.dark-mode td{
     margin: 0;
     text-align: center;
   }
+  .tipsFooter{
+    text-align: center;
+    display: block;
+    width: 100%;
+  }
+
 }
 
-@media screen and (max-width: 768px) {
-  
+@media screen and (min-width: 768px) {
   .search-page {
     padding: 1px !important; 
   }
@@ -458,19 +463,27 @@ body.dark-mode td{
     text-align: center;
   }
   .search-header h1 {
-    font-size: 16px; 
+    font-size: 24px; 
+  }
+  .buttons{
+    width: 100%;
+
   }
 
   .search-bar {
-    font-size: 16px;
+    font-size: 20px;
     padding: 4px 6px;
+    font-weight: bolder;
+    width: 75%;
     letter-spacing: 0.5px;
   }
 
   .search-button, .reset-button {
-    font-size: 14px;
+    font-size: 18px;
     padding: 4px;
     margin: 2px;
+    font-family: "Cairo";
+    width: 40%;
   }
 
   .titles {
@@ -532,6 +545,17 @@ body.dark-mode td{
     margin: 0;
     text-align: center;
   }
+  .tipsFooter{
+    text-align: center;
+    display: block;
+    width: 100%;
+  }
+  .search-button, .reset-button {
+    font-size: 22px;
+    padding: 4px;
+    font-family: "Cairo";
+  }
+
   
 }
 
@@ -616,8 +640,10 @@ body.dark-mode td{
   }
 
   .search-bar {
-    font-size: 16px;
+    font-size: 18px;
     padding: 4px 6px;
+    width: 75%;
+    font-weight: bolder;
     letter-spacing: 0.5px;
   }
 
@@ -679,5 +705,19 @@ body.dark-mode td{
   .tipsFooter{
     text-align: center;
     padding: 0;
+    width: 100%;
+    display: block;
+    padding: 4px 2px;
+  }
+  .buttons{
+    font-size: 14px;
+
+  }
+  button{
+    font-family: "Cairo";
+    width: 40%;
+  }
+  .person-side-table{
+    margin: 2px 6px;
   }
 }
