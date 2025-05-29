@@ -1,0 +1,100 @@
+.data-entry-container.fancy {
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.form-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #0077cc;
+}
+
+.form-section h3 {
+  margin-top: 0;
+  font-size: 1.25rem;
+  color: #0077cc;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #0077cc;
+  outline: none;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  background: #0077cc;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.submit-btn:hover {
+  background: #005fa3;
+}
+
+.result {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.result.success {
+  background: #e6ffed;
+  border: 1px solid #28a745;
+  color: #155724;
+}
+
+.result.error {
+  background: #ffe6e6;
+  border: 1px solid #dc3545;
+  color: #721c24;
+}
+
+/* action select styling */
+.action-group {
+  margin-bottom: 20px;
+}

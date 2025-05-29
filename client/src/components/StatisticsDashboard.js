@@ -159,10 +159,10 @@ const StatisticsDashboard = () => {
         const avgMarAgeFemale = (await statistics.avgMarringAgeFemale()).toFixed(0);
         const sixPlusFamilies = await statistics.families6pluschildren();
 
-        const unmariedMalesCount = await statistics.unmariedMales();
         const top5families = await statistics.mostUsedFamilyName();
         const mostUsedFamilyNameCount = top5families[0];
         const mostUsedNameCount = (await statistics.mostUsedName())[0];
+        
         const GenderStats = await statistics.getAgeGenderData();
         const fetchedAgeDistribution = await ageBins();
         const fetchedCumGrowth = await populationGrowth();
@@ -182,7 +182,6 @@ const StatisticsDashboard = () => {
           mostUsedFamilyNameCount,
           mostUsedNameCount: mostUsedNameCount.occurences,
           mostUsedNameCountName: mostUsedNameCount.name,
-          unmariedMalesCount,
           abroadPeoplePercentage,
           avgMarAgeMale,
           avgMarAgeFemale,
@@ -333,19 +332,7 @@ const StatisticsDashboard = () => {
   };
 }, [ageGenderDATA]);
 
-  useEffect(() => {
-  // Simple mobile check (adjust breakpoint as needed)
-  const isMobile = window.innerWidth <= 768;
-
-  if (!isMobile) {
-    // If not mobile, destroy the chart if exists and skip rendering
-    if (cumulativePopulationGrowthInstance.current) {
-      cumulativePopulationGrowthInstance.current.destroy();
-      cumulativePopulationGrowthInstance.current = null;
-    }
-    return;
-  }
-
+useEffect(() => {
   if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
 
   const ctx = cumulativePopulationGrowthRef.current.getContext('2d');
@@ -417,6 +404,7 @@ const StatisticsDashboard = () => {
     cumulativePopulationGrowthInstance.current?.destroy();
   };
 }, [cumulativePopulationGrowth]);
+
 
   useEffect(() => {
   if (!weddingChartRef.current || weddingData.length === 0) return;
@@ -583,7 +571,6 @@ const StatisticsDashboard = () => {
             <div class="stat-card" id="men"> <h4>عدد الرجال الأحياء</h4> <p class="stat-number">{stats.totalMen}</p> </div>
             <div class="stat-card" id="women"> <h4>عدد النساء الأحياء</h4> <p class="stat-number">{stats.totalWomen}</p> </div>
             <div class="stat-card"> <h4>عدد العائلات المسجلة</h4> <p class="stat-number">{stats.familiesCount}</p> </div>
-            <div class="stat-card"> <h4>نسبة الأحياء مقابل المتوفين</h4> <p class="stat-number">%{(stats.totalAlivePopulation * 100 / stats.totalPopulation).toFixed(2)} أحياء</p> </div>
           </div>
         </div>
         <div class="category-block demographics">
@@ -601,8 +588,17 @@ const StatisticsDashboard = () => {
               {stats.oldestPerson.age} سنة
             </p>
           </div>
-            <div class="stat-card"> <h4>متوسط الأعمار</h4> <p class="stat-number">{stats.avgAge} سنة</p> </div>
-            <div class="stat-card"> <h4>الوسيط العمري</h4> <p class="stat-number">{stats.medAge} سنة</p> </div>
+            <div className="stat-card">
+              <h4>متوسط الأعمار</h4>
+              <p className="stat-number">{stats.avgAge} {utils.formatArabicYears(stats.avgAge)}</p>
+            </div>
+
+            <div className="stat-card">
+              <h4>الوسيط العمري</h4>
+              <p className="stat-number">
+                {stats.medAge} {utils.formatArabicYears(stats.medAge)}
+              </p>
+            </div>
             <div class="stat-card"> <h4>عدد المعمرين (+100 سنة)</h4> <p class="stat-number">{stats.agedPeopleCount}</p> </div>
           </div>
         </div>
@@ -675,12 +671,6 @@ const StatisticsDashboard = () => {
           <h2 class="fun-chart">{stats.mostUsedFamilyNameCount.occurences}</h2>
           <p><strong>{stats.mostUsedFamilyNameCount.occurences}</strong>  شخص، يحملون لقب {stats.mostUsedFamilyNameCount.familyName}  كأكثر لقب شائع، ويمثل  
              <strong>{(((stats.mostUsedFamilyNameCount.occurences))*100/stats.totalPopulation).toFixed(1)}% </strong> من السكان.</p>
-        </div>
-        <div class="fun-fact">
-          <h2 class="fun-chart">{stats.unmariedMalesCount}</h2>
-          <p>
-          <strong>{stats.unmariedMalesCount}</strong> شاب تجاوزوا الـ<strong>35</strong> عاما ليسوا متزوجين
-          </p>
         </div>
         <div class="fun-fact">
           <h2 class="fun-chart">{stats.abroadPeoplePercentage}%</h2>

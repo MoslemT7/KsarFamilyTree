@@ -330,3 +330,10 @@ export const translateNodeName = (fullName, toEnglish = true) => {
 
   return translatedParts.join(' ');
 };
+
+export const formatArabicYears = (num) => {
+  if (num === 1) return "سنة";
+  if (num === 2) return "سنتين";
+  if (num >= 3 && num <= 10) return "سنوات";
+  return "سنة"; // for 11+
+};

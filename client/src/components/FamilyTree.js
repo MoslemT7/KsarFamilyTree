@@ -5,7 +5,7 @@ import neo4j from 'neo4j-driver';
 import * as utils from '../utils/utils';
 import usePageTracking from '../utils/trackers';
 
-const ROOT = 15;
+const ROOT = 137;
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
 const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;
@@ -52,9 +52,11 @@ const fetchFamilyTree = async (type) => {
         id: id(person),
         name: person.name,
         lastName: person.lastName,
+        gender: person.gender,
         children: [child IN children | {
           id: id(child),
           name: child.name,
+          gender: child.gender,
           lastName: child.lastName
         }]
       } AS treeNode
@@ -78,6 +80,7 @@ const fetchFamilyTree = async (type) => {
         children: [child IN children | {
           id: id(child),
           name: child.name,
+          gender: child.gender,
           lastName: child.lastName
         }]
       } AS treeNode
@@ -100,10 +103,12 @@ const fetchFamilyTree = async (type) => {
       return {
         id: Number(node.id),
         name: node.name,
+        gender: node.gender,
         lastName: node.lastName,
         children: node.children.map(child => ({
           id: Number(child.id),
           name: child.name,
+          gender: child.gender,
           lastName: child.lastName
         }))
       };
@@ -145,6 +150,7 @@ const buildTree = (person, allPeople) => {
     return {
       id: person.id,
       name: utils.translateName(person.name),
+      gender: person.gender,
       children: children.length > 0 ? children : undefined,
     };
 };
@@ -284,12 +290,12 @@ const FamilyTree = ({ searchQuery }) => {
   };
 
   const handleRootTreeClick = async () => {
-    await loadFamilyTree(15, true); // assuming it’s async
-    setFocusAfterLoadId(15);
+    await loadFamilyTree(ROOT, true); // assuming it’s async
+    setFocusAfterLoadId(ROOT);
   };
 
   const handleRootWomenTreeClick = async () =>{
-    loadFamilyTree(15, false)
+    loadFamilyTree(ROOT, false)
   };
   
   const loadFamilyTree = async (rootID, type) => {
@@ -297,6 +303,7 @@ const FamilyTree = ({ searchQuery }) => {
     try {
       setLoading(true);
       const people = await fetchFamilyTree(type);
+      console.log(people);
       if (Array.isArray(people) && people.length > 0) {
         const rootPerson = people.find((p) => p.id === rootID);
         const treeData = buildTree(rootPerson, people);
@@ -313,20 +320,6 @@ const FamilyTree = ({ searchQuery }) => {
     } finally{
       setLoading(false);
     }
-  };
-
-  const getTreeSize = () => {
-    const positions = Object.values(nodePositions.current);
-
-    if (positions.length === 0) return { width: 0, height: 0 };
-
-    const xValues = positions.map(p => p.x);
-    const yValues = positions.map(p => p.y);
-
-    const width = Math.max(...xValues) - Math.min(...xValues);
-    const height = Math.max(...yValues) - Math.min(...yValues);
-
-    return { width, height };
   };
 
   useEffect(() => {
@@ -457,6 +450,7 @@ const FamilyTree = ({ searchQuery }) => {
 
                   {(() => {
                     const words = nodeDatum.name.split(' ');
+                    const gender = nodeDatum.gender;
                     const lines = [];
                     let current = '';
                     words.forEach(word => {
@@ -481,9 +475,9 @@ const FamilyTree = ({ searchQuery }) => {
                           fontFamily: 'Cairo, sans-serif',
                           fill: '#fff',
                           pointerEvents: 'none',
-
                         }}
                       >
+                        {/* {gender === 'Female' ? line[0]: line} */}
                         {line}
                       </text>
                     ));

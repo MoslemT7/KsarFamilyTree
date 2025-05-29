@@ -4,13 +4,13 @@ import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 import usePageTracking from '../utils/trackers';
 
 const MainPage = () => {
-  const navigate = useNavigate(); // Initialize navigate function
+  const navigate = useNavigate();
   usePageTracking();
   const handleWeddingClick = () => {
-    navigate('weddings'); // This will navigate to the WeddingPage
+    navigate('weddings'); 
   };
   const handleRelationClick = () => {
-    navigate('relationChecker'); // This will navigate to the WeddingPage
+    navigate('relationChecker');
   };
 
   return (

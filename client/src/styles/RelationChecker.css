@@ -548,7 +548,7 @@ body.dark-mode .tipsFooter { background: #222; }
     text-align: justify;
     padding: 2px;
   }
-  .inputNames { font-size: 0.875rem; }
+  .inputNames { font-size: 0.9rem; }
   .button { 
     font-size: 0.8rem; 
     padding: 4px;
@@ -566,8 +566,17 @@ body.dark-mode .tipsFooter { background: #222; }
     padding: 1px;
     text-align: center;
   }
-  .result-table td, .result-table ::-ms-thumb{
-    font-size: 10px;
+  .result-table td, .result-table{
+    font-size: 12px;
+
+  }
+  .result-table th, .result-table{
+    font-size: 13px;
+    
+  }
+
+  .result-table tr{
+    padding: 16px 2px;
   }
   .ButtonSection{
     display: flex;
@@ -586,7 +595,6 @@ body.dark-mode .tipsFooter { background: #222; }
     width: 100%;
     height: 100%;
   }
-  
 }
 
 /* Tablettes (480–767px) */

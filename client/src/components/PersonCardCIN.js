@@ -102,7 +102,7 @@ const PersonCINCard = ({ person }) => {
                   'على قيد الحياة'
               ) : (
                 <>
-                  'متوفى'
+                  <label>متوفى</label>
                   <br />
                   <strong>تاريخ الوفاة:</strong>{' '}
                   {person.deathYear || 'غير معروف'}
