@@ -16,7 +16,13 @@
   text-align: center;
   align-items: center;
 }
-
+.choiceButton{
+    font-size: 12px;
+    text-align: center;
+    padding: 2px 8px;
+    width: 60%;
+    font-family: "Cairo";
+  }
 .search-header h1 {
   font-size: 48px;
   margin-bottom: 15px;
@@ -62,8 +68,8 @@ button{
 
 .search-button {
   background: linear-gradient(20deg, #12e362, #1c83c7);
-      color: white;
-
+  color: white;
+  font-family: "Cairo";
 }
 
 .search-button:hover {
@@ -83,8 +89,8 @@ button{
 
 .reset-button {
   background: linear-gradient(20deg, #d53616, #d7bc0e);
-      color: white;
-
+  color: white;
+  font-family: "Cairo";
 }
 
 .reset-button:hover {
@@ -204,6 +210,7 @@ button{
   width: 100%;
   text-align: center;
   border-top: 4px solid #12e362;
+  
 }
 
 .view-toggle-buttons button {
@@ -213,7 +220,7 @@ button{
   cursor: pointer;
   width: 95%;
   text-align: center;
-
+  font-family: "Cairo";
 }
 
 .view-toggle-buttons .active {
@@ -250,8 +257,6 @@ body.dark-mode .highlight-id {
   color: #ffea00;
 }
 
-
-/* Error Message Section */
 .error-message {
   color: #D32F2F;
   background-color: #FFEBEE;
@@ -269,51 +274,6 @@ body.dark-mode .highlight-id {
   font-size: 18px;
   text-align: center;
 }
-
-#childrenButton{
-  background-color: white;
-  color: #1a85c3;
-  font-size: 18px;
-  font-weight: 500;
-  padding: 0px;
-  width: 80%;
-  text-decoration: underline;
-}
-
-.tree-node {
-  cursor: pointer;
-  pointer-events: none;
-}
-
-.tree-wrapper {
-  display: flex;
-  justify-content: center;  /* Center horizontally */
-  align-items: center;      /* Center vertically */
-  overflow: hidden;
-}
-
-.tree-container {
-  position: relative;       /* Allows absolute positioning of the tree */
-  max-width: 100%;          /* Limit maximum width */
-  height: 100%;         /* Limit maximum height */
-  display: block;    /* Adjust the size to the content */
-  overflow: hidden;         /* Prevent scrolling inside the tree */
-  pointer-events: none;
-  transition: transform 0.3s ease;
-}
-
-.tree-container .tree {
-  position: absolute;  /* Fix the tree in place */
-  top: 0;              /* Or set the desired top offset */
-  left: 0;             /* Or set the desired left offset */
-  pointer-events: auto; /* Enable interactions with the tree itself */
-}
-
-.menu-toggle {
-  display: none !important;
-  background-color: #007bff;
-}
-
 
 
 body.dark-mode .search-header,
@@ -352,7 +312,13 @@ body.dark-mode td{
   width: 20px;
   height: 20px;
   animation: spin 1s linear infinite;
-}
+}.tipsFooter{
+    text-align: center;
+    padding: 0;
+    width: 100%;
+    display: block;
+    padding: 4px 2px;
+  }
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
@@ -452,10 +418,16 @@ body.dark-mode td{
     display: block;
     width: 100%;
   }
-
+  .choiceButton{
+    font-size: 12px;
+    text-align: center;
+    padding: 2px 8px;
+    width: 60%;
+    font-family: "Cairo";
+  }
 }
 
-@media screen and (min-width: 768px) {
+@media screen and (max-width: 768px) {
   .search-page {
     padding: 1px !important; 
   }
@@ -555,7 +527,24 @@ body.dark-mode td{
     padding: 4px;
     font-family: "Cairo";
   }
-
+  .multiple-matches table td{
+    font-size: 12px;
+    padding: 1px;
+  }
+  .multiple-matches table th{
+    font-size: 12px;
+    padding: 1px;
+  }
+  .duplicated-table #index{
+    display: none;
+  }
+  .choiceButton{
+    font-size: 12px;
+    text-align: center;
+    padding: 2px 8px;
+    width: 60%;
+    font-family: "Cairo";
+  }
   
 }
 
@@ -566,7 +555,23 @@ body.dark-mode td{
     background-color: var(--header-bg-color); /* Use your theme variable */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
-
+  .multiple-matches table td{
+    font-size: 12px;
+    padding: 1px;
+  }
+  .multiple-matches table th{
+    font-size: 12px;
+    padding: 1px;
+  }
+  .duplicated-table #index{
+    display: none;
+  }
+  .choiceButton{
+    font-size: 12px;
+    text-align: center;
+    padding: 2px 8px;
+    width: 60%;
+  }
   .header-top {
     display: flex;
     flex-direction: column;
@@ -690,6 +695,7 @@ body.dark-mode td{
   .view-toggle-buttons button{
     font-size: 16px;
     padding: 2px;
+    
   }
   .person-side-table td, .person-side-table th{
     font-size: 15px;

@@ -5,7 +5,7 @@ import neo4j from 'neo4j-driver';
 import * as utils from '../utils/utils';
 import usePageTracking from '../utils/trackers';
 
-const ROOT = 137;
+const ROOT = 203;
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
 const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;
@@ -66,12 +66,12 @@ const fetchFamilyTree = async (type) => {
       WHERE id(root) = $rootID
       CALL {
         WITH root
-        MATCH (root)-[:FATHER_OF*]->(descendant)
+        MATCH (root)-[:FATHER_OF|MOTHER_OF*0..]->(descendant)
         RETURN collect(DISTINCT descendant) AS allDescendants
       }
       WITH root, allDescendants
       UNWIND [root] + allDescendants AS person
-      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(child)
+      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF*0..]->(child)
       WITH person, collect(child) AS children
       RETURN {
         id: id(person),
@@ -123,61 +123,77 @@ const fetchFamilyTree = async (type) => {
   }
 };
 
-const formatFamilyTreeData = (person) => {
-  const children = person.children && person.children.length > 0
-    ? person.children.map(formatFamilyTreeData) // Recursively format children
-    : [];
+
+const buildTreeSafe = (person, childMap, seen = new Set()) => {
+  if (!person || seen.has(person.id)) {
+    return null;
+  }
+  seen.add(person.id);
+  const translatedName = utils.translateName(person.name);
+  
+  const rawChildren = childMap[person.id] || [];
+
+  const childrenNodes = rawChildren
+    .map(child => {
+      const childTranslatedName = utils.translateName(child.name);
+      const childObj = {
+        id: child.id,
+        name: child.name,
+        gender: child.gender,
+      };
+
+      return buildTreeSafe(childObj, childMap, seen);
+    })
+    .filter(Boolean);
 
   return {
-    name: `${person.name} ${person.lastName}`,
-    children: children // Include children for each person
+    id: person.id,
+    name: translatedName,
+    gender: person.gender,
+    ...(childrenNodes.length > 0 ? { children: childrenNodes } : {})
   };
 };
 
-const getChildrenOfFather = (fatherId, allPeople) => {
-  const father = allPeople.filter(father => father.id === fatherId)[0];  
-  return father && father.children ? father.children : [];  
-};
-
-const buildTree = (person, allPeople) => {
-  if (!person) return null;
-
-  const children = getChildrenOfFather(person.id, allPeople)
-    .map(child => buildTree(child, allPeople))
-    .filter(Boolean); 
-
-    
-    return {
-      id: person.id,
-      name: utils.translateName(person.name),
-      gender: person.gender,
-      children: children.length > 0 ? children : undefined,
-    };
+const buildChildrenMap = (allPeople) => {
+  const childMap = Object.create(null);
+  allPeople.forEach(person => {
+    childMap[ person.id ] = person.children || [];
+  });
+  return childMap;
 };
 
 const getGenderbyID = async (personID) => {
   const session = driver.session();
   try {
-    // Fix the parameter name to match the query variable
     const result = await session.run(
       `MATCH (p:Person) WHERE id(p) = $personId 
       RETURN p.gender AS gender`,
-      { personId: personID } // Ensure the key matches the query's parameter
+      { personId: personID }
     );
     
     if (result.records.length > 0) {
       const gender = result.records[0].get('gender');
-      return gender; // Return the gender value
+      return gender;
     } else {
       console.log(`No person found with the ID ${personID}`);
-      return null; // Return null when no person is found
+      return null; 
     }
   } catch (error) {
     console.error('Error retrieving gender:', error);
-    return null; // Return null in case of an error
+    return null;
   } finally {
-    await session.close(); // Always close the session after the query
+    await session.close();
   }
+};
+
+const getTreeDepth = (node) => {
+  if (!node || !node.children || node.children.length === 0) return 1;
+  return 1 + Math.max(...node.children.map(getTreeDepth));
+};
+const countTreeNodes = (node) => {
+  if (!node) return 0;
+  const children = node.children || [];
+  return 1 + children.reduce((sum, child) => sum + countTreeNodes(child), 0);
 };
 
 const FamilyTree = ({ searchQuery }) => {
@@ -191,7 +207,8 @@ const FamilyTree = ({ searchQuery }) => {
   const nodePositions = useRef({});
   const [personID, setPersonID] = useState(null);
   const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
-  
+  const [treeCount, setTreeCount] = useState(0);
+  const [treeDepth, setTreeDepth] = useState(0);
   usePageTracking();
   const goToPersonById = async (personId) => {
     const coords = nodePositions.current[personId];
@@ -297,27 +314,39 @@ const FamilyTree = ({ searchQuery }) => {
   const handleRootWomenTreeClick = async () =>{
     loadFamilyTree(ROOT, false)
   };
-  
-  const loadFamilyTree = async (rootID, type) => {
 
-    try {
-      setLoading(true);
+  const loadFamilyTree = async (rootID, type) => {
+  try {
+    setLoading(true);
       const people = await fetchFamilyTree(type);
-      console.log(people);
-      if (Array.isArray(people) && people.length > 0) {
-        const rootPerson = people.find((p) => p.id === rootID);
-        const treeData = buildTree(rootPerson, people);
-        console.log(treeData);
-        setFamilyTree(treeData);
-        setShowTree(true);
-        
-        setLoading(false);
-      } else {
+      
+      if (!Array.isArray(people) || people.length === 0) {
         console.warn("Empty or invalid people data");
+        return;
       }
+      const childrenMap = buildChildrenMap(people);
+      const rootPersonFlat = people.find(p => p.id === rootID);
+      if (!rootPersonFlat) {
+        console.warn(`Root ID ${rootID} not found in fetched people.`);
+        return;
+      }
+      const rootWrapped = {
+        id: rootPersonFlat.id,
+        name: rootPersonFlat.name,
+        gender: rootPersonFlat.gender
+      };
+
+      const fullTree = buildTreeSafe(rootWrapped, childrenMap, new Set());
+      setFamilyTree(fullTree);
+      setShowTree(true);
+      const nodeCount = countTreeNodes(fullTree);
+      const maxDepth = getTreeDepth(fullTree);
+      setTreeCount(countTreeNodes(fullTree));
+      setTreeDepth(maxDepth);
+
     } catch (error) {
       console.error("Error loading family tree:", error);
-    } finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -404,13 +433,15 @@ const FamilyTree = ({ searchQuery }) => {
 
       {showTree && familyTree && (
         <div id="treeWrapper" ref={treeContainerRef}>
+          <p>مجموع الأشخاص في هذه الشجرة : {treeCount}</p>
+          <p>عدد الأجيال في هذه الشجرة : {treeDepth}</p>
           <Tree
             data={familyTree}
             orientation="vertical"
             pathFunc="step"
             translate={translate}
-            nodeSize={{ x: 100, y: 100 }}
-            separation={{ siblings: 1.5, nonSiblings: 1.5 }}
+            nodeSize={{ x: 110, y: 150 }}
+            separation={{ siblings: 1.1, nonSiblings: 1 }}
             renderCustomNodeElement={({ nodeDatum, hierarchyPointNode }) => {
               nodePositions.current[nodeDatum.id] = {
                 x: hierarchyPointNode.x,
@@ -439,8 +470,8 @@ const FamilyTree = ({ searchQuery }) => {
                   </defs>
 
                   <rect
-                    x="-60" y="-25"
-                    width="120" height="50"
+                    x="-50" y="-25"
+                    width="100" height="50"
                     rx="10" ry="10"
                     fill={`url(#grad-${nodeDatum.id})`}
                     stroke="#333"

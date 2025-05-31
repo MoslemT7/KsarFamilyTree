@@ -200,7 +200,10 @@ const RelationPage = () => {
         gender2: result.gender2,
         ancestorGender: result.ancestorGender
       });
-      setFocusAfterLoadId(result.ancestor.ancestorID);
+      if (result.ancestor){
+        setFocusAfterLoadId(result.ancestor.ancestorID);
+      }
+      
     } catch (error) {
       console.error('❌ Error fetching relationship:', error);
       setRelationship({ relationshipDescription: 'حدث خطأ أثناء البحث', relationshipScore: null });

@@ -511,7 +511,7 @@ const SearchPage = () => {
             <table className='duplicated-table'>
               <thead>
                 <tr>
-                  <th>الترتيب</th>
+                  <th id="index">الترتيب</th>
                   <th>الإسم</th>
                   <th>إسم الأب</th>
                   <th>إسم الجدّ</th>
@@ -527,8 +527,9 @@ const SearchPage = () => {
                   <tr 
                     key={index} 
                     onClick={() => handlePersonSelect(person)}
+                    
                   >
-                    <td>{index + 1}</td>
+                    <td id="index">{index + 1}</td>
                     <td>{utils.translateName(person.personName)}</td>
                     <td>{person.fatherName ? ` ${utils.translateName(person.fatherName)}` : ''}</td>
                     <td>{person.grandfatherName ? ` ${utils.translateName(person.grandfatherName)}` : ''}</td>

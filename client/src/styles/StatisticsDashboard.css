@@ -131,30 +131,6 @@
   }
 }
 
-#men {
-  background: linear-gradient(135deg, #2196F3, #0D47A1);
-  border: 2px solid #0D47A1;
-  
-}
-
-
-/* Unique Style for Women */
-#women {
-  background: linear-gradient(135deg, #E91E63, #880E4F);
-  border: 2px solid #880E4F;
-}
-
-/* Men card text color */
-#men h4,
-#men p {
-  color: #BBDEFB; /* light blue */
-}
-
-/* Women card text color */
-#women h4,
-#women p {
-  color: #F8BBD0; /* light pink */
-}
 
 .average-marriage-card {
   background: linear-gradient(135deg, #cfd9df, #e2ebf0);
@@ -748,7 +724,7 @@ body.dark-mode .category-title{
     margin: 0;
   }
   .stats-dashboard p{
-    padding: 0;
+    padding: 2px 8px;
     margin: 0;
     font-size: 14px;
     text-align: justify;
@@ -871,9 +847,11 @@ body.dark-mode .category-title{
     font-size: 34zpx;
     margin-bottom: 4px;
   }
-
+  .percentageText{
+    font-size: 26px;
+  }
   .important-info {
-    margin-top: 30px;
+    margin-top: 26px;
   }
 
   .important-info h2 {
@@ -881,7 +859,7 @@ body.dark-mode .category-title{
   }
 
   .cta-section {
-    padding: 15px;
+    padding: 12px;
   }
 
   .cta-content h2 {
@@ -891,7 +869,10 @@ body.dark-mode .category-title{
   .cta-content p {
     font-size: 14px;
   }
-  
+  .data-completeness-card{
+    padding: 8px;
+    text-align: center;
+  }
 }
 
 @media (min-width: 481px) and (max-width: 1024px) {
