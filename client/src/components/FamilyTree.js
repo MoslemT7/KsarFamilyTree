@@ -42,7 +42,7 @@ const fetchFamilyTree = async (type) => {
       WHERE id(root) = $rootID
       CALL {
         WITH root
-        MATCH (root)-[:FATHER_OF*]->(descendant)
+        MATCH (root)-[:FATHER_OF]->(descendant)
         RETURN collect(DISTINCT descendant) AS allDescendants
       }
       WITH root, allDescendants
@@ -68,7 +68,7 @@ const fetchFamilyTree = async (type) => {
       WHERE id(root) = $rootID
       CALL {
         WITH root
-        MATCH (root)-[:FATHER_OF|MOTHER_OF*0..]->(descendant)
+        MATCH (root)-[:FATHER_OF|MOTHER_OF*]->(descendant)
         RETURN collect(DISTINCT descendant) AS allDescendants
       }
       WITH root, allDescendants
@@ -134,11 +134,11 @@ const fetchSpecifiedFamilyTree = async (rootID) => {
     MATCH (start:Person) WHERE id(start) = $rootID
 
     // Collect ancestors: persons on path from root ancestor to start
-    OPTIONAL MATCH pathUp = (ancestor:Person)-[:FATHER_OF*0..]->(start)
+    OPTIONAL MATCH pathUp = (ancestor:Person)-[:FATHER_OF]->(start)
     WITH collect(DISTINCT ancestor) AS ancestors, start
 
     // Collect descendants: persons on path down from start
-    OPTIONAL MATCH pathDown = (start)-[:FATHER_OF*0..]->(descendant:Person)
+    OPTIONAL MATCH pathDown = (start)-[:FATHER_OF*]->(descendant:Person)
     WITH ancestors, collect(DISTINCT descendant) AS descendants, start
 
     // Combine all relevant persons: ancestors + start + descendants
@@ -147,7 +147,7 @@ const fetchSpecifiedFamilyTree = async (rootID) => {
     UNWIND lineage AS person
 
     // Get children of each person only if they are in lineage (to avoid unrelated children)
-    OPTIONAL MATCH (person)-[:FATHER_OF]->(child:Person)
+    OPTIONAL MATCH (person)-[:FATHER_OF*]->(child:Person)
     WHERE child IN lineage
 
     WITH person, collect(child) AS rawChildren
@@ -226,7 +226,7 @@ const buildTreeSafe = (person, childMap, seen = new Set(), generation = 0) => {
     name: translatedName,
     lastName: translatedLastName,
     gender: person.gender,
-    generation, // <-- Add generation here
+    generation,
     ...(childrenNodes.length > 0 ? { children: childrenNodes } : {})
   };
 };
@@ -285,7 +285,7 @@ const countTreeNodes = (node) => {
   return 1 + children.reduce((sum, child) => sum + countTreeNodes(child), 0);
 };
 
-const FamilyTree = ({ searchQuery }) => {
+const FamilyTree = () => {
   const treeContainerRef = useRef(null);
   const [familyTree, setFamilyTree] = useState(null);
   const [husbandId, setHusbandId] = useState(null);
@@ -308,6 +308,217 @@ const FamilyTree = ({ searchQuery }) => {
   const [maxGeneration, setMaxGeneration] = useState(0); // total generations available
   const [selectedGeneration, setSelectedGeneration] = useState(null);
   const [currentHintIndex, setCurrentHintIndex] = React.useState(0);
+  const [personDetails, setPersonDetails] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchedPersonID, setSearchedPersonID] = useState('');
+
+  const handleSearchSubmit = async () => {
+    setSearchedPersonID(null);
+    setPersonDetails(null);
+    if (!searchQuery.trim()) {
+      setPersonDetails(null);
+      return;
+    }
+    await searchPerson(searchQuery.trim());
+  };
+  const searchPerson = async (searchText) => {
+  const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
+  setLoading(true); // Ensure loading starts here
+
+  let translatedInputName = utils.translateName(searchText, false);
+  const {
+    personName,
+    fatherName,
+    grandfatherName,
+    familyName,
+  } = utils.splitName(translatedInputName);
+
+  if (!personName) {
+    setPersonDetails(null);
+    setLoading(false);
+    return;
+  }
+
+  const translatedpersonName = isArabic(personName) ? utils.translateName(personName, false) : personName;
+  const translatedfatherName = isArabic(fatherName) ? utils.translateName(fatherName, false) : fatherName;
+  const translatedgrandfatherName = isArabic(grandfatherName) ? utils.translateName(grandfatherName, false) : grandfatherName;
+  const translatedfamilyName = isArabic(familyName) ? utils.translateFamilyName(familyName, false) : familyName;
+
+  let cypherQuery = ``;
+  const queryParamsObject = { personName: translatedpersonName };
+
+if (translatedfatherName) {
+  queryParamsObject.fatherName = translatedfatherName;
+
+  if (translatedgrandfatherName) {
+    queryParamsObject.grandfatherName = translatedgrandfatherName;
+
+    if (translatedfamilyName) {
+      queryParamsObject.familyName = translatedfamilyName;
+      cypherQuery = `
+        MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+        WHERE child.name = $personName AND father.name = $fatherName AND grandfather.name = $grandfatherName AND child.lastName = $familyName
+        WITH DISTINCT child, father, grandfather
+        RETURN 
+          id(child) AS childID,
+          child.name AS childName, 
+          child.YoB AS childYoB, 
+          child.gender AS childGender,
+          father.name AS fatherName, 
+          grandfather.name AS grandfatherName,
+          child.lastName AS familyName
+      `;
+    } else {
+      cypherQuery = `
+        MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+        WHERE child.name = $personName AND father.name = $fatherName AND grandfather.name = $grandfatherName
+        WITH DISTINCT child, father, grandfather
+        RETURN 
+          id(child) AS childID,
+          child.name AS childName, 
+          child.YoB AS childYoB, 
+          child.gender AS childGender,
+          father.name AS fatherName, 
+          grandfather.name AS grandfatherName,
+          child.lastName AS familyName
+      `;
+    }
+
+  } else {
+    if (translatedfamilyName) {
+      queryParamsObject.familyName = translatedfamilyName;
+      cypherQuery = `
+        MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+        WHERE child.name = $personName AND father.name = $fatherName AND child.lastName = $familyName
+        OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+        WITH DISTINCT child, father, grandfather
+        RETURN 
+          id(child) AS childID,
+          child.name AS childName, 
+          child.YoB AS childYoB, 
+          child.gender AS childGender,
+          father.name AS fatherName, 
+          grandfather.name AS grandfatherName,
+          child.lastName AS familyName
+      `;
+    } else {
+      cypherQuery = `
+        MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+        WHERE child.name = $personName AND father.name = $fatherName
+        OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+        WITH DISTINCT child, father, grandfather
+        RETURN 
+          id(child) AS childID,
+          child.name AS childName, 
+          child.YoB AS childYoB, 
+          child.gender AS childGender,
+          father.name AS fatherName, 
+          grandfather.name AS grandfatherName,
+          child.lastName AS familyName
+      `;
+    }
+  }
+
+} else {
+  if (translatedfamilyName) {
+    queryParamsObject.familyName = translatedfamilyName;
+    cypherQuery = `
+      MATCH (child:Person)
+      WHERE child.name = $personName AND child.lastName = $familyName
+      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
+      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+      WITH DISTINCT child, father, grandfather
+      RETURN 
+        id(child) AS childID,
+        child.name AS childName, 
+        child.YoB AS childYoB, 
+        child.gender AS childGender,
+        father.name AS fatherName, 
+        grandfather.name AS grandfatherName,
+        child.lastName AS familyName
+    `;
+  } else {
+    cypherQuery = `
+      MATCH (child:Person)
+      WHERE child.name = $personName
+      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
+      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+      WITH DISTINCT child, father, grandfather
+      RETURN 
+        id(child) AS childID,
+        child.name AS childName, 
+        child.YoB AS childYoB, 
+        child.gender AS childGender,
+        father.name AS fatherName, 
+        grandfather.name AS grandfatherName,
+        child.lastName AS familyName
+    `;
+  }
+}
+
+
+
+  const session = driver.session();
+  try {
+    const result = await session.run(cypherQuery, queryParamsObject);
+
+    if (result.records.length === 0) {
+      setPersonDetails(null);
+    } else if (result.records.length === 1) {
+      const record = result.records[0];
+      const YoB = record.get('childYoB');
+      const age = YoB ? new Date().getFullYear() - YoB : -1;
+
+      const personDetails = {
+        personID: record.get('childID')?.toNumber() ?? null,
+        personName: record.has('childName') ? record.get('childName') : "غير متوفر",
+        fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
+        grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر",
+        familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر",
+        gender: record.has('childGender') ? record.get('childGender') : "غير متوفر",
+        YoB: record.has('childYoB') ? record.get('childYoB') : null,
+        age: record.has('childYoB') && record.get('childYoB')
+          ? new Date().getFullYear() - record.get('childYoB')
+          : -1,
+      };
+
+
+      setPersonDetails(personDetails);
+    } 
+    else {
+      const multipleMatches = result.records.map((record) => {
+        const YoB = record.get('childYoB');
+        const age = YoB ? new Date().getFullYear() - YoB : -1;
+
+        return {
+          personID: record.get('childID')?.toNumber() ?? null,
+          personName: record.has('childName') ? record.get('childName') : "غير متوفر",
+          fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
+          grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر",
+          familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر",
+          gender: record.has('childGender') ? record.get('childGender') : "غير متوفر",
+          YoB: record.has('childYoB') ? record.get('childYoB') : null,
+          age: record.has('childYoB') && record.get('childYoB')
+            ? new Date().getFullYear() - record.get('childYoB')
+            : -1,
+        };
+      });
+
+      setPersonDetails({ multipleMatches });
+    }
+  } catch (err) {
+    console.error('Query Error:', err);
+    setPersonDetails(null);
+  } finally {
+    await session.close();
+    setLoading(false);
+  }
+};
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
   const hints = [
     // Tree-related
     "هل تعلم؟ يمكنك تكبير الشجرة لرؤية المزيد من أفراد العائلة!",
@@ -321,7 +532,6 @@ const FamilyTree = ({ searchQuery }) => {
     "تلميح: صفحة الإحصائيات تعرض لك معلومات مفصلة عن أجيال وأفراد العائلة.",
     "معلومة: يمكنك إضافة ملاحظات خاصة لكل فرد في صفحة التفاصيل لزيادة الفهم.",
   ];
-
   
   useEffect(() => {
     if (!loading) return;
@@ -406,7 +616,7 @@ const FamilyTree = ({ searchQuery }) => {
   const handleIDPersonSearch = async () => {
     const inputID = document.getElementById('personsearchName').value;
     const personID = parseInt(inputID, 10);
-    setPersonID(personID);
+
     if (isNaN(personID)) {
       alert("❗ الرجاء إدخال رقم صحيح للشخص.");
       return;
@@ -463,9 +673,8 @@ const FamilyTree = ({ searchQuery }) => {
     }
   };
 
-  const handlePersonTreeDisplay = async () => {
-    const inputID = document.getElementById('rootID').value;
-    const ID = parseInt(inputID, 10);
+  const handlePersonTreeDisplay = async (personID) => {
+    const ID = parseInt(personID, 10);
 
     if (isNaN(ID)) {
       alert("❗ الرجاء إدخال رقم صحيح للشخص.");
@@ -475,7 +684,7 @@ const FamilyTree = ({ searchQuery }) => {
   };
 
   const handleRootTreeClick = async () => {
-    await loadFamilyTree(ROOT, true); // assuming it’s async
+    await loadFamilyTree(ROOT, 'fullLineage', true);
     setFocusAfterLoadId(ROOT);
   };
 
@@ -491,9 +700,10 @@ const FamilyTree = ({ searchQuery }) => {
       if (mode === 'fullLineage') {
         people = await fetchSpecifiedFamilyTree(rootID);
       } else {
-        people = await fetchFamilyTree(type);
+        people = await fetchFamilyTree(type, true);
+        console.log(people);
       }
-
+      
       if (!Array.isArray(people) || people.length === 0) {
         console.warn("Empty or invalid people data");
         return;
@@ -509,9 +719,9 @@ const FamilyTree = ({ searchQuery }) => {
           return;
         }
 
-        const filteredTree = applyFilters(partialTree[0]);
+        const filteredTree = applyFilters(partialTree);
         setFamilyTree(filteredTree);
-
+        
         const nodeCount = countTreeNodes(partialTree);
         const maxDepth = getTreeDepth(partialTree);
         setTreeCount(nodeCount);
@@ -532,9 +742,9 @@ const FamilyTree = ({ searchQuery }) => {
         };
 
         const fullTree = buildTreeSafe(rootWrapped, childrenMap, new Set());
-        const filteredTree = applyFilters(fullTree);
-        console.log(filteredTree);
-        setFamilyTree(filteredTree);
+        // const filteredTree = applyFilters(fullTree);
+        console.log(fullTree);
+        setFamilyTree(fullTree);
 
         const nodeCount = countTreeNodes(fullTree);
         const maxDepth = getTreeDepth(fullTree);
@@ -750,10 +960,65 @@ const FamilyTree = ({ searchQuery }) => {
           <p className="info-text">
             للحصول على رقم الهوية، استخدم صفحة <a href="/search" target="_blank" style={{ color: '#007bff' }}>البحث</a>، ثم انسخ الرقم الظاهر فوق الاسم والصقه هنا.
           </p>
-          <input id="rootID" type="number" placeholder="أدخل رقم الشخص" />
-          <button className="btn-person" onClick={handlePersonTreeDisplay}>
+          <input id="rootID" type="text" placeholder="أدخل رقم الشخص" onChange={handleSearchChange}/>
+          <button className="btn-person" onClick={handleSearchSubmit}>
             شجرة ابتداءً من شخص
           </button>
+          {personDetails ? (
+            personDetails.multipleMatches && personDetails.multipleMatches.length > 1 ? (
+              // Multiple matches modal
+              <div className="modal-overlay">
+                <div className="modal-content multiple-matches">
+                  <h2>نتائج متعددة:</h2>
+                  <table className="duplicated-table">
+                    <thead>
+                      <tr>
+                        <th>الرقم التسلسلي</th>
+                        <th>الإسم</th>
+                        <th>إسم الأب</th>
+                        <th>إسم الجدّ</th>
+                        <th>اللقب</th>
+                        <th>العمر</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {personDetails.multipleMatches.map((person, index) => (
+                        <tr key={index}>
+                          <td>{person.personID}</td>
+                          <td>{utils.translateName(person.personName)}</td>
+                          <td>{person.fatherName ? utils.translateName(person.fatherName) : ''}</td>
+                          <td>{person.grandfatherName ? utils.translateName(person.grandfatherName) : ''}</td>
+                          <td>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
+                          <td>{person.age !== -1 ? person.age : ' - '}</td>
+                          <td>
+                            <button
+                              className="choiceButton"
+                              onClick={async () => {
+                                await handlePersonTreeDisplay(person.personID);
+                                setPersonDetails(null);
+                              }}
+                            >
+                              إختيار
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <button onClick={() => setPersonDetails(null)}>إغلاق</button>
+                </div>
+              </div>
+            ) : (
+              // Single unique match - show tree directly
+              <>
+                {handlePersonTreeDisplay(personDetails.personID)}
+                {/* You may want to reset personDetails after displaying tree */}
+                {setPersonDetails(null)}
+              </>
+            )
+          ) : null}
+
         </div>
 
         {/* Card R3 */}

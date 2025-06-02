@@ -478,7 +478,7 @@ const SearchPage = () => {
           <button className="search-button" onClick={handleSearchSubmit}>ابحث</button>
           <button className='reset-button' onClick={handleResetPerson}>إلغاء</button>
         </div>
-        
+      
       </header>
 
       {error && <div className="error-message">{error}</div>}
