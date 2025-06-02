@@ -148,6 +148,7 @@ body {
   padding: 40px 20px 20px;
   font-family: 'Cairo', sans-serif;
   margin-top: auto;
+  direction: ltr;
 }
 
 .footer-container {
@@ -229,8 +230,6 @@ body.dark-mode .sidebar ul li a {
   .logo { margin: 0 auto 10px; }
   .title h1 { font-size: 24px; }
   .title h2 { font-size: 12px; }
-
-  .sidebar { /* keep off-canvas */ }
   .sidebar.open ~ .overlay { display: block; }
   .sidebar.open ul li a{
     font-size: 14px;

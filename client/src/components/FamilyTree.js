@@ -4,6 +4,7 @@ import '../styles/FamilyTree.css';
 import neo4j from 'neo4j-driver';
 import * as utils from '../utils/utils';
 import usePageTracking from '../utils/trackers';
+import { FiMaximize, FiMinimize } from 'react-icons/fi';
 
 const ROOT = 203;
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
@@ -56,6 +57,7 @@ const fetchFamilyTree = async (type) => {
         children: [child IN children | {
           id: id(child),
           name: child.name,
+          familyName: child.lastName,
           gender: child.gender,
           lastName: child.lastName
         }]
@@ -71,15 +73,17 @@ const fetchFamilyTree = async (type) => {
       }
       WITH root, allDescendants
       UNWIND [root] + allDescendants AS person
-      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF*0..]->(child)
+      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(child)
       WITH person, collect(child) AS children
       RETURN {
         id: id(person),
         name: person.name,
         lastName: person.lastName,
+        gender: person.gender,
         children: [child IN children | {
           id: id(child),
           name: child.name,
+          familyName: child.lastName,
           gender: child.gender,
           lastName: child.lastName
         }]
@@ -123,33 +127,106 @@ const fetchFamilyTree = async (type) => {
   }
 };
 
+const fetchSpecifiedFamilyTree = async (rootID) => {
+  const session = driver.session();
+  try {
+    const query = `
+    MATCH (start:Person) WHERE id(start) = $rootID
 
-const buildTreeSafe = (person, childMap, seen = new Set()) => {
+    // Collect ancestors: persons on path from root ancestor to start
+    OPTIONAL MATCH pathUp = (ancestor:Person)-[:FATHER_OF*0..]->(start)
+    WITH collect(DISTINCT ancestor) AS ancestors, start
+
+    // Collect descendants: persons on path down from start
+    OPTIONAL MATCH pathDown = (start)-[:FATHER_OF*0..]->(descendant:Person)
+    WITH ancestors, collect(DISTINCT descendant) AS descendants, start
+
+    // Combine all relevant persons: ancestors + start + descendants
+    WITH apoc.coll.toSet(ancestors + descendants + [start]) AS lineage
+
+    UNWIND lineage AS person
+
+    // Get children of each person only if they are in lineage (to avoid unrelated children)
+    OPTIONAL MATCH (person)-[:FATHER_OF]->(child:Person)
+    WHERE child IN lineage
+
+    WITH person, collect(child) AS rawChildren
+
+    // Filter out null children explicitly
+    WITH person, [c IN rawChildren WHERE c IS NOT NULL] AS children
+
+    RETURN {
+      id: id(person),
+      name: person.name,
+      gender: person.gender,
+      lastName: person.lastName,
+      children: [child IN children | {
+        id: id(child),
+        name: child.name,
+        gender: child.gender,
+        lastName: child.lastName
+      }]
+    } AS treeNode
+    ORDER BY person.name
+
+
+    `;
+
+    const result = await session.run(query, { rootID: Number(rootID) });
+
+    const familyTree = result.records.map(record => {
+      const node = record.get('treeNode');
+      return {
+        id: Number(node.id),
+        name: node.name,
+        gender: node.gender,
+        lastName: node.lastName,
+        children: node.children.map(child => ({
+          id: Number(child.id),
+          name: child.name,
+          gender: child.gender,
+          lastName: child.lastName
+        }))
+      };
+    });
+
+    return familyTree;
+  } catch (error) {
+    console.error('Error fetching full family tree:', error);
+    return [];
+  } finally {
+    session.close();
+  }
+};
+
+const buildTreeSafe = (person, childMap, seen = new Set(), generation = 0) => {
   if (!person || seen.has(person.id)) {
     return null;
   }
   seen.add(person.id);
-  const translatedName = utils.translateName(person.name);
   
-  const rawChildren = childMap[person.id] || [];
+  const translatedName = utils.translateName(person.name);
+  const translatedLastName = utils.translateFamilyName(person.lastName);
+  const rawChildren = (childMap[person.id] || []).filter(child => child !== null);
 
   const childrenNodes = rawChildren
     .map(child => {
-      const childTranslatedName = utils.translateName(child.name);
       const childObj = {
         id: child.id,
         name: child.name,
+        lastName: child.lastName,
         gender: child.gender,
       };
-
-      return buildTreeSafe(childObj, childMap, seen);
+      return buildTreeSafe(childObj, childMap, seen, generation + 1);
     })
     .filter(Boolean);
 
   return {
     id: person.id,
     name: translatedName,
+    lastName: translatedLastName,
     gender: person.gender,
+    generation, // <-- Add generation here
     ...(childrenNodes.length > 0 ? { children: childrenNodes } : {})
   };
 };
@@ -162,34 +239,46 @@ const buildChildrenMap = (allPeople) => {
   return childMap;
 };
 
-const getGenderbyID = async (personID) => {
-  const session = driver.session();
-  try {
-    const result = await session.run(
-      `MATCH (p:Person) WHERE id(p) = $personId 
-      RETURN p.gender AS gender`,
-      { personId: personID }
-    );
-    
-    if (result.records.length > 0) {
-      const gender = result.records[0].get('gender');
-      return gender;
-    } else {
-      console.log(`No person found with the ID ${personID}`);
-      return null; 
-    }
-  } catch (error) {
-    console.error('Error retrieving gender:', error);
+const buildPartialTree = (person, childMap, targetID, seen = new Set()) => {
+  if (!person || seen.has(person.id)) {
     return null;
-  } finally {
-    await session.close();
   }
+  seen.add(person.id);
+
+  const translatedName = utils.translateName(person.name);
+  const translatedLastName = utils.translateFamilyName(person.lastName);
+  const rawChildren = childMap[person.id] || [];
+
+  const childrenNodes = rawChildren
+    .map(child => {
+      if (person.id === targetID) {
+        return buildTreeSafe(child, childMap, seen);  
+      }
+
+      const subtree = buildPartialTree(child, childMap, targetID, seen);
+      return subtree;
+    })
+    .filter(Boolean);
+
+  if (person.id === targetID || childrenNodes.length > 0) {
+    return {
+      id: person.id,
+      name: translatedName,
+      lastName: translatedLastName,
+      gender: person.gender,
+      ...(childrenNodes.length > 0 ? { children: childrenNodes } : {})
+    };
+  }
+
+  // Otherwise prune this node out (not on path)
+  return null;
 };
 
 const getTreeDepth = (node) => {
   if (!node || !node.children || node.children.length === 0) return 1;
   return 1 + Math.max(...node.children.map(getTreeDepth));
 };
+
 const countTreeNodes = (node) => {
   if (!node) return 0;
   const children = node.children || [];
@@ -202,14 +291,94 @@ const FamilyTree = ({ searchQuery }) => {
   const [husbandId, setHusbandId] = useState(null);
   const [wifeId, setWifeId] = useState(null);
   const [showTree, setShowTree] = useState(true);
-  const [loading, setLoading] = useState(true);  
+  const [loading, setLoading] = useState(false);  
   const [translate, setTranslate] = useState({x : 0, y : 0});
   const nodePositions = useRef({});
   const [personID, setPersonID] = useState(null);
   const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
   const [treeCount, setTreeCount] = useState(0);
   const [treeDepth, setTreeDepth] = useState(0);
+  const [spouseId, setSpouseId] = useState(null);
+  const [popupMode, setPopupMode] = useState('info'); // 'info' or 'spouse'
+  const [showPopup, setShowPopup] = useState(false);
+  const [selectedPerson, setSelectedPerson] = useState(null);
+  const [selectedBranch, setSelectedBranch] = useState(null);
+  const [selectedSubtree, setSelectedSubtree] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [maxGeneration, setMaxGeneration] = useState(0); // total generations available
+  const [selectedGeneration, setSelectedGeneration] = useState(null);
+  const [currentHintIndex, setCurrentHintIndex] = React.useState(0);
+  const hints = [
+    // Tree-related
+    "هل تعلم؟ يمكنك تكبير الشجرة لرؤية المزيد من أفراد العائلة!",
+    "نصيحة: اضغط على أي شخص لرؤية تفاصيله الدقيقة.",
+    "تلميح: استخدم شريط الأجيال للتنقل بين الأجيال المختلفة بسهولة.",
+    "معلومة: يمكنك سحب الشجرة وتحريكها بحرية لاستكشاف أجزائها.",
+
+    // Other pages
+    "هل تعلم؟ صفحة البحث عن العلاقات تساعدك في معرفة الروابط بين أفراد العائلة.",
+    "نصيحة: استخدم عداد السكان لمعرفة عدد أفراد قبيلتك في الوقت الحقيقي.",
+    "تلميح: صفحة الإحصائيات تعرض لك معلومات مفصلة عن أجيال وأفراد العائلة.",
+    "معلومة: يمكنك إضافة ملاحظات خاصة لكل فرد في صفحة التفاصيل لزيادة الفهم.",
+  ];
+
+  
+  useEffect(() => {
+    if (!loading) return;
+
+    const interval = setInterval(() => {
+      setCurrentHintIndex((prev) => {
+        let next;
+        do {
+          next = Math.floor(Math.random() * hints.length);
+        } while (next === prev); 
+        return next;
+      });
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  const [filters, setFilters] = useState({
+    gender: 'all',       // 'all', 'Male', 'Female'
+    maxDepth: null,      // e.g. 3 limits tree to 3 generations
+    showOnlyWithChildren: false,
+    showOnlyAlive: false,
+    customSearch: ''     // by name or last name
+  });
   usePageTracking();
+  function GenerationRuler({ maxGeneration, selectedGeneration, onGenerationClick }) {
+    return (
+      <div className='genBar'>
+        {[...Array(maxGeneration)].map((_, i) => {
+          const genNum = i;
+          const isActive = genNum === selectedGeneration;
+          return (
+            <div
+              key={genNum}
+              className='genNum'
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isActive ? '#66bb6a' : 'transparent',
+                color: isActive ? '#fff' : '#444',
+                borderRadius: 4,
+                margin: '2px 6px',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s ease',
+              }}
+              onClick={() => onGenerationClick(genNum)}
+              title={`الجيل رقم ${genNum}`}
+            >
+              الجيل {genNum}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
   const goToPersonById = async (personId) => {
     const coords = nodePositions.current[personId];
     const container = treeContainerRef.current;
@@ -248,12 +417,24 @@ const FamilyTree = ({ searchQuery }) => {
     }
     goToPersonById(personID);
   };
-
+  const handleSubtreeSelect = (value) => {
+    loadFamilyTree(value); // or another specific function
+  };
+  const handleBranchSelect = (selectedID) => {
+    const id = parseInt(selectedID);
+    setSelectedBranch(selectedID);
+    setSelectedSubtree('');
+    if (!isNaN(id)) {
+      loadFamilyTree(id, 'tree');
+    }
+  };
   const handlePersonClick = async (person) => {
+    console.log(person);
     const session = driver.session();
-
+    setWifeId(null);
+    setHusbandId(null);
     try {
-      const gender = await getGenderbyID(person.id);
+      const gender = person.gender;
 
       const query = `
         MATCH (p:Person)-[:MARRIED_TO]-(spouse:Person)
@@ -262,32 +443,19 @@ const FamilyTree = ({ searchQuery }) => {
         LIMIT 1
       `;
 
-
       const result = await session.run(query, { id: person.id });
 
       if (result.records.length > 0) {
         const spouseId = result.records[0].get("SpouseID").toNumber();
-        const coords = nodePositions.current[spouseId];
-        const container = treeContainerRef.current;
-
-        if (coords && container) {
-          const bounds = container.getBoundingClientRect();
-          setTranslate({
-            x: bounds.width / 2 - coords.x,
-            y: bounds.height / 2 - coords.y,
-          });
-        }
-
-        if (gender === "Female") {
-          setHusbandId(spouseId);
-          setWifeId(null);
-        } else {
-          setWifeId(spouseId);
-          setHusbandId(null);
-        }
+        setSpouseId(spouseId);
       } else {
-        console.log("No spouse found for", person.name);
+        setSpouseId(null);
       }
+
+      setSelectedPerson(person);
+      setPopupMode('info'); // Always show info panel
+      setShowPopup(true);
+
     } catch (error) {
       console.error("Error fetching spouse:", error);
     } finally {
@@ -303,7 +471,7 @@ const FamilyTree = ({ searchQuery }) => {
       alert("❗ الرجاء إدخال رقم صحيح للشخص.");
       return;
     }
-    loadFamilyTree(ID);
+    loadFamilyTree(ID, 'fullLineage');
   };
 
   const handleRootTreeClick = async () => {
@@ -315,42 +483,130 @@ const FamilyTree = ({ searchQuery }) => {
     loadFamilyTree(ROOT, false)
   };
 
-  const loadFamilyTree = async (rootID, type) => {
-  try {
-    setLoading(true);
-      const people = await fetchFamilyTree(type);
-      
+  const loadFamilyTree = async (rootID, mode = 'branch', type = null) => {
+    try {
+      setLoading(true);
+
+      let people = [];
+      if (mode === 'fullLineage') {
+        people = await fetchSpecifiedFamilyTree(rootID);
+      } else {
+        people = await fetchFamilyTree(type);
+      }
+
       if (!Array.isArray(people) || people.length === 0) {
         console.warn("Empty or invalid people data");
         return;
       }
       const childrenMap = buildChildrenMap(people);
-      const rootPersonFlat = people.find(p => p.id === rootID);
-      if (!rootPersonFlat) {
-        console.warn(`Root ID ${rootID} not found in fetched people.`);
-        return;
-      }
-      const rootWrapped = {
-        id: rootPersonFlat.id,
-        name: rootPersonFlat.name,
-        gender: rootPersonFlat.gender
-      };
 
-      const fullTree = buildTreeSafe(rootWrapped, childrenMap, new Set());
-      setFamilyTree(fullTree);
+      if (mode === 'fullLineage') {
+        const rootCandidates = people.filter(p => !people.some(other => other.children.some(c => c.id === p.id)));
+        const lineageRoot = rootCandidates.length ? rootCandidates[0] : people[0];
+        const partialTree = buildPartialTree(lineageRoot, childrenMap, rootID, new Set());
+        if (!partialTree) {
+          console.warn(`Could not build partial tree for rootID ${rootID}`);
+          return;
+        }
+
+        const filteredTree = applyFilters(partialTree[0]);
+        setFamilyTree(filteredTree);
+
+        const nodeCount = countTreeNodes(partialTree);
+        const maxDepth = getTreeDepth(partialTree);
+        setTreeCount(nodeCount);
+        setTreeDepth(maxDepth-1);
+        setMaxGeneration(maxDepth-1);
+      } else {
+        const rootPersonFlat = people.find(p => p.id === rootID);
+        if (!rootPersonFlat) {
+          console.warn(`Root ID ${rootID} not found in fetched people.`);
+          return;
+        }
+
+        const rootWrapped = {
+          id: rootPersonFlat.id,
+          name: rootPersonFlat.name,
+          lastName: rootPersonFlat.lastName,
+          gender: rootPersonFlat.gender,
+        };
+
+        const fullTree = buildTreeSafe(rootWrapped, childrenMap, new Set());
+        const filteredTree = applyFilters(fullTree);
+        console.log(filteredTree);
+        setFamilyTree(filteredTree);
+
+        const nodeCount = countTreeNodes(fullTree);
+        const maxDepth = getTreeDepth(fullTree);
+        setTreeCount(nodeCount);
+        setTreeDepth(maxDepth-1);
+        setMaxGeneration(maxDepth-1);
+      }
+      
       setShowTree(true);
-      const nodeCount = countTreeNodes(fullTree);
-      const maxDepth = getTreeDepth(fullTree);
-      setTreeCount(countTreeNodes(fullTree));
-      setTreeDepth(maxDepth);
 
     } catch (error) {
       console.error("Error loading family tree:", error);
     } finally {
       setLoading(false);
+      
     }
   };
 
+  const applyFilters = (node, currentDepth = 1) => {
+    if (!node) return null;
+
+    if (filters.maxDepth && currentDepth > filters.maxDepth) return null;
+
+    if (
+      (filters.gender !== 'all' && node.gender !== filters.gender) ||
+      (filters.showOnlyWithChildren && (!node.children || node.children.length === 0)) ||
+      (filters.showOnlyAlive && node.isDeceased) ||
+      (filters.customSearch && !node.name.includes(filters.customSearch))
+    ) {
+      return null;
+    }
+
+    const filteredChildren = node.children
+      ?.map(child => applyFilters(child, currentDepth + 1))
+      .filter(Boolean);
+
+    return {
+      ...node,
+      children: filteredChildren
+    };
+  };
+
+  const toggleFullscreen = () => {
+    const elem = treeContainerRef.current;
+
+    if (!document.fullscreenElement) {
+      elem.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+  useEffect(() => {
+    // Update treeDepth whenever maxDepth filter changes
+    if (filters.maxDepth !== null) {
+      setTreeDepth(filters.maxDepth);
+    } else {
+      setTreeDepth(0); // or any default value
+    }
+  }, [filters.maxDepth]);
   useEffect(() => {
     if (focusAfterLoadId && nodePositions.current[focusAfterLoadId]) {
       goToPersonById(focusAfterLoadId);
@@ -364,28 +620,86 @@ const FamilyTree = ({ searchQuery }) => {
         <h2>شجرة عائلة قصر أولاد بوبكر</h2>
         <div className="d">
           <p id="pd">
-  في هذه الصفحة، يمكنك تصفح شجرة عائلة قصر أولاد بوبكر من الجد المؤسس بوبكر وصولًا إلى الجيل الحالي. 
-  تهدف الصفحة إلى عرض العلاقات العائلية بشكل دقيق ومنظم، مما يتيح لك فهم تسلسل الأنساب، 
-  وتاريخ تطور العرش، والتعرف على أفراد العائلة عبر الأجيال. 
-  استكشف كيف ترابطت العائلات، وتعمّق في جذورك وهويتك العائلية.
-</p>
+            في هذه الصفحة، يمكنك تصفح شجرة عائلة قصر أولاد بوبكر من الجد المؤسس بوبكر وصولًا إلى الجيل الحالي. 
+            تهدف الصفحة إلى عرض العلاقات العائلية بشكل دقيق ومنظم، مما يتيح لك فهم تسلسل الأنساب، 
+            وتاريخ تطور العرش، والتعرف على أفراد العائلة عبر الأجيال. 
+            استكشف كيف ترابطت العائلات، وتعمّق في جذورك وهويتك العائلية.
+          </p>
 
         </div>
+        <div className="filter-header">
+          <h3>مرشحات عرض شجرة العائلة</h3>
+          <p>استخدم المرشحات أدناه لتضييق نطاق العرض وإظهار الأشخاص الذين تهمك تفاصيلهم فقط.</p>
+        </div>
+        <table className="filters-table-horizontal">
+          <thead>
+            <tr>
+              <th>الجنس</th>
+              <th>عدد الأجيال</th>
+              <th>فقط من لديهم أبناء</th>
+              <th>فقط الأحياء</th>
+              <th>البحث بالاسم</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <select onChange={e => setFilters(f => ({ ...f, gender: e.target.value }))}>
+                  <option value="all">الكل</option>
+                  <option value="Male">الذكور فقط</option>
+                  <option value="Female">الإناث فقط</option>
+                </select>
+              </td>
+              <td>
+                <input
+                  type="number"
+                  placeholder="عدد الأجيال"
+                  value={filters.maxDepth || ''}
+                  onChange={e => setFilters(f => ({ ...f, maxDepth: Number(e.target.value) || null }))}
+                />
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  id="childrenFilter"
+                  onChange={e => setFilters(f => ({ ...f, showOnlyWithChildren: e.target.checked }))}
+                />
+              </td>
+              <td>
+                <input
+                  type="checkbox"
+                  id="aliveFilter"
+                  onChange={e => setFilters(f => ({ ...f, showOnlyAlive: e.target.checked }))}
+                />
+              </td>
+              <td>
+                <input
+                  type="text"
+                  placeholder="ابحث بالاسم"
+                  onChange={e => setFilters(f => ({ ...f, customSearch: e.target.value }))}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+
       </header>
       <div className="screen">
     {/* Left panel: inputs & controls */}
+    
     <aside className="panel panel--controls">
       <div className="filterChoice">
         {/* Card R1 */}
         <div className="card" id="R1">
           <p className="info-text">
-  يتيح زر <strong style={{ color: 'blue' }}>شجرة العائلة التقليدية</strong> تصفح الشجرة العائلية ابتداءً من الجدّ الأول وحتى الأجيال الحالية.
-</p>
+            يتيح زر <strong style={{ color: 'blue' }}>شجرة العائلة التقليدية</strong> تصفح الشجرة العائلية ابتداءً من الجدّ الأول وحتى الأجيال الحالية.
+          </p>
 
-<p className="info-text">
-  أما <strong style={{ color: '#b52155' }}>شجرة العائلة مع أبناء الأمهات</strong>، فتُظهر أيضًا أبناء الأمهات، مما يجعل الشجرة أكثر شمولًا، 
-  <strong id="warning">لكن احذر من التكرارات وضخامة الشجرة!</strong>
-</p>
+          <p className="info-text">
+            أما <strong style={{ color: '#b52155' }}>شجرة العائلة مع أبناء الأمهات</strong>، فتُظهر أيضًا أبناء الأمهات، مما يجعل الشجرة أكثر شمولًا، 
+            <strong id="warning">لكن احذر من التكرارات وضخامة الشجرة!</strong>
+          </p>
 
           <div className="rootButton">
             <button id="men" onClick={handleRootTreeClick}>
@@ -395,6 +709,40 @@ const FamilyTree = ({ searchQuery }) => {
               شجرة مع أبناء الأمهات
             </button>
           </div>
+          <div className="branchSelect">
+            <p className="branch-selector-description">
+              اختر أحد الفروع الرئيسية لعائلة بوبكر لعرض النسب الكامل الخاص به.
+            </p>
+            <select onChange={(e) => handleBranchSelect(e.target.value)} className="branch-selector">
+              <option value="">-- اختر فرعًا --</option>
+              <option value="202">فرع فرحات</option>
+              <option value="176">فرع إمحمّد</option>
+              <option value="XXX">فرع عمر</option>
+              <option value="223">فرع سالم</option>
+            </select>
+          </div>
+
+          {/* Only show sub-tree selector if "سالم" branch is selected */}
+          {selectedBranch === '223' && (
+            <div className="subtreeSelect">
+              <p className="branch-selector-description">اختر فرعًا فرعيًا من فرع سالم:</p>
+              <select
+                onChange={(e) => {
+                  setSelectedSubtree(e.target.value);
+                  handleSubtreeSelect(e.target.value); // optional: load subtree
+                }}
+                className="branch-selector"
+              >
+                <option value="">-- اختر فرعًا فرعيًا --</option>
+                <option value="390">فرع ضراري علي</option>
+                <option value="391">فرع ضراري احمد</option>
+                <option value="392">فرع ضراري بوبكر</option>
+                <option value="389">فرع ضراري خليفة</option>
+                <option value="393">فرع ضراري سالم</option>
+              </select>
+            </div>
+          )}
+          
         </div>
 
         {/* Card R2 */}
@@ -421,44 +769,139 @@ const FamilyTree = ({ searchQuery }) => {
         </div>
       </div>
     </aside>
-
+            
     {/* Right panel: tree & loading */}
     <main className="panel panel--tree">
-      {loading && !showTree && (
+      {loading && (
         <div className="loading-indicator">
           <p>جارٍ تحميل الشجرة...</p>
-          <div className="spinner" />
+          <p style={{ marginTop: 10, fontStyle: 'italic', color: '#555' }}>
+            {hints[currentHintIndex]}
+          </p>
+          <div className="spinner" style={{
+          }} />
         </div>
       )}
 
-      {showTree && familyTree && (
+      {!loading && !showTree && (
+        <div style={{ textAlign: 'center', padding: 30 }}>
+          <p>لا توجد بيانات شجرة لعرضها.</p>
+        </div>
+      )}
+      
+      {showTree && familyTree && !loading ? (
+        
         <div id="treeWrapper" ref={treeContainerRef}>
-          <p>مجموع الأشخاص في هذه الشجرة : {treeCount}</p>
-          <p>عدد الأجيال في هذه الشجرة : {treeDepth}</p>
+          {showPopup && selectedPerson && (
+            <div className="popup">
+              <h4>الرقم التسلسلي: {selectedPerson.id}</h4>
+              <h4>الاسم: {selectedPerson.name}</h4>
+              <p>اللقب: {selectedPerson.lastName}</p>
+              <p>ملاحظات: </p>
+
+              {spouseId && (
+                <button
+                  
+                  onClick={() => {
+                    const coords = nodePositions.current[spouseId];
+                    const container = treeContainerRef.current;
+
+                    if (coords && container) {
+                      const bounds = container.getBoundingClientRect();
+                      setTranslate({
+                        x: bounds.width / 2 - coords.x,
+                        y: bounds.height / 2 - coords.y,
+                      });
+                    }
+                    if (selectedPerson.gender === 'Male') {
+                      setWifeId(spouseId);
+                      setHusbandId(null);
+                    } else {
+                      setHusbandId(spouseId);
+                      setWifeId(null);
+                    }
+
+                    setShowPopup(false);
+                  }}
+                >
+                  {selectedPerson.gender === 'Male' ? "اذهب إلى الزوجة" : "اذهب إلى الزوج"}
+                </button>
+              )}
+
+              <button onClick={() => {
+                setShowPopup(false);
+                setPopupMode('info');
+              }}>
+                إغلاق
+              </button>
+            </div>
+          )}
+          <div className="treeHeader">
+            <div className="infoStats">
+              <p>مجموع الأشخاص في هذه الشجرة : {treeCount}</p>
+              <p>عدد الأجيال في هذه الشجرة : {treeDepth}</p>
+            </div>
+            <button onClick={toggleFullscreen} aria-label="Toggle fullscreen" style={{ fontSize: '24px', cursor: 'pointer', background: 'none', border: 'none' }}>
+              {isFullscreen ? (
+                <>
+                  <FiMinimize /> <span>تصغير الشاشة</span>
+                </>
+              ) : (
+                <>
+                  <FiMaximize /> <span>تكبير الشاشة</span>
+                </>
+              )}
+            </button>
+          </div>
+      <div style={{ display: 'flex', gap: 20 }}>
+          <GenerationRuler
+            maxGeneration={maxGeneration}
+            selectedGeneration={selectedGeneration}
+            onGenerationClick={setSelectedGeneration}
+          />
+        <div style={{ flexGrow: 1 }}>
           <Tree
+            className="tree"
             data={familyTree}
+            highlightGeneration={selectedGeneration} // your Tree uses this prop to style nodes
             orientation="vertical"
             pathFunc="step"
+            zoomable={!showPopup}
+            draggable={!showPopup}
+            style={{ pointerEvents: showPopup ? 'none' : 'auto' }}
             translate={translate}
             nodeSize={{ x: 110, y: 150 }}
             separation={{ siblings: 1.1, nonSiblings: 1 }}
+            
             renderCustomNodeElement={({ nodeDatum, hierarchyPointNode }) => {
-              nodePositions.current[nodeDatum.id] = {
-                x: hierarchyPointNode.x,
-                y: hierarchyPointNode.y,
-              };
-              const fill = nodeDatum.id === husbandId
-                ? '#66bb6a'
-                : nodeDatum.id === wifeId
-                  ? '#ff8a65'
-                  : nodeDatum.id === personID
-                    ? '#cf14d9'
-                    : '#4fc3f7';
+            nodePositions.current[nodeDatum.id] = {
+              x: hierarchyPointNode.x,
+              y: hierarchyPointNode.y,
+            };
+
+            const isSelectedGen = selectedGeneration === nodeDatum.generation;
+
+            // Default colors for special IDs
+            const specialColors = {
+              [husbandId]: '#66bb6a',
+              [wifeId]: '#ff8a65',
+              [personID]: '#cf14d9',
+            };
+
+            let fill;
+
+            if (isSelectedGen) {
+              // Highlight nodes of the selected generation with a distinct color
+              fill = '#fbc02d'; // e.g. yellow highlight for selected generation
+            } else if (specialColors[nodeDatum.id]) {
+              fill = specialColors[nodeDatum.id];
+            } else {
+              fill = '#4fc3f7'; // default normal node color
+            }
+
               return (
-                <g
-                  onClick={() => handlePersonClick(nodeDatum)}
-                  style={{ cursor: 'pointer' }}
-                >
+                
+                <g onClick={(event) => handlePersonClick(nodeDatum, event)} style={{ cursor: 'pointer' }}>
                   <defs>
                     <linearGradient id={`grad-${nodeDatum.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6"/>
@@ -518,7 +961,14 @@ const FamilyTree = ({ searchQuery }) => {
             }}
           />
         </div>
-      )}
+      </div>
+          
+        </div>
+      ) : 
+      <p style={{ textAlign: 'center', marginTop: '2rem', color: '#777' }}>
+        لا توجد شجرة لعرضها حالياً
+      </p>
+      }
 
       <p id="rotateSuggestion">ننصحك بتدوير الهاتف</p>
     </main>
