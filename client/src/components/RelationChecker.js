@@ -24,6 +24,7 @@ const RelationPage = () => {
   const [selectedPerson2, setSelectedPerson2] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [relationshipExist, setRelationshipExist] = useState(false);
   const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
   const treeContainerRef = useRef(null);
   const nodePositions = useRef({});
@@ -1466,6 +1467,7 @@ const RelationPage = () => {
           setLoading(false);
           relation = await getMarriageRelation(session, person1ID, person2ID, translatedName1, translatedName2, gender1, gender2);
           relationshipType = "Marriage-related";
+          (score === -1) ? (setRelationshipExist(false)): (setRelationshipExist(true));
           return {  relation, score, 
                     generation:Math.abs(p1Level-p2Level), 
                     levelsTuple: {levelFromP1, levelFromP2},
