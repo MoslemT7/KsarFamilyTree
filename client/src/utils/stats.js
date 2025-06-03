@@ -82,7 +82,7 @@ export const getAgeStats = async () => {
   try {
     const result = await session.run(`
       MATCH (n:Person)
-      WHERE n.YoB IS NOT NULL
+      WHERE n.YoB IS NOT NULL AND n.isAlive = true
 
       WITH COLLECT(n.YoB) AS allYOBs, AVG(n.YoB) AS avgYoB
 
@@ -233,26 +233,17 @@ export const biggestFamily = async () =>{
   const session = driver.session();
     try {
       const result = await session.run(`
-        MATCH (father:Person)-[:FATHER_OF]->(child:Person)
-        WITH father, COUNT(child) AS childrenCount
-        ORDER BY childrenCount DESC
-        LIMIT 1
-        RETURN father.name AS FatherName, father.lastName AS FatherLastName, childrenCount
-
+        MATCH (n:Person)-[:MARRIED_TO]->(m:Person)
+        WHERE m.origin IS NOT NULL
+        RETURN COUNT(n) as count
       `);
-  
-      if (result.records.length > 0) {
-        const fatherName = result.records[0].get('FatherName');
-        const FatherLastName = result.records[0].get('FatherLastName');
-        const childrenCount = result.records[0].get('childrenCount').toNumber();
 
-        return { fatherName, FatherLastName, childrenCount};
-      } else {
-        return { fatherName:"-", FatherLastName:"-", childrenCount : -1 };
-      }
+      const count = result.records[0].get('count').toNumber();
+      return { count: count };
+
     } catch (error) {
       console.error("Error fetching average age:", error);
-      return { fatherName: "-", FatherLastName:"-", childrenCount : "-"};
+      return { count: "-" };
     } finally {
       await session.close();
     }
@@ -291,7 +282,7 @@ export const agedPersonCount = async () => {
       MATCH (n:Person)
       WHERE n.YoB IS NOT NULL AND n.isAlive = true
       WITH n, (date().year - n.YoB) AS age
-      WHERE age > 100
+      WHERE age > 95
       RETURN COUNT(n) as agedPeopleCount
     `);
 
@@ -350,26 +341,6 @@ export const getAgeGenderData = async () => {
   } finally {
     await session.close();
   }
-};
-
-export const unmariedMales = async () => {
-  const session = driver.session();
-    try {
-      const result = await session.run(`
-      MATCH (p:Person)
-      WHERE p.gender = 'Male' 
-        AND p.YoB IS NOT NULL 
-        AND (2025 - p.YoB) > 35 
-        AND NOT EXISTS((p)-[:MARRIED_TO]->())
-      RETURN COUNT(p) AS unmarriedMenOver35
-      `);
-      return result.records[0].get('unmarriedMenOver35').toNumber();
-    } catch (error) {
-      console.error("Error counting population:", error);
-      return 0;
-    } finally {
-      await session.close();
-    }
 };
 
 export const avgMarringAgeMale = async () => {

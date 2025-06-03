@@ -1,0 +1,97 @@
+body {
+  font-family: 'Cairo', sans-serif;
+  background-color: #f4f4f4;
+  color: #222;
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+}
+
+.accuracy-container {
+  max-width: 800px;
+  margin: 40px auto;
+  background: white;
+  padding: 24px 28px;
+  border-radius: 12px;
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+  color: #2e7d32;
+  font-family: "Cairo";
+}
+
+.description {
+  font-size: 15px;
+  color: #444;
+  margin-bottom: 20px;
+  font-family: "Cairo";
+}
+
+.accuracy-section {
+  margin-top: 30px;
+}
+
+.accuracy-bar {
+  margin-bottom: 16px;
+}
+
+.accuracy-bar span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.progress {
+  background: #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 24px;
+}
+
+.progress-fill {
+  background: linear-gradient(to left, #81c784, #4caf50);
+  color: white;
+  height: 100%;
+  line-height: 24px;
+  text-align: center;
+  font-size: 14px;
+  border-radius: 8px 0 0 8px;
+}
+
+.insight-list {
+  padding-right: 20px;
+  list-style: square;
+  color: #555;
+}
+
+.contribute-btn {
+  display: inline-block;
+  background: #388e3c;
+  color: white;
+  padding: 12px 20px;
+  text-decoration: none;
+  border-radius: 8px;
+  margin-top: 12px;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.contribute-btn:hover {
+  background: #2e7d32;
+}
+
+@media (max-width: 600px) {
+  .accuracy-container {
+    padding: 18px;
+  }
+
+  .progress-fill {
+    font-size: 12px;
+  }
+
+  .contribute-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

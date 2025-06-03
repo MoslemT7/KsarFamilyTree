@@ -151,7 +151,7 @@ const StatisticsDashboard = () => {
 
         const avgChild = await statistics.averageChildrenPerFamily();
         const nbrOfAgedPeople = await statistics.agedPersonCount();
-        const biggestFamilyCount = await statistics.biggestFamily();
+        const marriedFromAbroadCount = await statistics.biggestFamily();
         const abroadPeoplePercentage = ((await statistics.livingAbroad()) * 100 / totalAlive).toFixed(2);
         const topAbroadCountryCount = await statistics.topAbroadCountry();
 
@@ -178,7 +178,7 @@ const StatisticsDashboard = () => {
           medAge,
           agedPeopleCount: nbrOfAgedPeople.count,
           oldestPerson: oldest,
-          biggestFamily: biggestFamilyCount,
+          marriedFromAbroadCount: marriedFromAbroadCount,
           mostUsedFamilyNameCount,
           mostUsedNameCount: mostUsedNameCount.occurences,
           mostUsedNameCountName: mostUsedNameCount.name,
@@ -559,8 +559,18 @@ useEffect(() => {
     <div className="stats-dashboard">
       <section className="statistics-dashboard">
 
-        <h1 class="dashboard-title">لوحة الإحصائيات العامة</h1>
-        <p>صفحة الإحصائيات هي مصدر شامل يقدم مجموعة متنوعة من البيانات والرسوم البيانية التي تسلط الضوء على مختلف جوانب المجتمع. تشمل الصفحة نظرة عامة عن التعداد السكاني، الهيكل العائلي، التوزيع الجغرافي، والتوجهات الديموغرافية. كما توفر تفاصيل حول نسبة الجنس، متوسط الأعمار، وأنماط الزواج، بالإضافة إلى تحليل مفصل حول الظروف الاقتصادية والاجتماعية. من خلال الرسوم البيانية التفاعلية والمخططات المبتكرة، يتمكن المستخدمون من استكشاف الإحصائيات بسهولة ومعرفة التوجهات التاريخية والمقارنات مع المتوسطات المحلية والعالمية. تُعتبر هذه الصفحة أداة قيمة لفهم التغيرات الاجتماعية والاقتصادية في المجتمع وتتبع التطورات المستقبلية.
+        <h1 class="dashboard-title">📊 الصفحة الرئيسية للإحصائيات — إحصائيات قصر أولاد بوبكر</h1>
+        <p className="minor-tip">
+          🧾 تعتمد هذه الإحصائيات على بيانات تم جمعها بعناية من مصادر موثوقة، إلا أنها قد لا تكون مكتملة بنسبة 100٪.
+          يمكنك معرفة المزيد عن{' '}
+          <a href="/docs/data-collection-method.html" target="_blank" rel="noopener noreferrer">
+            طريقة جمع المعلومات
+          </a>{' '}
+          أو الاطلاع على{' '}
+          <a href="/docs/data-accuracy.html" target="_blank" rel="noopener noreferrer">
+            نسب دقة البيانات
+          </a>{' '}
+          المعروضة (مثل نسبة توفر سنة الولادة).
         </p>
         <div class="category-block population-overview">
           <h3 class="category-title" id="overview">نظرة عامة على السكان</h3>
@@ -604,8 +614,8 @@ useEffect(() => {
           <h3 class="category-title" id="family">بنية العائلة</h3>
           <div class="stats-grid">
             <div class="stat-card"> <h4>متوسط عدد الأطفال لكل عائلة</h4> <p class="stat-number">{stats.averageChildrenPerFamily}</p> </div>
-            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number"> عائلة {utils.translateName(stats.biggestFamily.fatherName)} {utils.translateFamilyName(stats.biggestFamily.FatherLastName)}  </p>
-            <p className="stat-note"> {stats.biggestFamily.childrenCount} أبناء </p>  </div>
+            <div class="stat-card"> <h4>عدد الأشخاص المتزوجين خارج العرش</h4> <p class="stat-number">
+           {stats.marriedFromAbroadCount.count} </p>  </div>
             <div class="stat-card"> <h4>عدد العائلات بـ 6 أطفال أو أكثر</h4> <p class="stat-number">{stats.sixPlusFamilies}</p> </div>
             <div class="stat-card average-marriage-card">
               <h4>متوسط عمر الزواج</h4>
@@ -735,18 +745,7 @@ useEffect(() => {
         </div>
         </div>
         <div className="data-accuracy-note">
-        <p className="minor-tip">
-          🧾 تعتمد هذه الإحصائيات على بيانات تم جمعها بعناية من مصادر موثوقة، إلا أنها قد لا تكون مكتملة بنسبة 100٪.
-          يمكنك معرفة المزيد عن{' '}
-          <a href="/docs/data-collection-method.html" target="_blank" rel="noopener noreferrer">
-            طريقة جمع المعلومات
-          </a>{' '}
-          أو الاطلاع على{' '}
-          <a href="/stats/data-accuracy.html" target="_blank" rel="noopener noreferrer">
-            نسب دقة البيانات
-          </a>{' '}
-          المعروضة (مثل نسبة توفر سنة الولادة).
-        </p>
+        
 
         </div>
 

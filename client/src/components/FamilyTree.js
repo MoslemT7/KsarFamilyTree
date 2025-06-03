@@ -147,7 +147,7 @@ const fetchSpecifiedFamilyTree = async (rootID) => {
     UNWIND lineage AS person
 
     // Get children of each person only if they are in lineage (to avoid unrelated children)
-    OPTIONAL MATCH (person)-[:FATHER_OF*]->(child:Person)
+    OPTIONAL MATCH (person)-[:FATHER_OF]->(child:Person)
     WHERE child IN lineage
 
     WITH person, collect(child) AS rawChildren

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>نسب دقة البيانات</title>
+  <link rel="stylesheet" href="data-accuracy.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Lalezar&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Lalezar&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Lalezar&family=Noto+Kufi+Arabic:wght@100..900&display=swap" rel="stylesheet">
+
+</head>
+<body>
+  <div class="accuracy-container">
+    <h1>📊 نسب دقة البيانات</h1>
+    <p class="description">
+      تُظهر هذه الصفحة مدى اكتمال وتوفر البيانات في شجرة قصر أولاد بوبكر. هدفنا تحسين دقة السجل العائلي والحفاظ على مصداقية المعلومات.
+    </p>
+
+    <section class="accuracy-section">
+      <h2>🧮 نسب الاكتمال العامة</h2>
+      <div class="accuracy-bar">
+        <span>توفر سنة الميلاد</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 87%;">87%</div>
+        </div>
+      </div>
+
+      <div class="accuracy-bar">
+        <span>توفر سنة الوفاة (للأموات)</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 65%;">65%</div>
+        </div>
+      </div>
+
+      <div class="accuracy-bar">
+        <span>توفر اسم الأم</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 43%;">43%</div>
+        </div>
+      </div>
+
+      <div class="accuracy-bar">
+        <span>توفر اسم الزوج/الزوجة</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 78%;">78%</div>
+        </div>
+      </div>
+
+      <div class="accuracy-bar">
+        <span>توفر عدد الأبناء</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 81%;">81%</div>
+        </div>
+      </div>
+
+      <div class="accuracy-bar">
+        <span>توفر مكان الإقامة</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 39%;">39%</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="accuracy-section">
+      <h2>🧑‍🦳 بيانات كبار السن والأشخاص الحسّاسة</h2>
+      <ul class="insight-list">
+        <li>52 شخصًا فوق سن 75 لا توجد عنهم معلومات حول الأبناء أو الزواج</li>
+        <li>37 شخصًا متوفى ليس لديهم سنة وفاة مدخلة</li>
+        <li>14 امرأة متوفاة بدون تحديد الزوج أو الأبناء</li>
+      </ul>
+    </section>
+
+    <section class="accuracy-section">
+      <h2>🏘️ حسب العائلة</h2>
+      <div class="accuracy-bar">
+        <span>عائلة بوبكر</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 92%;">92%</div>
+        </div>
+      </div>
+      <div class="accuracy-bar">
+        <span>عائلة قريشي</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 75%;">75%</div>
+        </div>
+      </div>
+      <div class="accuracy-bar">
+        <span>عائلة الطيب</span>
+        <div class="progress">
+          <div class="progress-fill" style="width: 61%;">61%</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="accuracy-section">
+      <h2>✍️ كيف تساهم؟</h2>
+      <p class="description">
+        إذا كانت لديك معلومات دقيقة حول عائلتك، يمكنك المساهمة عبر نموذج التحديث أو التواصل مباشرة مع مسؤول المشروع. كل معلومة تهم!
+      </p>
+      <a href="/update-form.html" class="contribute-btn">📥 أرسل تحديث بيانات</a>
+    </section>
+  </div>
+</body>
+</html>
