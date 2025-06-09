@@ -2,7 +2,7 @@
   Variables et box-sizing
 --------------------------------------*/
 :root {
-  --primary: #0d3b5a;
+  --primary: #0d1f2d;
   --primary-light: #3f8de1;
   --accent: #12e362;
   --danger: #e74c3c;
@@ -38,35 +38,36 @@ h1 {
   font-size: 2rem;
   text-align: center;
   margin: 1rem 0;
+  background-color: #0d1f2d;
+  color: #07eb2d;
+  border-radius: 12px;
+  border-radius: 0.75rem;
 }
 
 /*--------------------------------------
   Containers & layout
 --------------------------------------*/
 .relation-page {
-  display: block;
-  flex-direction: column; /* mobile-first */
-  gap: 1rem;
-  padding: 0 0.5rem;
-  margin: 0 auto;
-}
-
-.main-panel {
   display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  width: 100%;
+  flex-direction: row; /* mobile-first */
+  margin: 0px
 }
 
+.main-panel{
+border: 2px solid #0d1f2d;
+margin: 2px 2px;
+border-radius: 8px;
+}
 /*--------------------------------------
   Forms & inputs
 --------------------------------------*/
 .relation-form-section {
   background: var(--bg-lighter);
   padding: 0.75rem;
-  border-radius: 0.75rem;
   box-shadow: 0 0.25rem 0.75rem var(--shadow);
   text-align: center;
+  border-bottom: 2px solid #0d1f2d;
+  border-radius: 8px;
 }
 
 .input-group {
@@ -168,11 +169,11 @@ h1 {
 }
 .person-card {
   background: var(--bg-light);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 0.5rem;
   padding: 0.75rem;
   transition: transform 0.3s, box-shadow 0.3s;
-  margin: 2px auto;
+  margin: 1px auto;
 }
 .person-card:hover {
   transform: translateY(-0.3125rem);
@@ -327,10 +328,11 @@ table td {
 }
 
 .common-ancestor {
-  font-weight: 600;
-  color: #3a3a3a;
+  font-weight: 800;
+  font-size: 16px;
+  color: #0d1f2d;
   background-color: #f7f7f7;
-  padding: 8px 12px;
+  padding: 4px 12px;
   border-radius: 6px;
   text-align: center;
 }
@@ -407,7 +409,11 @@ table td {
 .relationText::before {
   content: "🔍 ";
 }
-
+.resultsTitles{
+  border-radius: 8px;
+  border-bottom: 2px solid var(--primary);
+  font-size: 22px;
+}
 /*--------------------------------------
   Tooltips
 --------------------------------------*/
@@ -481,36 +487,50 @@ table td {
 --------------------------------------*/
 .tipsFooter {
   background: var(--bg-light);
-  padding: 1rem;
   border-top: 2px solid var(--border);
-  text-align: right;
-  font-size: 0.875rem;
-  width: 10%;
-}
-.tipsFooter h3 {
   text-align: center;
-  color: var(--primary);
-  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
 }
+
 .tipsFooter ul {
-  display: flex;
+  display: block;
   flex-wrap: wrap;
   gap: 0.5rem;
   list-style: none;
-  justify-content: center;
-  
 }
 .tipsFooter li {
-  background: linear-gradient(30deg, var(--primary), #3f5665);
-  color: var(--accent);
+  color: var(--primary);
   padding: 0.5rem;
   border-radius: 0.375rem;
   flex: 1 1 calc(25% - 1rem);
   text-align: center;
-  margin: 8px auto;
-
+  margin: 4px auto;
 }
-
+.History{
+  margin-top: 4px;
+  border-radius: 8px;
+  padding: 1px;
+}
+.clearButton{
+  width: 50%;
+  color: rgb(242, 225, 225);
+  background-color: #d52d17;
+  font-size: 16px;
+  padding: 2px;
+}
+.History h2, .tipsFooter h2{
+  font-size: 20px;
+  color: #07eb2d;
+  background-color: #0d1f2d;
+  border-radius: 8px;
+}
+.side{
+  margin: 2px;
+  border-radius: 8px;
+  width: 100%;
+  text-align: center;
+  border: 2px solid #0d1f2d;
+}
 /*--------------------------------------
   Dark mode
 --------------------------------------*/
@@ -535,6 +555,10 @@ body.dark-mode .tipsFooter { background: #222; }
 --------------------------------------*/
 /* Small mobiles (<480px) */
 @media (max-width: 479px) {
+  .relation-page{
+    display: block;
+
+  }
   .relationship-result{
     padding: 2px;
   }
@@ -603,11 +627,23 @@ body.dark-mode .tipsFooter { background: #222; }
     width: 100%;
     font-size: 12px;
   }
+  .tipsFooter h2, .History h2{
+    font-size: 14px;
+  }
+  .duplicate-button{
+    font-size: 16px;
+    padding: 2px;
+
+  }
 }
 
 /* Tablettes (480–767px) */
 @media (min-width: 480px) and (max-width: 767px) {
-  .relation-page { padding: 0 1rem; }
+  .relation-page { 
+    padding: 0 1rem;
+    display: block;
+   }
+
   h1 { font-size: 1.75rem; }
   .person-card { width: 100%; }
   .ButtonSection { flex-direction: column; gap: 0.75rem; }

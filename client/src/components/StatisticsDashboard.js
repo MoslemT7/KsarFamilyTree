@@ -66,7 +66,9 @@ const StatisticsDashboard = () => {
   let weddingChartInstance = useRef(null);
   let cumulativePopulationGrowthInstance = useRef(null);
   let topFamiliesInstance = useRef(null);
-
+  useEffect(() => {
+      document.title = "إحصائيات قصر أولاد بوبكر";
+    }, []);
   const ageBins = async () => {
     const session = driver.session();
     try {

@@ -8,7 +8,6 @@ import RelationPage from './components/RelationChecker';
 import StatisticsDashboard from './components/StatisticsDashboard';
 import SearchPage from './components/SearchPage';
 import MainPage from './components/mainPage';
-import DataEntryForm from './components/DataEntry';
 import usePageTracking from './utils/trackers';
 import './styles/app.css';
 
@@ -68,6 +67,7 @@ const App = () => {
           <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
           <button className="close-btn" onClick={toggleMenu}>×</button>
           <ul>
+            
             <li><Link to="">الرئيسية</Link></li>
             <li><Link to="familyTree">شجرة العائلة</Link></li>
             <li><Link to="search">البحث</Link></li>
@@ -78,7 +78,6 @@ const App = () => {
                 أعراسنا
               </Link>
             </li>
-            <li><Link to="dataentry">Data</Link></li>
             <li id="contactUs"><Link to="/contact">إتصل بنا</Link></li>
           </ul>
         </nav>
@@ -99,7 +98,6 @@ const App = () => {
               <Route path="statistics" element={<StatisticsDashboard />} />
               <Route path="relationChecker" element={<RelationPage />} />
               <Route path="weddings" element={<WeddingPage />} />
-              <Route path="dataentry" element={<DataEntryForm />} />
             </Routes>
           </div>
         )}

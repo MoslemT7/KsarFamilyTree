@@ -29,7 +29,6 @@ const SearchPage = () => {
   const [treeVisible, setTreeVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [personDetails, setPersonDetails] = useState(null);
-  const [treeData, setTreeData] = useState(null);
   const [error, setError] = useState('');
   const containerRef = useRef();
   const [translate, setTranslate] = useState({ x: 500, y: 0 });
@@ -59,6 +58,7 @@ const SearchPage = () => {
       lifeStatus: selectedPerson.lifeStatus,
       martialStatus: selectedPerson.martialStatus,
       childrenCount: selectedPerson.childrenCount,
+      siblingsCount: selectedPerson.siblingsCount
     });
   };
 
@@ -73,6 +73,7 @@ const SearchPage = () => {
   };
   const handleResetPerson = async () => {
     setSearchQuery('');
+    setPersonDetails(null);
   };
   const searchPerson = async (searchText) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
@@ -366,7 +367,7 @@ const SearchPage = () => {
           YoD,
           motherName: record.has('motherName') && record.get('motherName') !== null ? record.get('motherName') : null,
           motherFatherName: record.has('motherFatherName') && record.get('motherFatherName') !== null ? record.get('motherFatherName') : null,
-          motherGrandFatherName: record.has('motherGrandFatherName') && record.get('motherGrandFatherName') !== null ? record.get('motherGrandFatherName') : null,
+          motherGrandFatherName: record.has('motherGrandfatherName') && record.get('motherGrandfatherName') !== null ? record.get('motherGrandfatherName') : null,
           motherFamilyName: record.has('motherFamilyName') && record.get('motherFamilyName') !== null ? record.get('motherFamilyName') :null,
           maritalStatus: record.has('maritalStatus') && record.get('maritalStatus') !== null ? record.get('maritalStatus') : null,
 
@@ -375,14 +376,12 @@ const SearchPage = () => {
           childrenCount: record.has('childrenCount') && record.get('childrenCount') !== null
           ? record.get('childrenCount').toNumber()
           : 0,
-
-        siblingsCount: record.has('siblingCount') && record.get('siblingCount') !== null
-          ? record.get('siblingCount').toNumber()
-          : 0,
-
+          siblingsCount: record.has('siblingsCount') && record.get('siblingsCount') !== null
+            ? record.get('siblingsCount').toNumber()
+            : 0,
           country: record.get("Country")
         };
-    
+        console.log(personDetails);
         setPersonDetails(personDetails);
         setLoading(false);
         setError('');
@@ -434,7 +433,7 @@ const SearchPage = () => {
       
           multipleMatches.push(personDetails);
         }
-      
+        
         setPersonDetails({ multipleMatches });
         setError('هناك العديد من الأشخاص يحملون نفس الاسم. الرجاء اختيار الشخص الصحيح.');
       }
@@ -629,15 +628,15 @@ const SearchPage = () => {
                 </tr>
                 <tr>
                   <th>عدد الإخوة</th>
-                  <td>{personDetails?.childrenCount === 0
+                  <td>{personDetails?.siblingsCount === 0
                       ? "لا إخوة"
-                      : personDetails.childrenCount === 1
+                      : personDetails.siblingsCount === 1
                       ? "أخ واحد (1)"
-                      : personDetails.childrenCount === 2
+                      : personDetails.siblingsCount === 2
                       ? "أخوان (2)"
-                      : personDetails.childrenCount >= 3 && personDetails.childrenCount <= 10
-                      ? `${personDetails.childrenCount} إخوة`
-                      : `${personDetails.childrenCount} أخـًا`}</td>
+                      : personDetails.siblingsCount >= 3 && personDetails.siblingsCount <= 10
+                      ? `${personDetails.siblingsCount} إخوة`
+                      : `${personDetails.siblingsCount} أخـًا`}</td>
                 </tr>
                 <tr>
                   <th>بلاد السكنة أو العمل</th>
@@ -659,13 +658,13 @@ const SearchPage = () => {
   <div>  
   </div>
       <div className='tipsFooter'>
-        <p class="minor-tip">💡 يمكنك البحث باستخدام الاسم الكامل أو جزء منه فقط.</p>
-        <p class="minor-tip">🔍 إذا لم تجد الشخص، جرّب كتابة اسم الأب أو الجد أيضاً.</p>
-        <p class="minor-tip">📛 تأكد من عدم وجود أخطاء إملائية في الأسماء المدخلة.</p>
-        <p class="minor-tip">🔒 جميع المعلومات محفوظة ولا تُستخدم إلا لأغراض توثيق العائلة.</p>
-        <p class="minor-tip">🔒 إذا أرّدت إخفاء بعض من معطياتك الشخصية ، عليك فقط التواصل معنا ، اننا نحترم خصوصيتك.</p>
-        <p class="minor-tip">🤝 إذا لاحظت خطأ في المعلومات، ساعدنا بتحديثها عبر التواصل معنا.</p>
-        <p class="minor-tip">📚 هذا الموقع لا يزال قيد التطوير، سيتم إضافة المزيد من الميزات قريباً.</p>
+        <p className="minor-tip">💡 يمكنك البحث باستخدام الاسم الكامل أو جزء منه فقط.</p>
+        <p className="minor-tip">🔍 إذا لم تجد الشخص، جرّب كتابة اسم الأب أو الجد أيضاً.</p>
+        <p className="minor-tip">📛 تأكد من عدم وجود أخطاء إملائية في الأسماء المدخلة.</p>
+        <p className="minor-tip">🔒 جميع المعلومات محفوظة ولا تُستخدم إلا لأغراض توثيق العائلة.</p>
+        <p className="minor-tip">🔒 إذا أرّدت إخفاء بعض من معطياتك الشخصية ، عليك فقط التواصل معنا ، اننا نحترم خصوصيتك.</p>
+        <p className="minor-tip">🤝 إذا لاحظت خطأ في المعلومات، ساعدنا بتحديثها عبر التواصل معنا.</p>
+        <p className="minor-tip">📚 هذا الموقع لا يزال قيد التطوير، سيتم إضافة المزيد من الميزات قريباً.</p>
       </div>
     </div>
   );

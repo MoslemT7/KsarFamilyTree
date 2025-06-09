@@ -46,7 +46,7 @@ body,
 .welcomeMessage h1 {
   margin-bottom: 10px;
   font-size: 32px;
-  color: #2c3e50;
+  color: #1bbc7b;
 }
 
 .welcomeMessage p {
@@ -130,12 +130,17 @@ body,
   Wedding Feature Card
 ----------------------------------------*/
 .wedding-picture {
-  width: 70%;
+  width: 75%;
   min-height: 300px;
-  background: url('../media/pic2.jpg') center 40%/cover no-repeat;
+  background-image: url('../media/pic2.jpg');
+  background-position: center 40%;
+  background-size: cover;
+  background-repeat: no-repeat;
   border-radius: 12px;
   box-shadow: 0 8px 8px rgba(0,0,0,0.2);
 }
+
+
 
 .wedding-feature-card{
   display: flex;
@@ -156,6 +161,17 @@ body,
   text-align: center;
   line-height: 3;
 }
+
+#two{
+  flex-direction: row-reverse;
+}
+#twoP{
+  background-image: url('../media/pic5.jpg');
+  background-position: bottom;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
 .discoverNow{
   text-align: center;
   padding: 4px 8px;
@@ -163,7 +179,7 @@ body,
   color: #00d1b2;
   font-family: "Cairo";
   font-size: 22px;
-  width: 40%;
+  width: 30%;
   background-color: #121212;
 }
 .cta-content {
@@ -172,8 +188,8 @@ body,
 }
 
 .cta-button{
-  color: rgb(19, 215, 137);
-  background-color: #2c3e50;
+  color: #1bbc7b;
+  background-color: #0d1f2d;
   
 }
 
@@ -181,6 +197,12 @@ body,
   font-family: "Cairo";
   padding: 6px 18px;
 }
+
+.cta-secondary-button{
+  background-color: #dee7e6;
+  color: #0d1f2d;
+}
+
 /*----------------------------------------
   Dark Mode Overrides
 ----------------------------------------*/
@@ -296,7 +318,13 @@ body.dark-mode button:hover {
     font-size: 14px;
     line-height: 1.4;
   }
-
+  .wedding-feature-card{
+    display: block;
+  }
+  .wedding-picture{
+    background-size: cover;
+    width: 100%;
+  }
   .discoverNow {
     width: 80%;
     font-size: 14px;
@@ -317,7 +345,9 @@ body.dark-mode button:hover {
   .title h1{
     margin: 0;
   }
-
+  .cta-section button{
+    font-size: 14px;
+  }
 
 }
 

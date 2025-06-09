@@ -33,7 +33,7 @@ const renderFamilyTree = (person, parentId = null, level = 0) => {
   );
 };
 
-const fetchFamilyTree = async (type) => {
+const fetchFamilyTree = async (rootID, type) => {
   const session = driver.session();
   const queryParamsObject = {};
   try {
@@ -42,7 +42,7 @@ const fetchFamilyTree = async (type) => {
       WHERE id(root) = $rootID
       CALL {
         WITH root
-        MATCH (root)-[:FATHER_OF]->(descendant)
+        MATCH (root)-[:FATHER_OF*]->(descendant)
         RETURN collect(DISTINCT descendant) AS allDescendants
       }
       WITH root, allDescendants
@@ -93,12 +93,12 @@ const fetchFamilyTree = async (type) => {
     let result = '';
     if (type){
       query = defaultQuery
-      queryParamsObject.rootID =  ROOT;
+      queryParamsObject.rootID =  rootID;
       result = await session.run(query, queryParamsObject);
     }
     else{
       query = queryWithMother
-      queryParamsObject.rootID =  ROOT;
+      queryParamsObject.rootID =  rootID;
       result = await session.run(query, queryParamsObject);
     }
 
@@ -118,7 +118,7 @@ const fetchFamilyTree = async (type) => {
       };
     });
 
-    return familyTree; // Return the formatted tree data as JSON
+    return familyTree;
   } catch (error) {
     console.error('Error fetching family tree:', error);
     return []; // Return an empty array in case of error
@@ -134,7 +134,7 @@ const fetchSpecifiedFamilyTree = async (rootID) => {
     MATCH (start:Person) WHERE id(start) = $rootID
 
     // Collect ancestors: persons on path from root ancestor to start
-    OPTIONAL MATCH pathUp = (ancestor:Person)-[:FATHER_OF]->(start)
+    OPTIONAL MATCH pathUp = (ancestor:Person)-[:FATHER_OF*]->(start)
     WITH collect(DISTINCT ancestor) AS ancestors, start
 
     // Collect descendants: persons on path down from start
@@ -168,8 +168,6 @@ const fetchSpecifiedFamilyTree = async (rootID) => {
       }]
     } AS treeNode
     ORDER BY person.name
-
-
     `;
 
     const result = await session.run(query, { rootID: Number(rootID) });
@@ -309,87 +307,146 @@ const FamilyTree = () => {
   const [selectedGeneration, setSelectedGeneration] = useState(null);
   const [currentHintIndex, setCurrentHintIndex] = React.useState(0);
   const [personDetails, setPersonDetails] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchedPersonID, setSearchedPersonID] = useState('');
+  const [lookoutMode, setLookoutMode] = useState("");
+  const [filters, setFilters] = useState({
+    gender: 'all',       // 'all', 'Male', 'Female'
+    maxDepth: null,      // e.g. 3 limits tree to 3 generations
+    showOnlyWithChildren: false,
+    showOnlyAlive: false,
+    customSearch: ''     // by name or last name
+  });
 
-  const handleSearchSubmit = async () => {
-    setSearchedPersonID(null);
-    setPersonDetails(null);
-    if (!searchQuery.trim()) {
+  const PeopleWithNoChildren = [226,227, 812, 673, 674, 827, 837, 850, 712, 331, 160];
+
+  const handleSearch = async (type) => {
+    let inputValue = '';
       setPersonDetails(null);
+    if (type === 'Node') {
+      console.log("Mode: Node");
+      
+      inputValue = document.getElementById("NodeTreeSearch").value;
+    } else if (type === 'Tree') {
+      console.log("Mode: Tree");
+      inputValue = document.getElementById("TreeRoot").value;
+    }
+
+    inputValue = inputValue.trim();
+    if (!inputValue) return;
+
+    if (!isNaN(inputValue)) {
+      const id = parseInt(inputValue, 10);
+      setPersonID(id);
+      type === 'Node' ? await goToPersonById() : await handlePersonTreeDisplay();
+    } else {
+      await searchPerson(inputValue);
+    }
+  };
+
+  const searchPerson = async (searchText) => {
+    const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
+    setLoading(true); // Ensure loading starts here
+
+    let translatedInputName = utils.translateName(searchText, false);
+    const {
+      personName,
+      fatherName,
+      grandfatherName,
+      familyName,
+    } = utils.splitName(translatedInputName);
+
+    if (!personName) {
+      setPersonDetails(null);
+      setLoading(false);
       return;
     }
-    await searchPerson(searchQuery.trim());
-  };
-  const searchPerson = async (searchText) => {
-  const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
-  setLoading(true); // Ensure loading starts here
 
-  let translatedInputName = utils.translateName(searchText, false);
-  const {
-    personName,
-    fatherName,
-    grandfatherName,
-    familyName,
-  } = utils.splitName(translatedInputName);
+    const translatedpersonName = isArabic(personName) ? utils.translateName(personName, false) : personName;
+    const translatedfatherName = isArabic(fatherName) ? utils.translateName(fatherName, false) : fatherName;
+    const translatedgrandfatherName = isArabic(grandfatherName) ? utils.translateName(grandfatherName, false) : grandfatherName;
+    const translatedfamilyName = isArabic(familyName) ? utils.translateFamilyName(familyName, false) : familyName;
 
-  if (!personName) {
-    setPersonDetails(null);
-    setLoading(false);
-    return;
-  }
+    let cypherQuery = ``;
+    const queryParamsObject = { personName: translatedpersonName };
 
-  const translatedpersonName = isArabic(personName) ? utils.translateName(personName, false) : personName;
-  const translatedfatherName = isArabic(fatherName) ? utils.translateName(fatherName, false) : fatherName;
-  const translatedgrandfatherName = isArabic(grandfatherName) ? utils.translateName(grandfatherName, false) : grandfatherName;
-  const translatedfamilyName = isArabic(familyName) ? utils.translateFamilyName(familyName, false) : familyName;
+  if (translatedfatherName) {
+    queryParamsObject.fatherName = translatedfatherName;
 
-  let cypherQuery = ``;
-  const queryParamsObject = { personName: translatedpersonName };
+    if (translatedgrandfatherName) {
+      queryParamsObject.grandfatherName = translatedgrandfatherName;
 
-if (translatedfatherName) {
-  queryParamsObject.fatherName = translatedfatherName;
+      if (translatedfamilyName) {
+        queryParamsObject.familyName = translatedfamilyName;
+        cypherQuery = `
+          MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+          WHERE child.name = $personName AND father.name = $fatherName AND grandfather.name = $grandfatherName AND child.lastName = $familyName
+          WITH DISTINCT child, father, grandfather
+          RETURN 
+            id(child) AS childID,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            child.lastName AS familyName
+        `;
+      } else {
+        cypherQuery = `
+          MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+          WHERE child.name = $personName AND father.name = $fatherName AND grandfather.name = $grandfatherName
+          WITH DISTINCT child, father, grandfather
+          RETURN 
+            id(child) AS childID,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            child.lastName AS familyName
+        `;
+      }
 
-  if (translatedgrandfatherName) {
-    queryParamsObject.grandfatherName = translatedgrandfatherName;
-
-    if (translatedfamilyName) {
-      queryParamsObject.familyName = translatedfamilyName;
-      cypherQuery = `
-        MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
-        WHERE child.name = $personName AND father.name = $fatherName AND grandfather.name = $grandfatherName AND child.lastName = $familyName
-        WITH DISTINCT child, father, grandfather
-        RETURN 
-          id(child) AS childID,
-          child.name AS childName, 
-          child.YoB AS childYoB, 
-          child.gender AS childGender,
-          father.name AS fatherName, 
-          grandfather.name AS grandfatherName,
-          child.lastName AS familyName
-      `;
     } else {
-      cypherQuery = `
-        MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
-        WHERE child.name = $personName AND father.name = $fatherName AND grandfather.name = $grandfatherName
-        WITH DISTINCT child, father, grandfather
-        RETURN 
-          id(child) AS childID,
-          child.name AS childName, 
-          child.YoB AS childYoB, 
-          child.gender AS childGender,
-          father.name AS fatherName, 
-          grandfather.name AS grandfatherName,
-          child.lastName AS familyName
-      `;
+      if (translatedfamilyName) {
+        queryParamsObject.familyName = translatedfamilyName;
+        cypherQuery = `
+          MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+          WHERE child.name = $personName AND father.name = $fatherName AND child.lastName = $familyName
+          OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+          WITH DISTINCT child, father, grandfather
+          RETURN 
+            id(child) AS childID,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            child.lastName AS familyName
+        `;
+      } else {
+        cypherQuery = `
+          MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+          WHERE child.name = $personName AND father.name = $fatherName
+          OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+          WITH DISTINCT child, father, grandfather
+          RETURN 
+            id(child) AS childID,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            child.lastName AS familyName
+        `;
+      }
     }
 
   } else {
     if (translatedfamilyName) {
       queryParamsObject.familyName = translatedfamilyName;
       cypherQuery = `
-        MATCH (father:Person)-[:FATHER_OF]->(child:Person)
-        WHERE child.name = $personName AND father.name = $fatherName AND child.lastName = $familyName
+        MATCH (child:Person)
+        WHERE child.name = $personName AND child.lastName = $familyName
+        OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
         OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
         WITH DISTINCT child, father, grandfather
         RETURN 
@@ -403,8 +460,9 @@ if (translatedfatherName) {
       `;
     } else {
       cypherQuery = `
-        MATCH (father:Person)-[:FATHER_OF]->(child:Person)
-        WHERE child.name = $personName AND father.name = $fatherName
+        MATCH (child:Person)
+        WHERE child.name = $personName
+        OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
         OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
         WITH DISTINCT child, father, grandfather
         RETURN 
@@ -419,78 +477,20 @@ if (translatedfatherName) {
     }
   }
 
-} else {
-  if (translatedfamilyName) {
-    queryParamsObject.familyName = translatedfamilyName;
-    cypherQuery = `
-      MATCH (child:Person)
-      WHERE child.name = $personName AND child.lastName = $familyName
-      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
-      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
-      WITH DISTINCT child, father, grandfather
-      RETURN 
-        id(child) AS childID,
-        child.name AS childName, 
-        child.YoB AS childYoB, 
-        child.gender AS childGender,
-        father.name AS fatherName, 
-        grandfather.name AS grandfatherName,
-        child.lastName AS familyName
-    `;
-  } else {
-    cypherQuery = `
-      MATCH (child:Person)
-      WHERE child.name = $personName
-      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
-      OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
-      WITH DISTINCT child, father, grandfather
-      RETURN 
-        id(child) AS childID,
-        child.name AS childName, 
-        child.YoB AS childYoB, 
-        child.gender AS childGender,
-        father.name AS fatherName, 
-        grandfather.name AS grandfatherName,
-        child.lastName AS familyName
-    `;
-  }
-}
 
 
+    const session = driver.session();
+    try {
+      const result = await session.run(cypherQuery, queryParamsObject);
 
-  const session = driver.session();
-  try {
-    const result = await session.run(cypherQuery, queryParamsObject);
-
-    if (result.records.length === 0) {
-      setPersonDetails(null);
-    } else if (result.records.length === 1) {
-      const record = result.records[0];
-      const YoB = record.get('childYoB');
-      const age = YoB ? new Date().getFullYear() - YoB : -1;
-
-      const personDetails = {
-        personID: record.get('childID')?.toNumber() ?? null,
-        personName: record.has('childName') ? record.get('childName') : "غير متوفر",
-        fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
-        grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر",
-        familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر",
-        gender: record.has('childGender') ? record.get('childGender') : "غير متوفر",
-        YoB: record.has('childYoB') ? record.get('childYoB') : null,
-        age: record.has('childYoB') && record.get('childYoB')
-          ? new Date().getFullYear() - record.get('childYoB')
-          : -1,
-      };
-
-
-      setPersonDetails(personDetails);
-    } 
-    else {
-      const multipleMatches = result.records.map((record) => {
+      if (result.records.length === 0) {
+        setPersonDetails(null);
+      } else if (result.records.length === 1) {
+        const record = result.records[0];
         const YoB = record.get('childYoB');
         const age = YoB ? new Date().getFullYear() - YoB : -1;
 
-        return {
+        const personDetails = {
           personID: record.get('childID')?.toNumber() ?? null,
           personName: record.has('childName') ? record.get('childName') : "غير متوفر",
           fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
@@ -502,21 +502,38 @@ if (translatedfatherName) {
             ? new Date().getFullYear() - record.get('childYoB')
             : -1,
         };
-      });
 
-      setPersonDetails({ multipleMatches });
+
+        setPersonDetails(personDetails);
+      } 
+      else {
+        const multipleMatches = result.records.map((record) => {
+          const YoB = record.get('childYoB');
+          const age = YoB ? new Date().getFullYear() - YoB : -1;
+
+          return {
+            personID: record.get('childID')?.toNumber() ?? null,
+            personName: record.has('childName') ? record.get('childName') : "غير متوفر",
+            fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
+            grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر",
+            familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر",
+            gender: record.has('childGender') ? record.get('childGender') : "غير متوفر",
+            YoB: record.has('childYoB') ? record.get('childYoB') : null,
+            age: record.has('childYoB') && record.get('childYoB')
+              ? new Date().getFullYear() - record.get('childYoB')
+              : -1,
+          };
+        });
+
+        setPersonDetails({ multipleMatches });
+      }
+    } catch (err) {
+      console.error('Query Error:', err);
+      setPersonDetails(null);
+    } finally {
+      await session.close();
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Query Error:', err);
-    setPersonDetails(null);
-  } finally {
-    await session.close();
-    setLoading(false);
-  }
-};
-
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
   };
 
   const hints = [
@@ -549,14 +566,8 @@ if (translatedfatherName) {
     return () => clearInterval(interval);
   }, [loading]);
 
-  const [filters, setFilters] = useState({
-    gender: 'all',       // 'all', 'Male', 'Female'
-    maxDepth: null,      // e.g. 3 limits tree to 3 generations
-    showOnlyWithChildren: false,
-    showOnlyAlive: false,
-    customSearch: ''     // by name or last name
-  });
   usePageTracking();
+
   function GenerationRuler({ maxGeneration, selectedGeneration, onGenerationClick }) {
     return (
       <div className='genBar'>
@@ -588,48 +599,37 @@ if (translatedfatherName) {
         })}
       </div>
     );
-  }
-  const goToPersonById = async (personId) => {
-    const coords = nodePositions.current[personId];
+  };
+
+  const goToPersonById = async () => {
     const container = treeContainerRef.current;
 
-    if (!coords || !container) {
-      console.warn("Person coordinates or container not found.");
+    if (!showTree || !container) {
+      alert("الرجاء اظهار الشجرة أولا.");
+      return;
+    }
+
+    const coords = nodePositions.current[personID];
+    if (!coords) {
+      console.warn(`Person with ID ${personID} not found.`);
+      alert(`عذراً، لم يتم العثور على الشخص برقم ${personID} في الشجرة.`);
+      setPersonDetails(null);
       return;
     }
 
     const bounds = container.getBoundingClientRect();
-    if (ROOT == personID){
-        setTranslate({
-        x: bounds.width / 2 - coords.x,
-        y: bounds.height / 2 - coords.y,
-      });
-    }
-    else{
-      setTranslate({
-        x: bounds.width / 2 - coords.x,
-        y: bounds.height / 2 - coords.y,
-      });
-      
-    }
+    setTranslate({
+      x: bounds.width / 2.2 - coords.x,
+      y: bounds.height / 2.2 - coords.y,
+    });
   };
-  const handleIDPersonSearch = async () => {
-    const inputID = document.getElementById('personsearchName').value;
-    const personID = parseInt(inputID, 10);
 
-    if (isNaN(personID)) {
-      alert("❗ الرجاء إدخال رقم صحيح للشخص.");
-      return;
-    }
-    if (!showTree){
-      alert("الرجاء إظهار الشجرة أولا.");
-      return;
-    }
-    goToPersonById(personID);
+  const handleSubtreeSelect = (rootID) => {
+    console.log(rootID);
+    const id = parseInt(rootID);
+    loadFamilyTree(id, "branch", true);
   };
-  const handleSubtreeSelect = (value) => {
-    loadFamilyTree(value); // or another specific function
-  };
+
   const handleBranchSelect = (selectedID) => {
     const id = parseInt(selectedID);
     setSelectedBranch(selectedID);
@@ -638,6 +638,7 @@ if (translatedfatherName) {
       loadFamilyTree(id, 'tree');
     }
   };
+  
   const handlePersonClick = async (person) => {
     console.log(person);
     const session = driver.session();
@@ -675,7 +676,7 @@ if (translatedfatherName) {
 
   const handlePersonTreeDisplay = async (personID) => {
     const ID = parseInt(personID, 10);
-
+    console.log("Displauying tree for :", ID);
     if (isNaN(ID)) {
       alert("❗ الرجاء إدخال رقم صحيح للشخص.");
       return;
@@ -692,15 +693,17 @@ if (translatedfatherName) {
     loadFamilyTree(ROOT, false)
   };
 
-  const loadFamilyTree = async (rootID, mode = 'branch', type = null) => {
+  const loadFamilyTree = async (rootID, mode, type = true) => {
     try {
       setLoading(true);
 
       let people = [];
       if (mode === 'fullLineage') {
         people = await fetchSpecifiedFamilyTree(rootID);
-      } else {
-        people = await fetchFamilyTree(type, true);
+      } 
+      else {
+        console.log(rootID, type);
+        people = await fetchFamilyTree(rootID, type);
         console.log(people);
       }
       
@@ -742,7 +745,6 @@ if (translatedfatherName) {
         };
 
         const fullTree = buildTreeSafe(rootWrapped, childrenMap, new Set());
-        // const filteredTree = applyFilters(fullTree);
         console.log(fullTree);
         setFamilyTree(fullTree);
 
@@ -798,6 +800,7 @@ if (translatedfatherName) {
       setIsFullscreen(false);
     }
   };
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -809,6 +812,7 @@ if (translatedfatherName) {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
+
   useEffect(() => {
     // Update treeDepth whenever maxDepth filter changes
     if (filters.maxDepth !== null) {
@@ -817,166 +821,144 @@ if (translatedfatherName) {
       setTreeDepth(0); // or any default value
     }
   }, [filters.maxDepth]);
+
   useEffect(() => {
     if (focusAfterLoadId && nodePositions.current[focusAfterLoadId]) {
       goToPersonById(focusAfterLoadId);
-      setFocusAfterLoadId(null); // reset
+      setFocusAfterLoadId(null);
     }
   }, [focusAfterLoadId, nodePositions.current]);
+
+  useEffect(() => {
+    document.title = "شجرة عرش قصر أولاد بوبكر";
+  }, []);
+
+  useEffect(() => {
+    if (personDetails && personDetails.personID) {
+      goToPersonById(personDetails.personID);
+      setPersonDetails(null);
+    }
+  }, [personDetails]);
 
   return (
     <div className="treePage">
       <header>
-        <h2>شجرة عائلة قصر أولاد بوبكر</h2>
+        <h1 id="title">شجرة عائلة قصر أولاد بوبكر</h1>
         <div className="d">
-          <p id="pd">
+          <p id="paragraph">
             في هذه الصفحة، يمكنك تصفح شجرة عائلة قصر أولاد بوبكر من الجد المؤسس بوبكر وصولًا إلى الجيل الحالي. 
             تهدف الصفحة إلى عرض العلاقات العائلية بشكل دقيق ومنظم، مما يتيح لك فهم تسلسل الأنساب، 
             وتاريخ تطور العرش، والتعرف على أفراد العائلة عبر الأجيال. 
             استكشف كيف ترابطت العائلات، وتعمّق في جذورك وهويتك العائلية.
           </p>
-
         </div>
-        <div className="filter-header">
-          <h3>مرشحات عرض شجرة العائلة</h3>
-          <p>استخدم المرشحات أدناه لتضييق نطاق العرض وإظهار الأشخاص الذين تهمك تفاصيلهم فقط.</p>
-        </div>
-        <table className="filters-table-horizontal">
-          <thead>
-            <tr>
-              <th>الجنس</th>
-              <th>عدد الأجيال</th>
-              <th>فقط من لديهم أبناء</th>
-              <th>فقط الأحياء</th>
-              <th>البحث بالاسم</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <select onChange={e => setFilters(f => ({ ...f, gender: e.target.value }))}>
-                  <option value="all">الكل</option>
-                  <option value="Male">الذكور فقط</option>
-                  <option value="Female">الإناث فقط</option>
-                </select>
-              </td>
-              <td>
-                <input
-                  type="number"
-                  placeholder="عدد الأجيال"
-                  value={filters.maxDepth || ''}
-                  onChange={e => setFilters(f => ({ ...f, maxDepth: Number(e.target.value) || null }))}
-                />
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  id="childrenFilter"
-                  onChange={e => setFilters(f => ({ ...f, showOnlyWithChildren: e.target.checked }))}
-                />
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  id="aliveFilter"
-                  onChange={e => setFilters(f => ({ ...f, showOnlyAlive: e.target.checked }))}
-                />
-              </td>
-              <td>
-                <input
-                  type="text"
-                  placeholder="ابحث بالاسم"
-                  onChange={e => setFilters(f => ({ ...f, customSearch: e.target.value }))}
-                />
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-
       </header>
       <div className="screen">
-    {/* Left panel: inputs & controls */}
     
     <aside className="panel panel--controls">
       <div className="filterChoice">
-        {/* Card R1 */}
         <div className="card" id="R1">
+          <h3>تصفح الشجرة العائلية الكبرى</h3>
+
           <p className="info-text">
-            يتيح زر <strong style={{ color: 'blue' }}>شجرة العائلة التقليدية</strong> تصفح الشجرة العائلية ابتداءً من الجدّ الأول وحتى الأجيال الحالية.
+            يمكنك تصفح الشجرة العائلية الكاملة ابتداءً من الجدّ الأعلى وصولاً إلى الأجيال الحديثة. يتوفّر نمطان للعرض:
           </p>
 
           <p className="info-text">
-            أما <strong style={{ color: '#b52155' }}>شجرة العائلة مع أبناء الأمهات</strong>، فتُظهر أيضًا أبناء الأمهات، مما يجعل الشجرة أكثر شمولًا، 
-            <strong id="warning">لكن احذر من التكرارات وضخامة الشجرة!</strong>
+              <strong style={{ color: 'blue' }}>شجرة العائلة التقليدية:</strong> تظهر الأنساب ابتداءً من الجدّ الأول دون احتساب أبناء الأمهات.
           </p>
-
+          <p className="info-text">
+            <strong style={{ color: '#b52155' }}>شجرة العائلة مع أبناء الأمهات:</strong> تُظهر أيضًا أبناء الأمهات، لجعل الشجرة أكثر شمولًا
+            <strong id="warning"> — ولكن قد تحتوي على تكرارات وتكون ضخمة!</strong>
+          </p>
+              
           <div className="rootButton">
-            <button id="men" onClick={handleRootTreeClick}>
-              شجرة العائلة التقليدية
-            </button>
-            <button id="women" onClick={handleRootWomenTreeClick}>
-              شجرة مع أبناء الأمهات
-            </button>
-          </div>
-          <div className="branchSelect">
-            <p className="branch-selector-description">
-              اختر أحد الفروع الرئيسية لعائلة بوبكر لعرض النسب الكامل الخاص به.
-            </p>
-            <select onChange={(e) => handleBranchSelect(e.target.value)} className="branch-selector">
-              <option value="">-- اختر فرعًا --</option>
-              <option value="202">فرع فرحات</option>
-              <option value="176">فرع إمحمّد</option>
-              <option value="XXX">فرع عمر</option>
-              <option value="223">فرع سالم</option>
-            </select>
+            <button id="men" onClick={handleRootTreeClick}>شجرة العائلة التقليدية</button>
+            <button id="women" onClick={handleRootWomenTreeClick}>شجرة مع أبناء الأمهات</button>
           </div>
 
-          {/* Only show sub-tree selector if "سالم" branch is selected */}
+          <hr style={{ margin: '5px 0' }} />
+
+          <h4>تصفح أحد الفروع الرئيسية</h4>
+          <p className="branch-selector-description">
+            اختر أحد الفروع الرئيسية لعائلة بوبكر لعرض النسب الكامل الخاص به.
+          </p>
+          <select className="branch-selector" onChange={(e) => setSelectedBranch(e.target.value)}>
+            <option value="">-- اختر فرعًا --</option>
+            <option value="202">فرع فرحات</option>
+            <option value="176">فرع إمحمّد</option>
+            <option value="224">فرع عمر</option>
+            <option value="223">فرع سالم</option>
+          </select>
+
           {selectedBranch === '223' && (
             <div className="subtreeSelect">
               <p className="branch-selector-description">اختر فرعًا فرعيًا من فرع سالم:</p>
-              <select
-                onChange={(e) => {
-                  setSelectedSubtree(e.target.value);
-                  handleSubtreeSelect(e.target.value); // optional: load subtree
-                }}
-                className="branch-selector"
-              >
+              <select onChange={(e) => {
+                setSelectedSubtree(e.target.value);
+              }} className="branch-selector">
                 <option value="">-- اختر فرعًا فرعيًا --</option>
-                <option value="390">فرع ضراري علي</option>
-                <option value="391">فرع ضراري احمد</option>
-                <option value="392">فرع ضراري بوبكر</option>
-                <option value="389">فرع ضراري خليفة</option>
-                <option value="393">فرع ضراري سالم</option>
+                <option value="390">فرع أولاد علي بن سالم</option>
+                <option value="391">فرع أولاد احمد بن سالم</option>
+                <option value="392">فرع أولاد بوبكر بن سالم</option>
+                <option value="389">فرع أولاد خليفة بن سالم</option>
+                <option value="393">فرع أولاد سالم بن سالم</option>
               </select>
             </div>
           )}
-          
+
+          {selectedBranch === '176' && (
+            <div className="subtreeSelect">
+              <p className="branch-selector-description">اختر فرعًا فرعيًا من فرع إمحمّد:</p>
+              <select onChange={(e) => {
+                setSelectedSubtree(e.target.value);
+              }} className="branch-selector">
+                <option value="">-- اختر فرعًا فرعيًا --</option>
+                <option value="175">فرع أولاد بوبكر بن إمحِمّدْ</option>
+                <option value="225">فرع أولاد بلقاسم بن إمحِمّدْ</option>
+                <option value="174">فرع أولاد ابراهيم بن إمحِمّدْ</option>
+              </select>
+            </div>
+          )}
+
+          {selectedBranch === '202' && (
+            <div className="subtreeSelect">
+              <p className="branch-selector-description">اختر فرعًا فرعيًا من فرع فرحات:</p>
+              <select onChange={(e) => {
+                setSelectedSubtree(e.target.value);
+              }} className="branch-selector">
+                <option value="">-- اختر فرعًا فرعيًا --</option>
+                <option value="316">فرع أولاد منصور بن فرحات</option>
+                <option value="373">فرع أولاد مبارك بن فرحات</option>
+                <option value="201">فرع أولاد إمحِمّدْ بن فرحات</option>
+              </select>
+            </div>
+          )}
+          <button className="SubTreeButton" onClick={() => handleBranchSelect(selectedSubtree || selectedBranch)}>عرض الشجرة</button>
         </div>
 
-        {/* Card R2 */}
         <div className="card" id="R2">
+          <h3>عرض شجرة انطلاقًا من شخص معين</h3>
+
           <p className="info-text">
-            للحصول على رقم الهوية، استخدم صفحة <a href="/search" target="_blank" style={{ color: '#007bff' }}>البحث</a>، ثم انسخ الرقم الظاهر فوق الاسم والصقه هنا.
+            اكتب اسم الشخص كاملاً أو جزئياً، أو أدخل الرقم التسلسلي (ID)، لعرض شجرته مع أجداده وذريته.
           </p>
-          <input id="rootID" type="text" placeholder="أدخل رقم الشخص" onChange={handleSearchChange}/>
-          <button className="btn-person" onClick={handleSearchSubmit}>
-            شجرة ابتداءً من شخص
-          </button>
-          {personDetails ? (
+
+          <input className="SearchInput" id="TreeRoot" type="text" placeholder="أَدخِل الرقم التسلسلي أو اسم الشخص"/>
+          <button className="btn-person" onClick={() =>{ handleSearch('Tree'); setLookoutMode("Tree")}}>عرض الشجرة</button>
+
+          {(personDetails && lookoutMode === "Tree") ? (
             personDetails.multipleMatches && personDetails.multipleMatches.length > 1 ? (
-              // Multiple matches modal
               <div className="modal-overlay">
                 <div className="modal-content multiple-matches">
-                  <h2>نتائج متعددة:</h2>
+                  <h2>🔍 تم العثور على أكثر من شخص:</h2>
                   <table className="duplicated-table">
                     <thead>
                       <tr>
                         <th>الرقم التسلسلي</th>
-                        <th>الإسم</th>
-                        <th>إسم الأب</th>
-                        <th>إسم الجدّ</th>
+                        <th>الاسم</th>
+                        <th>اسم الأب</th>
+                        <th>اسم الجدّ</th>
                         <th>اللقب</th>
                         <th>العمر</th>
                         <th></th>
@@ -995,11 +977,11 @@ if (translatedfatherName) {
                             <button
                               className="choiceButton"
                               onClick={async () => {
-                                await handlePersonTreeDisplay(person.personID);
+                                handlePersonTreeDisplay(person.personID);
                                 setPersonDetails(null);
                               }}
                             >
-                              إختيار
+                              اختيار
                             </button>
                           </td>
                         </tr>
@@ -1010,37 +992,90 @@ if (translatedfatherName) {
                 </div>
               </div>
             ) : (
-              // Single unique match - show tree directly
               <>
                 {handlePersonTreeDisplay(personDetails.personID)}
-                {/* You may want to reset personDetails after displaying tree */}
                 {setPersonDetails(null)}
               </>
             )
           ) : null}
-
         </div>
 
-        {/* Card R3 */}
         <div className="card" id="R3">
-          <p className="info-text">
-            للحصول على رقم الهوية، ابحث عن الشخص من <a href="/search">صفحة البحث</a>، ثم انسخ الرقم الظاهر فوق اسمه والصقه هنا.
-          </p>
-
-          <input id="personsearchName" type="text" placeholder="ابحث عن شخص" />
-          <button className="btn-search" onClick={handleIDPersonSearch}>
-            ابحث في الشجرة
-          </button>
+          <div className="search-section">
+            <h3>البحث في الشجرة باستخدام رقم الهوية</h3>
+            <p className="info-text">
+              يمكنك إدخال الرقم التسلسلي (ID) أو الاسم هنا مباشرة للبحث في الشجرة. تأكد أولاً من وجود الشخص في الشجرة وعرضها قبل البحث. للحصول على الرقم التسلسلي، ابحث عن الشخص في <a href="/search">صفحة البحث</a>، ثم انسخ الرقم أعلى اسمه والصقه هنا.
+            </p>
+            <input className="SearchInput"id="NodeTreeSearch" type="text" placeholder="أَدخِل الرقم التسلسلي أو اسم الشخص" />
+            <button
+              className="btn-person"
+              onClick={ async () => {
+                await handleSearch('Node');
+                setLookoutMode('Node');
+              }}
+            >
+              ابحث في الشجرة
+            </button>
+            {(personDetails && lookoutMode === 'Node') ? (
+              personDetails.multipleMatches && personDetails.multipleMatches.length > 1 ? (
+                <div className="modal-overlay">
+                  <div className="modal-content multiple-matches">
+                    <h2>🔍 تم العثور على أكثر من شخص:</h2>
+                    <table className="duplicated-table">
+                      <thead>
+                        <tr>
+                          <th>الرقم التسلسلي</th>
+                          <th>الاسم</th>
+                          <th>اسم الأب</th>
+                          <th>اسم الجدّ</th>
+                          <th>اللقب</th>
+                          <th>العمر</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {personDetails.multipleMatches.map((person, index) => (
+                          <tr key={index}>
+                            <td>{person.personID}</td>
+                            <td>{utils.translateName(person.personName)}</td>
+                            <td>{person.fatherName ? utils.translateName(person.fatherName) : ''}</td>
+                            <td>{person.grandfatherName ? utils.translateName(person.grandfatherName) : ''}</td>
+                            <td>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
+                            <td>{person.age !== -1 ? person.age : ' - '}</td>
+                            <td>
+                              <button
+                                className="choiceButton"
+                                onClick={async () => {
+                                  setPersonDetails(null);
+                                  setPersonID(person.personID);
+                                  await goToPersonById(person.personID);
+                                }}
+                              >
+                                اختيار
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <button onClick={() => setPersonDetails(null)}>إغلاق</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                </>
+              )
+            ) : null}
+          </div>
         </div>
       </div>
     </aside>
             
-    {/* Right panel: tree & loading */}
     <main className="panel panel--tree">
       {loading && (
         <div className="loading-indicator">
           <p>جارٍ تحميل الشجرة...</p>
-          <p style={{ marginTop: 10, fontStyle: 'italic', color: '#555' }}>
+          <p style={{ marginTop: 10, fontStyle: 'italic', color: '#555', fontSize: 14 }}>
             {hints[currentHintIndex]}
           </p>
           <div className="spinner" style={{
@@ -1049,7 +1084,7 @@ if (translatedfatherName) {
       )}
 
       {!loading && !showTree && (
-        <div style={{ textAlign: 'center', padding: 30 }}>
+        <div style={{ textAlign: 'center', padding: 30, alignItems: 'center' }}>
           <p>لا توجد بيانات شجرة لعرضها.</p>
         </div>
       )}
@@ -1061,8 +1096,8 @@ if (translatedfatherName) {
             <div className="popup">
               <h4>الرقم التسلسلي: {selectedPerson.id}</h4>
               <h4>الاسم: {selectedPerson.name}</h4>
-              <p>اللقب: {selectedPerson.lastName}</p>
-              <p>ملاحظات: </p>
+              <h4>اللقب: {selectedPerson.lastName}</h4>
+              <h4>ملاحظات: </h4>
 
               {spouseId && (
                 <button
@@ -1103,17 +1138,17 @@ if (translatedfatherName) {
           )}
           <div className="treeHeader">
             <div className="infoStats">
-              <p>مجموع الأشخاص في هذه الشجرة : {treeCount}</p>
-              <p>عدد الأجيال في هذه الشجرة : {treeDepth}</p>
+              <p id="stats">مجموع الأشخاص في هذه الشجرة : {treeCount}</p>
+              <p id="stats">عدد الأجيال في هذه الشجرة : {treeDepth}</p>
             </div>
             <button onClick={toggleFullscreen} aria-label="Toggle fullscreen" style={{ fontSize: '24px', cursor: 'pointer', background: 'none', border: 'none' }}>
               {isFullscreen ? (
                 <>
-                  <FiMinimize /> <span>تصغير الشاشة</span>
+                  <FiMinimize id="icon"/> <span>تصغير الشاشة</span>
                 </>
               ) : (
                 <>
-                  <FiMaximize /> <span>تكبير الشاشة</span>
+                  <FiMaximize id="icon"/> <span>تكبير الشاشة</span>
                 </>
               )}
             </button>
@@ -1128,7 +1163,7 @@ if (translatedfatherName) {
           <Tree
             className="tree"
             data={familyTree}
-            highlightGeneration={selectedGeneration} // your Tree uses this prop to style nodes
+            highlightGeneration={selectedGeneration}
             orientation="vertical"
             pathFunc="step"
             zoomable={!showPopup}
@@ -1136,8 +1171,9 @@ if (translatedfatherName) {
             style={{ pointerEvents: showPopup ? 'none' : 'auto' }}
             translate={translate}
             nodeSize={{ x: 110, y: 150 }}
-            separation={{ siblings: 1.1, nonSiblings: 1 }}
-            
+            collapsible={true}
+            zoom={0.7}
+            separation={{ siblings: 1.2, nonSiblings: 1.2 }}
             renderCustomNodeElement={({ nodeDatum, hierarchyPointNode }) => {
             nodePositions.current[nodeDatum.id] = {
               x: hierarchyPointNode.x,
@@ -1156,72 +1192,80 @@ if (translatedfatherName) {
             let fill;
 
             if (isSelectedGen) {
-              // Highlight nodes of the selected generation with a distinct color
-              fill = '#fbc02d'; // e.g. yellow highlight for selected generation
+              fill = '#fbc02d';
             } else if (specialColors[nodeDatum.id]) {
               fill = specialColors[nodeDatum.id];
             } else {
-              fill = '#4fc3f7'; // default normal node color
+              fill = '#4fc3f7'; 
             }
 
               return (
                 
                 <g onClick={(event) => handlePersonClick(nodeDatum, event)} style={{ cursor: 'pointer' }}>
-                  <defs>
-                    <linearGradient id={`grad-${nodeDatum.id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.6"/>
-                      <stop offset="100%" stopColor={fill} stopOpacity="1"/>
-                    </linearGradient>
-                    <filter id={`shadow-${nodeDatum.id}`} x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="2" dy="4" stdDeviation="3" floodColor="#000" floodOpacity="0.3"/>
-                    </filter>
-                  </defs>
+        <defs>
+          <linearGradient id={`grad-${nodeDatum.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.9" />
+            <stop offset="100%" stopColor={fill} stopOpacity="1" />
+          </linearGradient>
 
-                  <rect
-                    x="-50" y="-25"
-                    width="100" height="50"
-                    rx="10" ry="10"
-                    fill={`url(#grad-${nodeDatum.id})`}
-                    stroke="#333"
-                    strokeWidth="0.8"
-                    filter={`url(#shadow-${nodeDatum.id})`}
-                  />
+          <filter id={`soft-shadow-${nodeDatum.id}`} x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000000" floodOpacity="0.2" />
+          </filter>
+        </defs>
 
-                  {(() => {
-                    const words = nodeDatum.name.split(' ');
-                    const gender = nodeDatum.gender;
-                    const lines = [];
-                    let current = '';
-                    words.forEach(word => {
-                      const test = current ? `${current} ${word}` : word;
-                      if (test.length > 12) {
-                        lines.push(current);
-                        current = word;
-                      } else {
-                        current = test;
-                      }
-                    });
-                    if (current) lines.push(current);
+        <rect
+          x="-60" y="-30"
+          width="120" height="60"
+          rx="16" ry="14"
+          fill={`url(#grad-${nodeDatum.id})`}
+          stroke={nodeDatum.gender === 'Female' ? '#b52155' : '#1bbc7b'}
+          strokeWidth="2"
+          filter={`url(#soft-shadow-${nodeDatum.id})`}
+        />
 
-                    return lines.map((line, i) => (
-                      <text
-                        key={i}
-                        x="0" y={ i * 18 - (lines.length - 1) * 9 }
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        style={{
-                          fontSize: '24px',
-                          fontFamily: 'Cairo, sans-serif',
-                          fill: '#fff',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        {/* {gender === 'Female' ? line[0]: line} */}
-                        {line}
-                      </text>
-                    ));
-                  })()}
-                </g>
+        {(() => {
+          const words = nodeDatum.name.split(' ');
+          const lines = [];
+          let current = '';
+          words.forEach(word => {
+            const test = current ? `${current} ${word}` : word;
+            if (test.length > 12) {
+              lines.push(current);
+              current = word;
+            } else {
+              current = test;
+            }
+          });
+          if (current) lines.push(current);
+
+          const allLines = [...lines];
+
+          if (PeopleWithNoChildren.includes(nodeDatum.id)) {
+            allLines.push('∅');
+          }
+
+          return allLines.map((line, i) => (
+            <text
+              key={i}
+              x="0"
+              y={i * 18 - (allLines.length - 1) * 9}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              style={{
+                fontSize: '20px',
+                fontFamily: 'Cairo, sans-serif',
+                fill: '#0d1f2d',
+                fontWeight: 600,
+                pointerEvents: 'none',
+              }}
+            >
+              {line}
+            </text>
+          ));
+
+        })()}
+      </g>
+
               );
             }}
           />
@@ -1237,39 +1281,15 @@ if (translatedfatherName) {
 
       <p id="rotateSuggestion">ننصحك بتدوير الهاتف</p>
     </main>
-  </div>
-    
-      {loading && !showTree && !familyTree && (
-        <div className="loading-indicator">
-          <p>جار تحميل الشجرة...</p>
-          <div className="spinner"></div>
-        </div>
-      )}
-      
-
-      <div className='footerTips'>
-        <div className="card">
-          <h4>لا تضيع الوقت في البحث المكرر</h4>
-          <p>إذا كنت بحاجة إلى الرجوع لنفس الشخص في الشجرة، احفظ الرقم التسلسلي لاستخدامه مباشرة في المستقبل لتسريع البحث.</p>
-        </div>
-        
-        <div className="card">
-          <h4>التفاعل مع الأشجار</h4>
-          <p>عندما يتم النقر على امرأة، سيتم عرض موقع زوجها على الشجرة، أما إذا تم النقر على الزوج، فسيتم عرض موقع زوجته على الشجرة. هذا يساعدك على استكشاف العلاقات بين الزوجين داخل شجرة العائلة بشكل أسرع وأكثر فعالية.</p>
-        </div>
-        
-        
-        <div className="card">
-          <h4>كيفية البحث في الشجرة</h4>
-          <p>لاستعراض شجرة العائلة من شخص معين، قم باستخدام الرقم التسلسلي للشخص في مربع البحث. ابحث عن الشخص عن طريق صحفة البحث عن الأشخاص، ثم قم بنسخ الرقم من قسم النتائج.</p>
-        </div>
-        
-        
-      </div>
-
-
     </div>
     
+    {loading && !showTree && !familyTree && (
+      <div className="loading-indicator">
+        <p>جار تحميل الشجرة...</p>
+        <div className="spinner"></div>
+      </div>
+    )}
+  </div>  
   );
 };
 

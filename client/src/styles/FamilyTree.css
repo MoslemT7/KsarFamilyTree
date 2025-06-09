@@ -1,54 +1,57 @@
-/*----------------------------------------
-  Reset & Base
-----------------------------------------*/
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-body {
-  font-family: 'Cairo', sans-serif;
-  background: #f4f4f4;
-  color: #333;
+:root {
+  --main-font: "Cairo", sans-serif;
+  --primary-color: #1bbc7b;
+  --secondary-color: #b52155;
+  --accent-color: #00d1b2;
+  --dark-color: #0d1f2d;
+  --light-bg: #f4f6f9;
+  --light-border: #ddd;
+  --text-color: #333;
+  --warning-color: #d63031;
+  --card-bg: #fff;
+  --tree-bg-start: #b7e4c7;
+  --tree-bg-end: #d8f3dc;
+  --shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+  --small-radius: 6px;
+  --medium-radius: 10px;
+  --large-radius: 12px;
 }
 
 /*----------------------------------------
   Tree Page Layout
 ----------------------------------------*/
+
 .treePage {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-}
-.treeHeader{
-  display: flex;
-  flex-direction: row;
-  padding: 2px auto;
+  font-family: var(--main-font);
 }
 
-.treeHeader button{
+.treeHeader {
+  display: flex;
+  flex-direction: row;
+  padding: 2px;
+}
+
+.treeHeader button {
   width: 75%;
   text-align: left;
-}
-button span{
-  font-family: "Cairo";
+  font-family: var(--main-font);
 }
 
 button {
   align-items: center;
   direction: ltr;
+  font-family: var(--main-font);
 }
 
 .treePage > header {
   padding: 16px;
-  background: #fff;
-  border-bottom: 1px solid #ddd;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--light-border);
 }
-.treePage > header h2 {
-  text-align: center;
-  font-size: 36px;
-  margin-bottom: 8px;
-}
+
 .treePage > header .d #pd {
   font-size: 20px;
   line-height: 1.6;
@@ -57,36 +60,45 @@ button {
   width: 100%;
   padding: 8px 4px;
 }
-.filter-header h3{
-  font-size: 26px;
-  border-top: 4px solid #083757;
+
+.card h3 {
+  background-color: var(--dark-color);
+  color: var(--accent-color);
   text-align: center;
+  border-radius: var(--medium-radius);
 }
-.filter-header p{
+
+.card h4 {
   text-align: center;
-  font-size: 18px;
+  background-color: var(--accent-color);
+  color: var(--light-bg);
+  border-radius: var(--large-radius);
 }
-.d{
+
+.d {
   width: 100%;
   padding: 0;
+}
+
+select{
+  font-family: "Cairo";
 }
 
 /*----------------------------------------
   Panels Container
 ----------------------------------------*/
+
 .screen {
   display: flex;
   flex: 1;
+  background-color: #fff;
   overflow: hidden;
 }
 
 .modal-overlay {
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: rgba(0, 0, 0, 0.75); /* dark background */
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,97 +111,141 @@ button {
   width: 95vw;
   overflow-y: auto;
   padding: 30px;
-  border-radius: 10px;
+  border-radius: var(--medium-radius);
   direction: rtl;
 }
-
 
 /* Controls Panel */
 .panel--controls {
   flex: 0 0 320px;
-  background: #fff;
-  border-right: 1px solid #ddd;
+  background: var(--card-bg);
+  border-right: 1px solid var(--light-border);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding: 4px;
+  padding: 2px 0px;
 }
+
 .panel--controls .filterChoice {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .panel--controls .filterChoice .card {
-  background: #fff;
-  border: 2px solid #3498db;
+  background: var(--card-bg);
+  border: 3px solid var(--dark-color);
   border-radius: 8px;
-  padding: 12px;
-  box-shadow: 2px 4px 12px rgba(0,0,0,0.1);
+  padding: 4px;
+  text-align: center;
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.1);
 }
+
 .panel--controls .info-text {
   font-size: 14px;
   line-height: 1.6;
-  margin-bottom: 8px;
+  margin: 4px 8px;
+
 }
+
 .rootButton {
   display: flex;
   gap: 8px;
   margin-top: 8px;
 }
+
 #men, #women {
   flex: 1;
   padding: 8px 0;
   font-size: 14px;
-  font-family: 'Cairo', sans-serif;
+  font-family: var(--main-font);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--small-radius);
 }
-#men { background-color: #1bbc7b; }
-#women { background-color: #b52155; }
+
+#men {
+  background-color: var(--dark-color);
+}
+
+#women {
+  background-color: var(--accent-color);
+}
 
 /* Person & Search Inputs */
-#rootID,
-#personsearchName {
-  width: 100%;
+.SearchInput {
+  width: 95%;
   height: 50px;
-  margin: 8px 0;
-  border-radius: 6px;
+  margin: 4px 0;
+  border-radius: var(--small-radius);
   border: 1px solid #ccc;
   text-align: center;
-  font-weight: bolder;
-  font-family: 'Cairo', sans-serif;
+  font-weight: bold;
+  font-size: 18px;
+  font-family: var(--main-font);
 }
+
 .btn-person,
 .btn-search {
   width: 85%;
   margin: 8px auto;
   padding: 8px;
   font-size: 16px;
-  font-family: 'Cairo', sans-serif;
+  font-family: var(--main-font);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--small-radius);
   cursor: pointer;
 }
-.btn-person { background-color: #1bbc7b; }
-.btn-search { background-color: orange; }
+
+.btn-person {
+  background-color: var(--accent-color);
+}
+
+.btn-search {
+  background-color: var(--accent-color);
+}
 
 #warning {
-  color: #d63031;
+  color: var(--warning-color);
   font-weight: bold;
   margin-top: 4px;
 }
+
 .branch-selector {
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--small-radius);
   border: 1px solid #ccc;
   font-size: 16px;
-  margin-top: 4px auto;
+  margin: 4px auto;
   direction: rtl;
   width: 100%;
   text-align: center;
 }
+
+.branch-selector option {
+  font-size: 16px;
+  font-family: var(--main-font);
+}
+
+.branch-selector-description {
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: #444;
+  direction: rtl;
+  text-align: center;
+}
+
+.branchSelect {
+  text-align: center;
+}
+.SubTreeButton{
+  width: 50%;
+  font-size: 16px;
+  color: #00d1b2;
+  background-color: #0d1f2d;
+}
+/* Popup */
 .popup {
   position: absolute;
   left: 45%;
@@ -198,39 +254,26 @@ button {
   background-color: #fff;
   padding: 10px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  height: 25%;
-  width: 25%;
+  border-radius: var(--small-radius);
+  height: 20%;
+  width: 35%;
   pointer-events: auto;
-
-  /* For positioning you’ll still set inline style for top and left */
 }
-.popup button{
+
+.popup button {
   font-size: 18px;
-  font-family: "Cairo";
-  color: #1bbc7b;
-  background-color: #083757;
-  font-weight: bolder;
+  font-family: var(--main-font);
+  color: var(--primary-color);
+  background-color: var(--dark-color);
+  font-weight: bold;
   padding: 4px 8px;
   width: 40%;
 }
-.branch-selector option{
-  font-size: 16px;
-  font-family: "Cairo";
-}
-.branch-selector-description {
-  font-size: 14px;
-  margin-bottom: 6px;
-  color: #444;
-  direction: rtl;
-  text-align: center;
-}
-.branchSelect{
-  text-align: center;
-}
+
 /*----------------------------------------
   Tree Panel
 ----------------------------------------*/
+
 .panel--tree {
   flex: 1;
   position: relative;
@@ -243,39 +286,43 @@ button {
 #treeWrapper {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #b7e4c7, #d8f3dc);
-  border: 3px solid #4682b4;
-  border-radius: 10px;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, var(--tree-bg-start), var(--tree-bg-end));
+  border: 3px solid var(--dark-color);
+  border-radius: var(--medium-radius);
+  box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
-  
+  margin: 0;
+  padding: 0;
 }
+
 #treeWrapper:before {
   content: "شجرة العائلة";
   position: absolute;
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(255,255,255,0.8);
+  background: rgba(255, 255, 255, 0.8);
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: var(--small-radius);
   color: #3b4d61;
   font-size: 20px;
   font-weight: bold;
   z-index: 1;
 }
-.infoStats{
+
+.infoStats {
   text-align: right;
   padding: 6px;
   width: 25%;
 }
 
-.infoStats p{
-  text-align: right;
+.infoStats p {
   font-weight: bold;
   font-size: 18px;
 }
+
+/* Generation Sidebar */
 .genBar {
   position: sticky;
   top: 20px;
@@ -287,31 +334,33 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  font-family: 'Cairo, sans-serif';
+  font-family: var(--main-font);
   font-size: 14px;
   user-select: none;
   text-align: center;
   direction: rtl;
 }
-.genNum{
-  font-family: "Cairo";
+
+.genNum {
+  font-family: var(--main-font);
 }
+
 /* Loading Indicator */
 .loading-indicator {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh; /* full viewport height for true vertical centering */
+  height: 100vh;
   text-align: center;
   padding: 20px;
   box-sizing: border-box;
-  background: #fafafa; /* subtle background */
+  background: #fafafa;
 }
 
-.loading-indicator p{
+.loading-indicator p {
   font-size: 32px;
-  color: #333;
+  color: var(--text-color);
 }
 
 .spinner {
@@ -324,50 +373,11 @@ button {
   animation: spin 1.2s linear infinite;
 }
 
-.filters-table-horizontal th{
-  font-size: 18px;
-  width: 20%;
-}
-
-.filters-table-horizontal input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  transform: scale(1.2);
-}
-.filters-table-horizontal select,
-.filters-table-horizontal input[type="number"],
-.filters-table-horizontal input[type="text"] {
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 16px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  outline-offset: 2px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  font-family: "Cairo";
-  text-align: center;
-}
-
-.filters-table-horizontal select:focus,
-.filters-table-horizontal input[type="number"]:focus,
-.filters-table-horizontal input[type="text"]:focus {
-  border-color: #6c63ff;
-  box-shadow: 0 0 6px rgba(108, 99, 255, 0.5);
-}
-@media (max-width: 480px) {
-  .filters {
-    flex-direction: column;
-  }
-  .filters select,
-  .filters input[type="number"],
-  .filters input[type="text"] {
-    width: 100%;
-    min-width: unset;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
-
-@keyframes spin { to { transform: rotate(360deg); } }
 
 #rotateSuggestion {
   display: none;
@@ -375,7 +385,7 @@ button {
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  color: #d63031;
+  color: var(--warning-color);
   font-size: 16px;
 }
 
@@ -385,71 +395,49 @@ button {
 .footerTips {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
   justify-content: center;
-  padding: 20px;
-  background: #f4f6f9;
+  background: var(--light-bg);
   border-top: 2px solid #e0e0e0;
 }
-.footerTips .card {
-  flex: 1 1 30%;
-  min-width: 260px;
-  background: linear-gradient(35deg, #083757, #3f5665);
-  color: #fff;
-  border-radius: 12px;
-  padding: 15px;
-  text-align: center;
-  transition: transform .3s, box-shadow .3s;
-}
-.footerTips .card h4 {
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-.footerTips .card p {
-  font-size: 15px;
-  line-height: 1.5;
-}
-.footerTips .card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-}
+
 
 /*----------------------------------------
   Responsive
 ----------------------------------------*/
+@media (max-width: 480px) {
+  .popup button{
+    width: 50%;
+    font-size: 12px;
+  }
+}
 /* Mobile ≤480px */
 @media (max-width: 480px) {
   .screen {
     flex-direction: column;
+
   }
-  .panel--controls {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #ddd;
+  .filters-table-horizontal th{
+    font-size: 12px;
   }
+  .filters-table-horizontal td input{
+    font-size: 10px;
+  }
+
   .panel--tree {
     width: 100%;
     margin: 8px 0;
-    height: auto;
+    height: 500px;
   }
-  #treeWrapper {
-    width: 95%;
-    height: 50vh;
-    margin: 6px auto;
-    padding: 4px;
-    border: 2px solid #4682b4;
-    border-radius: 10px;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-  }
+
   #treeWrapper:before {
     font-size: 18px;
     padding: 4px 10px;
   }
-  h2 {
-    font-size: 24px;
+  #title{
+    font-size: 22px;
   }
-  #pd {
-    font-size: 14px;
+  #paragraph{
+    font-size: 12px;
   }
   .filterChoice .card {
     width: 100%;
@@ -464,28 +452,17 @@ button {
   #R1 p, #R2 p, #R3 p {
     font-size: 12px;
   }
-}
-
-/* Tablet & Small Desktops ≤1024px */
-@media (max-width: 1024px) {
-  .screen {
-    flex-direction: column-reverse;
+  .popup{
+    width: 85%;
+    height: 35%;
+    left: 5%;
+    bottom: 50%;
   }
-  .panel--controls {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid #ddd;
+  .popup h4{
+    font-size: 14px;
   }
-  .panel--tree {
-    width: 100%;
-    margin: 8px 0;
-    height: auto;
-  }
-  #treeWrapper {
-    height: 50vh;
-  }
-  .filterChoice .card {
-    width: 100%;
+  .popup button{
+    font-size: 14px;
   }
 }
 
@@ -545,17 +522,36 @@ button {
   #R1 button, #R2 button, #R3 button{
     font-size: 11px;
   }
-  #rootID, #personsearchName{
+  #rootID, #personsearchName, #personsearchID{
     font-size: 12px;
     width: 50%;
     margin: 2px auto;
   }
-  .footerTips{
-    display: block;
+  #stats{
+    font-size: 12px;
   }
-  .footerTips .card{
-    margin: 8px;
+  .infoStats{
+    width: 100%;
   }
-  .footerTips .card h4{ font-size: 14px;}
-  .footerTips .card p { font-size: 13px;}
+  .treeHeader span, #icon{
+    font-size: 12px;
+  }
+  .treeHeader button{
+    padding: 2px;
+  }
+  .genBar{
+    font-size: 12px;
+  }
+  .popup{
+    width: 75%;
+    height: 50%;
+    left: 10%;
+    bottom: 15%;
+  }
+  .popup h4{
+    font-size: 15px;
+  }
+  .popup button{
+    font-size: 16px;
+  }
 }

@@ -19,13 +19,16 @@ export function isCompoundName(name) {
 };
 
 export function splitName(fullName) {
+  console.log(fullName);
   if (typeof fullName !== 'string') {
     console.error("fullName is not a string:", fullName);
     return [];
   }
   const parts = fullName.replace(/\s*(بنت|بن|bent|ben)\s*/gi, ' ').trim().split(/\s+/);
+  console.log(parts);
   const bentCount = countBenAndBent(fullName);
   let compundName;
+  console.log(bentCount);
 
   if (parts.length === 2) {
     if (bentCount === 0) {
@@ -56,7 +59,6 @@ export function splitName(fullName) {
       };
     }
   } 
-
   else if (parts.length === 3) {
     if (bentCount === 0) {
         return {
@@ -92,7 +94,7 @@ export function splitName(fullName) {
           personName: parts[0],
           fatherName: parts[1],
           grandfatherName: "",
-          familyName: ""
+          familyName: parts[2]
         };
       }
 

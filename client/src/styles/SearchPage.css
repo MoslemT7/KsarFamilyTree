@@ -1,3 +1,18 @@
+
+:root {
+  --primary: #0d1f2d;
+  --primary-light: #3f8de1;
+  --accent: #12e362;
+  --danger: #e74c3c;
+  --warning: #e67e22;
+  --bg-light: #f9f9f9;
+  --bg-lighter: #fff;
+  --text: #333;
+  --text-light: #555;
+  --border: #ddd;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
 .search-page {
   font-family: 'Cairo', sans-serif;
   direction: rtl;
@@ -11,7 +26,6 @@
 }
 
 .search-header {
-  text-align: center;
   margin-bottom: 20px;
   text-align: center;
   align-items: center;
@@ -25,16 +39,14 @@
   }
 .search-header h1 {
   font-size: 48px;
-  margin-bottom: 15px;
-  color: #1e2b3c;
+  width: 75%;
+  background-color: var(--primary);
+  color: var(--accent);
   font-family: 'Cairo', sans-serif;
-  text-align: center;
-  background: linear-gradient(90deg, #12e362, #007bff);
-  background-clip: text;
-  -webkit-background-clip: text;      
-  -webkit-text-fill-color: transparent;
   transition: transform 0.3s ease;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  margin: 4px auto;
 }
 
 .search-header h1:hover {
@@ -56,7 +68,6 @@
 button{
   padding: 0px 20px;
   margin: 5px 15px;
-  color: #fff;
   border: none;
   border-radius: 8px; 
   font-size: 24px; 
@@ -67,13 +78,14 @@ button{
 }
 
 .search-button {
-  background: linear-gradient(20deg, #12e362, #1c83c7);
-  color: white;
+  background: var(--primary);
+  color: var(--accent);
   font-family: "Cairo";
 }
 
 .search-button:hover {
   background-color: #168A3D; 
+  color: white;
   transform: scale(1.05); 
 }
 
@@ -94,7 +106,7 @@ button{
 }
 
 .reset-button:hover {
-  background-color: #168A3D; 
+  background-color: var(--accent); 
   transform: scale(1.05); 
 }
 
@@ -120,7 +132,7 @@ button{
   color: #333;
   font-family: 'Cairo', sans-serif;
   text-align: center;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
 }
 
 .search-bar:focus {
@@ -312,7 +324,9 @@ body.dark-mode td{
   width: 20px;
   height: 20px;
   animation: spin 1s linear infinite;
-}.tipsFooter{
+}
+
+.tipsFooter{
     text-align: center;
     padding: 0;
     width: 100%;

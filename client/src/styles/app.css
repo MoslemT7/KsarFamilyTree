@@ -41,6 +41,7 @@ body {
 
 .menu-tog{
   display: none;
+  width: 15px;
 }
 
 .title h1 {
@@ -49,7 +50,7 @@ body {
   background: whitesmoke;
   padding-bottom: 5px;
   border-radius: 8px;
-  border-bottom: 5px solid #00d1b2;
+  border-bottom: 5px solid #0d1f2d;
   transition: transform 0.5s;
 }
 .title h1:hover { transform: translateY(-5px); }
@@ -86,6 +87,9 @@ body {
   border: none;
   cursor: pointer;
   color: #0d1f2d;
+  width: 100%;
+  margin-bottom: 10px;
+  height: 5px;
 }
 .sidebar ul {
   list-style: none;
@@ -130,14 +134,7 @@ body {
   text-align: center;
 }
 
-.menu-toggle {
-  display: none;
-  background: none;
-  border: none;
-  font-size: 28px;
-  color: #0d1f2d;
-  cursor: pointer;
-}
+
 
 /*========================================
 =               Footer                  =
@@ -198,7 +195,10 @@ body {
   font-size: 14px;
   color: #aaa;
 }
-
+footer h4{
+  color: #00d1b2;
+  background-color: #0d1f2d;
+}
 /*========================================
 =            Dark Mode Overrides        =
 ========================================*/

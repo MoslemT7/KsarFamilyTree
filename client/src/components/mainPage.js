@@ -2,7 +2,7 @@ import React from 'react';
 import '../styles/mainPage.css';  // تأكد من استيراد ملف الـ CSS
 import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 import usePageTracking from '../utils/trackers';
-
+import { Box, Flex, Image, Text, Button, Stack, AspectRatio } from "@chakra-ui/react";
 const MainPage = () => {
   const navigate = useNavigate();
   usePageTracking();
@@ -58,37 +58,35 @@ const MainPage = () => {
           </div>
         </div>
 
-        <div className="wedding-feature-card">
-          <div className="wedding-picture">
-
+        <div className="wedding-feature-card" >
+          <div className="wedding-picture" id="one">
           </div>
-          <div className="weddingfeaturetext">
-              <p>
-                انتهى زمن إعلانات الزواج التقليدية! عبر خدمة <strong>"أعراسنا"</strong>، يمكنكم معرفة 
-                <strong> تواريخ الأعراس القادمة، أماكنها، العائلات المعنية، والمزيد </strong> من التفاصيل، بطريقة راقية.
-              </p>
-              <button type="button" className="discoverNow" onClick={handleWeddingClick}>
-                إحجز الآن
-              </button>
-            </div>
-        </div>
-        <div className="wedding-feature-card">
-          
-
           <div className="weddingfeaturetext">
             <p>
-              ودّعوا الطرق التقليدية لمعرفة صلة القرابة! من خلال خدمة <strong>"معرّف القرابة"</strong>، يمكنكم اكتشاف  
-              <strong> صلة القرابة بين أي شخصين في العرش، مع شرح تفصيلي لطبيعة العلاقة، والمfسار العائلي الذي يجمع بينهما</strong>، 
-              بطريقة ذكية وراقية.
+              انتهى زمن إعلانات الزواج التقليدية! عبر خدمة <strong>"أعراسنا"</strong>، يمكنكم معرفة{" "}
+              <strong>تواريخ الأعراس القادمة، أماكنها، العائلات المعنية، والمزيد</strong> من التفاصيل، بطريقة راقية.
             </p>
-            <button type="button" className="discoverNow" onClick={handleRelationClick}>
-              إكتشف الآن
+            <button type="button" className="discoverNow" onClick={handleWeddingClick}>
+              إحجز الآن
             </button>
           </div>
-          <div className="wedding-picture">
-            <img src="../media/pic1.jpg"/>
-          </div>
         </div>
+
+      <div className="wedding-feature-card" id="two">
+        <div className="wedding-picture" id="twoP">
+        </div>
+        <div className="weddingfeaturetext">
+          <p>
+            لا مزيد الطرق القديمة لمعرفة صلات القرابة وتعقيداتها! عبر خدمة <strong>“معرّف القرابة”</strong>، 
+            يمكنكم اكتشاف <strong>العلاقة الحقيقية بين أي شخصين في العرش، مع شرح مفصل لطبيعة هذه العلاقة، والمسار العائلي الذي يربطهما</strong>، 
+            وذلك بطريقة ذكية، مبسطة، وراقية تضفي وضوحًا وسهولة على عملية البحث.
+          </p>
+
+          <button type="button" className="discoverNow" onClick={handleRelationClick}>
+            إكتشف الآن
+          </button>
+        </div>
+      </div>
 
         <div className="cta-section">
           <div className="cta-content">
