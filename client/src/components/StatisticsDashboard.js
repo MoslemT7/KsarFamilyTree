@@ -719,13 +719,13 @@ useEffect(() => {
             <h2>نسبة الأفراد الأحياء في قاعدة البيانات</h2>
             <div class="content-wrapper">
               <div class="percentage">
-                <span className="percentageText">{(stats.totalAlivePopulation * 100 / 2000).toFixed(1)}%</span>
+                <span className="percentageText">{(stats.totalAlivePopulation * 100 / 1800).toFixed(1)}%</span>
                 <div class="progress-bar">
-                <div className="progress" style={{ width: `${(stats.totalAlivePopulation * 100 / 2000).toFixed(1)}%` }}></div>
+                <div className="progress" style={{ width: `${(stats.totalAlivePopulation * 100 / 1800).toFixed(1)}%` }}></div>
                 </div>
               </div>
               <div class="data-completeness-content">
-                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>{(stats.totalAlivePopulation * 100 / 2000).toFixed(1)}%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
+                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>{(stats.totalAlivePopulation * 100 / 1800).toFixed(1)}%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
               </div>
             </div>
           </div>
@@ -733,7 +733,7 @@ useEffect(() => {
 
         <div class="important-info">
           <h2>دقة توثيق التاريخ القديم</h2>
-          <p>تم تسجيل <strong><span class="highlight">{(stats.deadPopulation*100/1300).toFixed(1)}%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
+          <p>تم تسجيل <strong><span class="highlight">{(stats.deadPopulation*100/900).toFixed(1)}%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
         </div>
         </div>
         <div className="data-accuracy-note">

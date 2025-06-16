@@ -73,7 +73,10 @@ const createPerson = async ({
   isAlive,
   YoB,
   YoD,
-  WorkCountry
+  WorkCountry,
+  nickname,
+  notes,
+  YoB_confidence
 }) => {
   if (!name || !lastName || !gender || isAlive === undefined) {
     console.error('❌ Missing required fields (name, lastName, gender, isAlive)');
@@ -91,6 +94,9 @@ const createPerson = async ({
   if (YoB && !isNaN(YoB)) props.YoB = parseInt(YoB);
   if (YoD && !isNaN(YoD)) props.YoD = parseInt(YoD);
   if (WorkCountry) props.WorkCountry = formatName(WorkCountry);
+  if (nickname) props.nickname = nickname.trim();
+  if (notes) props.notes = notes.trim();
+  if (YoB_confidence && !isNaN(YoB_confidence)) props.YoB_confidence = parseFloat(YoB_confidence);
 
   const cypherFields = Object.keys(props).map(k => `${k}: $${k}`).join(', ');
 
@@ -110,7 +116,98 @@ const createPerson = async ({
 };
 
 
-const createMarriage = async (maleFullName, femaleFullName, marriageYear = null, status, endYear = null) => {
+const deletePerson = async (ID) => {
+  try {
+    const result = await session.run(
+      `MATCH (person:Person) 
+       WHERE id(person) = $ID
+       DETACH DELETE person`,
+      { ID: neo4j.int(ID) }
+    );
+
+    if (result.summary.counters.updates().nodesDeleted > 0) {
+      console.log(`✅ Deleted person with ID: ${Number(ID)}`);
+    } else {
+      console.log('⚠️ No person found with that ID.');
+    }
+  } catch (err) {
+    console.error('❌ Error deleting person:', err);
+  }
+};
+const selectPerson = async (ID) => {
+  try {
+    const result = await session.run(
+      `MATCH (person:Person) 
+       WHERE id(person) = $ID
+       RETURN person.name AS name, 
+              person.lastName AS lastName,
+              person.YoB AS YoB,
+              person.YoD AS YoD,
+              person.gender AS gender,
+              person.isAlive AS isAlive`,
+      { ID: neo4j.int(ID) }
+    );
+
+    if (result.records.length > 0) {
+      const record = result.records[0];
+      // Get values safely, null if missing
+      const personData = {
+        name: record.get('name') || null,
+        lastName: record.get('lastName') || null,
+        YoB: record.get('YoB') || null,
+        YoD: record.get('YoD') || null,
+        gender: record.get('gender') || null,
+        isAlive: record.get('isAlive') ?? null, // can be boolean false
+      };
+
+      console.log('✅ Person data:', personData);
+      return personData;
+    } else {
+      console.log('⚠️ No person found with that ID.');
+      return null;
+    }
+  } catch (err) {
+    console.error('❌ Error selecting person:', err);
+    return null;
+  }
+};
+
+const changeAlive = async (ID, newStatus) => {
+  let result;
+  try {
+    newStatus === 'true' ? 
+    result = await session.run(
+      `MATCH (person:Person) 
+       WHERE id(person) = $ID
+       SET person.isAlive = TRUE
+       RETURN person`,
+      { ID: neo4j.int(ID)}
+    )
+    : result = await session.run(
+      `MATCH (person:Person) 
+       WHERE id(person) = $ID
+       SET person.isAlive = FALSE
+       RETURN person`,
+      { ID: neo4j.int(ID)}
+    );
+    if (result.summary.counters.updates().nodesModified > 0) {
+      console.log(`✅ Updated isAlive status to ${newStatus} for person with ID: ${Number(ID)}`);
+    } else {
+      console.log('⚠️ No person found with that ID.');
+    }
+  } catch (err) {
+    console.error('❌ Error updating isAlive status:', err);
+  }
+};
+
+const createMarriage = async (
+  maleFullName, 
+  femaleFullName, 
+  marriageYear = null, 
+  status, 
+  endYear = null,
+  linkChildren = false // new param, default false
+) => {
   const [maleFirst, ...maleLastArr] = maleFullName.trim().split(' ');
   const [femaleFirst, ...femaleLastArr] = femaleFullName.trim().split(' ');
 
@@ -120,9 +217,7 @@ const createMarriage = async (maleFullName, femaleFullName, marriageYear = null,
   const femaleLastName = formatName(femaleLastArr.join(' '));
 
   try {
-    // Find all male candidates with the given first and last name
     const maleCandidates = await getPeopleWithSameName(maleFirstName, maleLastName);
-    // Find all female candidates with the given first and last name
     const femaleCandidates = await getPeopleWithSameName(femaleFirstName, femaleLastName);
 
     if (maleCandidates.length === 0 || femaleCandidates.length === 0) {
@@ -130,17 +225,14 @@ const createMarriage = async (maleFullName, femaleFullName, marriageYear = null,
       return;
     }
 
-    // If multiple male candidates, prompt user to select
     const maleId = maleCandidates.length > 1
       ? await promptUserForSelection(maleCandidates)
       : maleCandidates[0].personId;
 
-    // If multiple female candidates, prompt user to select
     const femaleId = femaleCandidates.length > 1
       ? await promptUserForSelection(femaleCandidates)
       : femaleCandidates[0].personId;
 
-    // Create marriage relationship in Neo4j using internal node IDs
     const result = await session.run(
       `
       MATCH (husband:Person), (wife:Person)
@@ -163,6 +255,33 @@ const createMarriage = async (maleFullName, femaleFullName, marriageYear = null,
 
     if (result.records.length > 0) {
       console.log(`✅ Created MARRIED_TO between ${maleFullName} and ${femaleFullName} (${status}${marriageYear ? `, ${marriageYear}` : ''}${endYear ? ` – ${endYear}` : ''})`);
+
+      if (linkChildren) {
+        await session.run(
+          `
+          MATCH (father:Person)-[:FATHER_OF]->(child)
+          WHERE id(father) = $maleId
+          AND NOT ( (child)<-[:MOTHER_OF]-(:Person) )
+          MATCH (mother:Person) WHERE id(mother) = $femaleId
+          CREATE (mother)-[:MOTHER_OF]->(child)
+          `,
+          { maleId: maleId.toNumber ? maleId.toNumber() : maleId, femaleId: femaleId.toNumber ? femaleId.toNumber() : femaleId }
+        );
+
+        await session.run(
+          `
+          MATCH (mother:Person)-[:MOTHER_OF]->(child)
+          WHERE id(mother) = $femaleId
+          AND NOT ( (child)<-[:FATHER_OF]-(:Person) )
+          MATCH (father:Person) WHERE id(father) = $maleId
+          CREATE (father)-[:FATHER_OF]->(child)
+          `,
+          { maleId: maleId.toNumber ? maleId.toNumber() : maleId, femaleId: femaleId.toNumber ? femaleId.toNumber() : femaleId }
+        );
+
+        console.log('🔗 All children linked to both parents where missing.');
+      }
+
     } else {
       console.log('⚠️ Marriage not created — check selected persons.');
     }
@@ -170,6 +289,7 @@ const createMarriage = async (maleFullName, femaleFullName, marriageYear = null,
     console.error('❌ Error creating MARRIED_TO relationship:', err);
   }
 };
+
 
 const getPeopleWithSameName = async (name, lastName) => {
   const query = `
@@ -266,14 +386,18 @@ const formatFullName = (input) => {
 async function terminalConversation() {
   while (true) {
     console.log('\nChoose an action:');
-    console.log('1. Create Person');
-    console.log('2. Create Father-Child Relationship');
-    console.log('3. Create Mother-Child Relationship');
-    console.log('4. Create Marriage');
-    console.log('5. Exit');
+    console.log('1. Create One Person.');
+    console.log('2. Create Father-Child Relationship.');
+    console.log('3. Create Mother-Child Relationship.');
+    console.log('4. Create Marriage.');
+    console.log('5. Delete Person.')
+    console.log('6. Change Life Status.');
+    console.log('7. Select Person.')
+    console.log('8. Mass Add Children (via Full Names).');
+    console.log('-1. Exit.');
 
     const choice = (await question('Enter option number: ')).trim();
-
+    let IDinput, ID;
     switch (choice) {
       case '1': {
         const nameInput = await question('First Name: ');
@@ -287,12 +411,31 @@ async function terminalConversation() {
         const isAlive = ['yes', 'y', 'true'].includes(isAliveInput.toLowerCase());
 
         const YoBInput = await question('Year of Birth (optional): ');
-        const YoDInput = await question('Year of Death (optional): ');
-        const WorkCountryInput = await question('Work Country (optional): ');
-
         const YoB = YoBInput.trim() && !isNaN(YoBInput) ? parseInt(YoBInput) : undefined;
-        const YoD = YoDInput.trim() && !isNaN(YoDInput) ? parseInt(YoDInput) : undefined;
+
+        let YoB_confidence;
+        if (YoB !== undefined) {
+          const YoBConfInput = await question('Year of Birth Confidence (optional, numeric): ');
+          if (YoBConfInput.trim() && !isNaN(YoBConfInput)) {
+            YoB_confidence = parseFloat(YoBConfInput);
+          }
+        }
+
+        let YoD;
+        if (!isAlive) {
+          const YoDInput = await question('Year of Death (optional): ');
+          if (YoDInput.trim() && !isNaN(YoDInput)) {
+            YoD = parseInt(YoDInput);
+          }
+        }
+
+        const WorkCountryInput = await question('Work Country (optional): ');
+        const nicknameInput = await question('Nickname (optional): ');
+        const notesInput = await question('Notes (optional): ');
+
         const WorkCountry = WorkCountryInput.trim() || undefined;
+        const nickname = nicknameInput.trim() || undefined;
+        const notes = notesInput.trim() || undefined;
 
         await createPerson({
           name,
@@ -301,8 +444,12 @@ async function terminalConversation() {
           isAlive,
           YoB,
           YoD,
-          WorkCountry
+          WorkCountry,
+          nickname,
+          notes,
+          YoB_confidence
         });
+
         break;
       }
 
@@ -328,26 +475,158 @@ async function terminalConversation() {
         const maleFullNameRaw = await question('Husband Full Name (First Last): ');
         const femaleFullNameRaw = await question('Wife Full Name (First Last): ');
         const marriageYearInput = await question('Year of Marriage: ');
-        const statusInput = await question("Marriage Status ('married', 'divorced', 'widowed'): ");
-        const endYearInput = await question('Year of End (leave empty if not ended): ');
+        const statusInput = await question("Marriage Status ('married', 'divorced', 'widowed', 'historical'): ");
+        const status = statusInput.trim().toLowerCase();
+        let endYearInput;
+        let endYear;
+        if (status !== 'married') {
+          endYearInput = await question('Year of End (leave empty if not ended): ');
+          if (endYearInput.trim() && !isNaN(endYearInput)) {
+            endYear = parseInt(endYearInput);
+          }
+        }
 
         const maleFullName = formatFullName(maleFullNameRaw);
         const femaleFullName = formatFullName(femaleFullNameRaw);
 
         const marriageYear = marriageYearInput.trim() && !isNaN(marriageYearInput) ? parseInt(marriageYearInput) : null;
-        const status = statusInput.trim().toLowerCase();
-        const endYear = endYearInput.trim() && !isNaN(endYearInput) ? parseInt(endYearInput) : null;
+         endYear = !isNaN(endYearInput) ? parseInt(endYearInput) : null;
 
-        if (!status || !['married', 'divorced', 'widowed'].includes(status)) {
+        if (!status || !['married', 'divorced', 'widowed', 'historical', 'm', 'd', 'w', 'h'].includes(status)) {
           console.log("⚠️ Invalid input. 'Status' is required.");
           break;
         }
+        const linkChildrenInput = await question('Link all children between husband and wife? (yes/no): ');
+        const linkChildren = ['yes', 'y', 'true', 't'].includes(linkChildrenInput.trim().toLowerCase());
 
+        await createMarriage(maleFullName, femaleFullName, marriageYear, status, endYear, linkChildren);
         await createMarriage(maleFullName, femaleFullName, marriageYear, status, endYear);
         break;
       }
-
       case '5':
+        IDinput = await question('Person ID: ');
+        ID = Number(IDinput);
+        if (isNaN(ID)) {
+          console.log("⚠️ Invalid input. 'ID' must be a number.");
+          break;
+        }
+
+        await deletePerson({ ID }); // ✅ wrapped as object
+        break;
+      
+      case '6':
+        IDinput = await question('Person ID to Modify life status : ');
+        ID = Number(IDinput);
+        if (isNaN(ID)) {
+          console.log("⚠️ Invalid input. 'ID' must be a number.");
+          break;
+        }
+
+        const statusInput = await question('Set alive status (true/false): ');
+        const isAlive = statusInput.trim().toLowerCase() === 'true';
+
+        await changeAlive(ID, isAlive);  // call with ID and boolean status
+        break;
+      
+      case '7':
+        IDinput = await question('Person ID to display : ');
+        ID = Number(IDinput);
+        if (isNaN(ID)) {
+          console.log("⚠️ Invalid input. 'ID' must be a number.");
+          break;
+        }
+        await selectPerson(ID);  // call with ID and boolean status
+        break;
+      case '8': {
+  const fatherFullNameRaw = await question('Father Full Name (First Last, leave empty if none): ');
+  const motherFullNameRaw = await question('Mother Full Name (First Last, leave empty if none): ');
+
+  const fatherFullName = fatherFullNameRaw.trim() ? formatFullName(fatherFullNameRaw) : null;
+  const motherFullName = motherFullNameRaw.trim() ? formatFullName(motherFullNameRaw) : null;
+
+  if (!fatherFullName && !motherFullName) {
+    console.log('❌ At least one parent is required.');
+    break;
+  }
+
+  const howManyInput = await question('How many children do you want to add? ');
+  const howMany = parseInt(howManyInput);
+  if (isNaN(howMany) || howMany <= 0) {
+    console.log('❌ Invalid number.');
+    break;
+  }
+
+  for (let i = 0; i < howMany; i++) {
+    console.log(`\n👶 Child ${i + 1} of ${howMany}`);
+
+    const nameInput = await question('  First Name: ');
+    const lastNameInput = await question('  Last Name: ');
+    const genderInput = await askValidatedQuestion('  Gender (Male/Female): ', ['male', 'female', 'm', 'f']);
+    const isAliveInput = await askValidatedQuestion('  Is Alive? (yes/no): ', ['yes', 'no', 'y', 'n', 'true', 'false']);
+
+    const name = formatName(nameInput);
+    const lastName = formatName(lastNameInput);
+    const gender = ['male', 'm'].includes(genderInput.toLowerCase()) ? 'Male' : 'Female';
+    const isAlive = ['yes', 'y', 'true'].includes(isAliveInput.toLowerCase());
+
+    const YoBInput = await question('  Year of Birth (optional): ');
+    const YoB = YoBInput.trim() && !isNaN(YoBInput) ? parseInt(YoBInput) : undefined;
+
+    let YoB_confidence;
+    if (YoB !== undefined) {
+      const YoBConfInput = await question('  YoB Confidence (optional): ');
+      if (YoBConfInput.trim() && !isNaN(YoBConfInput)) {
+        YoB_confidence = parseFloat(YoBConfInput);
+      }
+    }
+
+    let YoD;
+    if (!isAlive) {
+      const YoDInput = await question('  Year of Death (optional): ');
+      if (YoDInput.trim() && !isNaN(YoDInput)) {
+        YoD = parseInt(YoDInput);
+      }
+    }
+
+    const WorkCountryInput = await question('  Work Country (optional): ');
+    const nicknameInput = await question('  Nickname (optional): ');
+    const notesInput = await question('  Notes (optional): ');
+
+    const WorkCountry = WorkCountryInput.trim() || undefined;
+    const nickname = nicknameInput.trim() || undefined;
+    const notes = notesInput.trim() || undefined;
+
+    // Create child person
+    await createPerson({
+      name,
+      lastName,
+      gender,
+      isAlive,
+      YoB,
+      YoD,
+      WorkCountry,
+      nickname,
+      notes,
+      YoB_confidence
+    });
+
+    const childFullName = `${name} ${lastName}`;
+
+    if (fatherFullName) {
+      await createParentChildRelationship(fatherFullName, childFullName, "FATHER_OF");
+    }
+
+    if (motherFullName) {
+      await createParentChildRelationship(motherFullName, childFullName, "MOTHER_OF");
+    }
+
+    console.log(`✅ Child ${childFullName} created and linked.`);
+  }
+
+  break;
+}
+
+      case '-1':
         console.log('👋 Exiting...');
         rl.close();
         return;

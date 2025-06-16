@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import '../styles/PersonCINCard.css';
 import logo from '../media/logo.png'; // replace with your logo
 import barcode from '../media/barcode.jpg'; // placeholder barcode
@@ -7,11 +7,13 @@ import * as utils from '../utils/utils';
 
 const PersonCINCard = ({ person }) => {
   const [flipped, setFlipped] = useState(false);
-
+  useEffect(() => {
+    console.log(person);
+  })
   const handleClick = () => {
     setFlipped(f => !f);
   };
-
+  
   return (
     <div
       className={`cin-card${flipped ? ' flipped' : ''}`}
@@ -60,23 +62,33 @@ const PersonCINCard = ({ person }) => {
                   : ''}
               </p>
               <p>
-                <strong>سنة الولادة  </strong>{' '}
-                {person.age
-                  ? `${new Date().getFullYear() - person.age} (${
-                      person.age === 1
-                        ? 'سنة واحدة'
-                        : person.age === 2
-                        ? 'سنتان'
-                        : person.age >= 3 && person.age <= 10
-                        ? `${person.age} سنوات`
-                        : person.age > 10
-                        ? `${person.age} سنة`
-                        : 'غير معروف'
-                    })`
-                  : ''}
+                <strong>
+                  {person.age === -1
+                    ? 'سنة الولادة'
+                    : person.lifeStatus === false
+                    ? 'سنة الولادة والوفاة'
+                    : 'سنة الولادة (العمر)'}
+                </strong>{' '}
+                {person.age === -1 ? (
+                  'غير معروف'
+                ) : person.lifeStatus === false ? (
+                  `${new Date().getFullYear() - person.age} - ${person.YoD ?? 'تاريخ غير معروف'}`
+                ) : (
+                  `${new Date().getFullYear() - person.age} (${
+                    person.age === 1
+                      ? 'سنة واحدة'
+                      : person.age === 2
+                      ? 'سنتان'
+                      : person.age >= 3 && person.age <= 10
+                      ? `${person.age} سنوات`
+                      : `${person.age} سنة`
+                  })`
+                )}
               </p>
+
+
               <p>
-                <strong>مكانها  </strong>
+                <strong>مكان السكن  </strong>
                 قصر أولاد بوبكر
               </p>
             </div>
@@ -87,7 +99,6 @@ const PersonCINCard = ({ person }) => {
           </div>
         </div>
 
-        {/* Back Side */}
         <div className="cin-back">
           <div className="cin-info-back">
             <p>
@@ -111,28 +122,48 @@ const PersonCINCard = ({ person }) => {
             </p>
             <p>
               <strong>عدد الأطفال: </strong>
-              {person.childrenCount}
+              {person.childrenCount === 0
+                ? 'لا يوجد'
+                : person.childrenCount === 1
+                ? 'طفل واحد'
+                : person.childrenCount === 2
+                ? 'طفلان'
+                : person.childrenCount >= 3 && person.childrenCount <= 10
+                ? `${person.childrenCount} أطفال`
+                : `${person.childrenCount} طفلًا`
+                }
             </p>
+
             <p>
               <strong>عدد الإخوة: </strong>
               {person?.childrenCount === 0
                       ? "لا إخوة"
-                      : person.childrenCount === 1
+                      : person.siblingsCount === 1
                       ? "أخ واحد (1)"
-                      : person.childrenCount === 2
+                      : person.siblingsCount === 2
                       ? "أخوان (2)"
-                      : person.childrenCount >= 3 && person.childrenCount <= 10
-                      ? `${person.childrenCount} إخوة`
-                      : `${person.childrenCount} أخـًا`
+                      : person.siblingsCount >= 3 && person.siblingsCount <= 10
+                      ? `${person.siblingsCount} إخوة`
+                      : `${person.siblingsCount} أخـًا`
               }
             </p>
+            {person?.lifeStatus === true && (
             <p>
               <strong>الحالة الإجتماعـية :</strong>{' '}
-               {person?.maritalStatus === true
-                      ? (person.gender === 'Male' ? 'متزوج' : 'متزوجة')
-                      : (person.gender === 'Male' ? 'عازب' : 'عزباء')
-                }
+              {person.maritalStatus === 'married' || person.maritalStatus === 'historical'
+                ? person.gender === 'Male'
+                  ? 'متزوج'
+                  : 'متزوجة'
+                : person.maritalStatus === 'widowed'
+                ? person.gender === 'Male'
+                  ? 'أرمل'
+                  : 'أرملة'
+                : person.gender === 'Male'
+                ? 'عازب'
+                : 'عزباء'}
             </p>
+          )}
+
           </div>
         </div>
       </div>

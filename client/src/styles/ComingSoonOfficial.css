@@ -1,0 +1,147 @@
+body{
+  width: 100%;
+  height: 100%;
+}
+
+
+/* Container */
+.official-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #1b1b2f, #16213e);
+  color: #eaeaea;
+  font-family: 'Cairo', sans-serif;
+  position: relative;
+  padding: 20px;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+/* Header */
+.official-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+.official-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+}
+.official-header h1 {
+  font-size: 1.8em;
+  margin: 0;
+}
+
+/* Subtitle */
+.official-subtitle {
+  font-size: 1.2em;
+  margin-bottom: 30px;
+  color: #bbbbbb;
+}
+
+/* Countdown */
+.countdown {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+.countdown div {
+  background: rgba(255,255,255,0.1);
+  padding: 15px;
+  border-radius: 8px;
+  min-width: 60px;
+}
+.countdown span {
+  display: block;
+  font-size: 1.5em;
+  font-weight: bold;
+}
+.countdown small {
+  font-size: 0.8em;
+  color: #cccccc;
+}
+
+/* Newsletter */
+.newsletter-form {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.newsletter-form input {
+  padding: 10px;
+  width: 250px;
+  border: none;
+  border-radius: 4px;
+}
+.newsletter-form button {
+  padding: 10px 20px;
+  border: none;
+  background: #00adb5;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.thanks {
+  font-size: 1em;
+  color: #7bed9f;
+  margin-bottom: 20px;
+}
+
+/* Secret Access */
+.secret-access {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  background: rgba(0,0,0,0.5);
+  padding: 10px;
+  border-radius: 6px;
+}
+.secret-access input {
+  padding: 6px;
+  border: none;
+  border-radius: 4px;
+  text-align: center;
+  font-family: "Cairo";
+  font-size: 16px;
+  width: 250px;
+}
+.secret-access button {
+  padding: 6px 12px;
+  background: #ff9f1a;
+  border: none;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 14px;
+}
+
+/* Footer */
+.official-footer {
+  margin-top: auto;
+  padding-top: 20px;
+  font-size: 0.8em;
+  color: #777;
+}
+
+/* Click-zone full screen for hidden clicks */
+.official-container {
+  cursor: default;
+}
+
+#email{
+  text-align: center;
+  font-family: "Cairo";
+  font-size: 16px;
+  width: 250px;
+}
+

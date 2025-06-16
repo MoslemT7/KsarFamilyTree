@@ -67,12 +67,12 @@ const App = () => {
           <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
           <button className="close-btn" onClick={toggleMenu}>×</button>
           <ul>
-            
-            <li><Link to="">الرئيسية</Link></li>
-            <li><Link to="familyTree">شجرة العائلة</Link></li>
-            <li><Link to="search">البحث</Link></li>
-            <li><Link to="statistics">إحصائيات</Link></li>
-            <li><Link to="relationChecker">ماهي العلاقة بينهما؟</Link></li>
+
+            <li onClick={() => setMenuOpen(o => !o)}><Link to="">الرئيسية</Link></li>
+            <li onClick={() => setMenuOpen(o => !o)}><Link to="familyTree">شجرة العائلة</Link></li>
+            <li onClick={() => setMenuOpen(o => !o)}><Link to="search">البحث</Link></li>
+            <li onClick={() => setMenuOpen(o => !o)}><Link to="statistics">إحصائيات</Link></li>
+            <li onClick={() => setMenuOpen(o => !o)}><Link to="relationChecker">ماهي العلاقة بينهما؟</Link></li>
             <li>
               <Link to="weddings" onClick={() => sessionStorage.setItem('allowWedding','true')}>
                 أعراسنا

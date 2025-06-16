@@ -270,6 +270,51 @@ select{
   width: 40%;
 }
 
+.toggle-group {
+  text-align: center;
+  direction: rtl;
+  font-family: 'Cairo', sans-serif;
+}
+
+.group-label {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  display: block;
+}
+
+.toggle-options {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.toggle-options input[type="radio"] {
+  display: none;
+}
+
+.toggle-options label {
+  cursor: pointer;
+  padding: 8px 16px;
+  border: 2px solid var(--dark-color);
+  margin-bottom: 4px;
+  border-radius: 30px;
+  background: var(--dark-color);
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  color: white;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-options input[type="radio"]:checked + label {
+  background: var(--accent-color);
+  color: white;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.1);
+  transform: scale(1.10);
+}
+
 /*----------------------------------------
   Tree Panel
 ----------------------------------------*/
