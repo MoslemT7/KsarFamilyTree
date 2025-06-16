@@ -61,3 +61,7 @@ Using modern technologies and a scalable structure, the site transforms historic
 | **Hosting**  | cPanel-based deployment with domain `ouledboubaker.tn` |
 
 ---
+
+© Moslem TEYEB — This project is licensed under CC BY-NC-ND 4.0.  
+No commercial use or redistribution allowed without written permission.
+https://creativecommons.org/licenses/by-nc-nd/4.0/
