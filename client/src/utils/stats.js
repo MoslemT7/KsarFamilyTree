@@ -18,12 +18,16 @@ export const getPopulationStats = async () => {
       MATCH (n:Person)
       RETURN 
         count(n) AS totalPopulation,
-        sum(CASE WHEN n.isAlive = true THEN 1 ELSE 0 END) AS totalAlive
+        sum(CASE WHEN n.isAlive = TRUE THEN 1 ELSE 0 END) AS totalAlive,
+        sum(CASE WHEN n.isAlive = TRUE AND n.gender = 'Male' THEN 1 ELSE 0 END) AS aliveMen,
+        sum(CASE WHEN n.isAlive = TRUE AND n.gender = 'Female' THEN 1 ELSE 0 END) AS aliveWomen
     `);
     const record = result.records[0];
     return {
       totalPopulation: record.get('totalPopulation').toInt(),
       totalAlive: record.get('totalAlive').toInt(),
+      aliveMen: record.get('aliveMen').toInt(),
+      aliveWomen: record.get('aliveWomen').toInt(),
     };
   } catch (error) {
     console.error("Error getting population stats:", error);
@@ -83,34 +87,41 @@ export const getAgeStats = async () => {
     const result = await session.run(`
       MATCH (n:Person)
       WHERE n.YoB IS NOT NULL
-
-      WITH COLLECT(n.YoB) AS allYOBs, AVG(n.YoB) AS avgYoB
-
-      WITH allYOBs, avgYoB,
-           SIZE(allYOBs) AS totalCount,
-           CASE
-             WHEN SIZE(allYOBs) % 2 = 1 THEN
-               allYOBs[TOINTEGER(SIZE(allYOBs) / 2)]
-             ELSE
-               (allYOBs[TOINTEGER(SIZE(allYOBs) / 2) - 1] + allYOBs[TOINTEGER(SIZE(allYOBs) / 2)]) / 2.0
-           END AS medianYoB
-
-      RETURN avgYoB, medianYoB
+      RETURN n.YoB AS yob
     `);
 
-    if (result.records.length > 0) {
-      const currentYear = new Date().getFullYear();
+    const currentYear = new Date().getFullYear();
+    const yobs = [];
 
-      const avgYoB = result.records[0].get('avgYoB');
-      const medianYoB = result.records[0].get('medianYoB');
-      const averageAge = Math.round(currentYear - avgYoB);
-      const medianAge = Math.round(currentYear - medianYoB);
-        console.log(averageAge, medianAge);
+    result.records.forEach(record => {
+      const yobRaw = record.get('yob');
+      const yob = typeof yobRaw === 'object' && yobRaw.toNumber
+        ? yobRaw.toNumber()
+        : parseInt(yobRaw);
 
-      return { averageAge, medianAge };
-    } else {
-      return { averageAge: "-", medianAge: "-" };
-    }
+      if (!isNaN(yob)) {
+        yobs.push(yob);
+      }
+    });
+
+    if (yobs.length === 0) return { averageAge: "-", medianAge: "-" };
+
+    // Sort YOBs
+    yobs.sort((a, b) => a - b);
+
+    // Calculate average and median YOB
+    const total = yobs.reduce((sum, yob) => sum + yob, 0);
+    const avgYoB = total / yobs.length;
+
+    const mid = Math.floor(yobs.length / 2);
+    const medianYoB = yobs.length % 2 === 0
+      ? (yobs[mid - 1] + yobs[mid]) / 2
+      : yobs[mid];
+
+    const averageAge = Math.round(currentYear - avgYoB);
+    const medianAge = Math.round(currentYear - medianYoB);
+
+    return { averageAge, medianAge };
   } catch (error) {
     console.error("Error fetching age stats:", error);
     return { averageAge: "-", medianAge: "-" };
@@ -119,12 +130,13 @@ export const getAgeStats = async () => {
   }
 };
 
+
 export const oldestPerson = async () => {
   const session = driver.session();
   try {
     const result = await session.run(`
       MATCH (n:Person)
-      WHERE n.YoB IS NOT NULL AND n.isAlive = true
+      WHERE n.YoB IS NOT NULL AND n.isAlive = TRUE
       WITH n
       ORDER BY n.YoB ASC
       LIMIT 1
@@ -169,7 +181,7 @@ export const youngestPerson = async () => {
   try {
     const result = await session.run(`
       MATCH (n:Person)
-      WHERE n.YoB IS NOT NULL AND n.isAlive = true
+      WHERE n.YoB IS NOT NULL AND n.isAlive = TRUE
       WITH n
       ORDER BY n.YoB DESC
       LIMIT 1
@@ -289,35 +301,42 @@ export const agedPersonCount = async () => {
   try {
     const result = await session.run(`
       MATCH (n:Person)
-      WHERE n.YoB IS NOT NULL AND n.isAlive = true
-      WITH n, (date().year - n.YoB) AS age
-      WHERE age > 100
-      RETURN COUNT(n) as agedPeopleCount
+      WHERE n.YoB IS NOT NULL AND n.isAlive = TRUE
+      RETURN n.YoB AS yob
     `);
 
-    if (result.records.length > 0) {
-      const record = result.records[0];
-      return {
-        count: record.get("agedPeopleCount").toNumber(),
-      };
-    } else {
-      return { count : -1};
-    }
+    const currentYear = new Date().getFullYear();
+    let count = 0;
+
+    result.records.forEach(record => {
+      const yobRaw = record.get('yob');
+      const yob = typeof yobRaw === 'object' && yobRaw.toNumber
+        ? yobRaw.toNumber()
+        : parseInt(yobRaw);
+
+      if (!isNaN(yob)) {
+        const age = currentYear - yob;
+        if (age > 100) count++;
+      }
+    });
+
+    return { count };
   } catch (error) {
     console.error("Error fetching oldest person:", error);
-    return { count: "خطأ"};
+    return { count: "خطأ" };
   } finally {
     await session.close();
   }
 };
+
 
 export const getAgeGenderData = async () => {
   const session = driver.session();
   try {
     const result = await session.run(`
       MATCH (n:Person)
-      WHERE n.gender IN ['Male', 'Female'] AND n.YoB IS NOT NULL AND n.isAlive = true
-      RETURN n.gender AS gender, date().year - n.YoB AS age
+      WHERE n.gender IN ['Male', 'Female'] AND n.YoB IS NOT NULL AND n.isAlive = TRUE
+      RETURN n.gender AS gender, n.YoB AS yob
     `);
 
     let maleCount = 0;
@@ -325,19 +344,26 @@ export const getAgeGenderData = async () => {
     const maleAges = [];
     const femaleAges = [];
 
+    const currentYear = new Date().getFullYear();
+
     result.records.forEach(record => {
       const gender = record.get('gender');
-      const age = record.get('age');
-      const numericAge = typeof age.toNumber === 'function' ? age.toNumber() : age;
+      const yobRaw = record.get('yob');
+
+      const yob = typeof yobRaw === 'object' && yobRaw.toNumber ? yobRaw.toNumber() : parseInt(yobRaw);
+      if (isNaN(yob)) return; // skip if not a number
+
+      const age = currentYear - yob;
 
       if (gender === 'Male') {
         maleCount++;
-        maleAges.push(numericAge);
+        maleAges.push(age);
       } else if (gender === 'Female') {
         femaleCount++;
-        femaleAges.push(numericAge);
+        femaleAges.push(age);
       }
     });
+
 
     return { maleCount, femaleCount, maleAges, femaleAges };
 

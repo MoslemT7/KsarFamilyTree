@@ -1,45 +1,69 @@
-/*--------------------------------------
-  Variables et box-sizing
---------------------------------------*/
+
 :root {
-  --primary: #0d1f2d;
-  --primary-light: #3f8de1;
-  --accent: #12e362;
-  --danger: #e74c3c;
-  --warning: #e67e22;
-  --bg-light: #f9f9f9;
-  --bg-lighter: #fff;
-  --text: #333;
-  --text-light: #555;
-  --border: #ddd;
-  --shadow: rgba(0, 0, 0, 0.1);
-}
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  /* === Base Colors === */
+  --color-bg-primary: #f5f0e6;      /* Desert Sand - main background */
+  --color-bg-secondary: #e8dcc4;    /* Parchment Beige - sections/cards */
+  --color-surface: #fffdf8;         /* Very light neutral, e.g. modals */
+
+  /* === Text Colors === */
+  --color-text-main: #3b2c1a;       /* Dark brown - for main text */
+  --color-text-light: #7b6a55;      /* Lighter for descriptions/labels */
+  --color-heading: #5c3d28;         /* Palm Bark Brown - strong headers */
+
+  /* === Accent Colors === */
+  --color-accent-primary: #c47e45;  /* Clay Orange - buttons/CTAs */
+  --color-accent-hover: #b46934;    /* Darker clay for hover/active */
+  --color-accent-secondary: #4c7d7e;/* Oasis Teal - link highlights */
+  --color-accent-muted: #b89b63;    /* Dusty Gold - UI accents, borders */
+
+  /* === Node Colors === */
+  --color-node-alive: #74825e;      /* Olive Leaf - alive */
+  --color-node-dead: #a86943;       /* Faded Terracotta - deceased */
+
+  /* === Borders and Lines === */
+  --color-border: #d2bfa3;          /* Sandstone Grey - borders, dividers */
+  --color-shadow: rgba(0, 0, 0, 0.08); /* Light shadow for elevation */
+  --border-base: #d2bfa3;            /* Existing - Sandstone Grey */
+  --border-light: #e8dcc4;           /* Light beige border (soft components) */
+  --border-dark: #a78c69;            /* Deeper sandstone for strong sections */
+  --border-accent: #c47e45;          /* Clay orange border for highlights */
+  --border-muted: #cab99d;           /* Muted soft divider (for subtles) */
+  --border-error: #a86943;           /* For errors or danger messages */
+  --border-success: #74825e;         /* Olive-green border */
+  --border-focus: #ffb84d;           /* Light ochre for inputs/buttons focus */
+
+  /* === Transparent Overlays === */
+  --overlay-light: rgba(245, 240, 230, 0.85); /* Soft paper tone overlay */
+  --overlay-dark: rgba(40, 30, 20, 0.5);      /* Darker for modals, hovers */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);       /* Minimal shadow */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);       /* Light elevation */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);       /* Mid depth (default) */
+  --shadow-lg: 0 6px 12px rgba(0, 0, 0, 0.1);       /* Elevated panels */
+  --shadow-xl: 0 10px 20px rgba(0, 0, 0, 0.15);     /* Modals, overlays */
+  --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.06); /* Inset shadow */
+
+  /* === Gradients (Optional) === */
+  --gradient-sand: linear-gradient(135deg, #f5f0e6 0%, #e8dcc4 100%);
+  --gradient-paper: linear-gradient(180deg, #fffdf8 0%, #e8dcc4 100%);
+
+  /* === States === */
+  --color-success: #74825e;
+  --color-warning: #b89b63;
+  --color-error: #a86943;
+
+  /* === Scrollbar / Selection / Misc === */
+  --color-scroll-thumb: #d2bfa3;
+  --color-selection: #e8dcc4;
+
+  --main-font: "Cairo";
+
 }
 
-/*--------------------------------------
-  Global
---------------------------------------*/
-body {
-  font-family: 'Cairo';
-  color: var(--text);
-  background: #fafafa;
-}
-
-#DescriptionZone, .tipsFooter, .section-title{
-  font-family: "Cairo";
-}
-h1 {
+.relation-page h1 {
   font-size: 2rem;
   text-align: center;
   margin: 1rem 0;
-  background-color: #0d1f2d;
-  color: #07eb2d;
+  color: var(--color-text-main);
   border-radius: 12px;
   border-radius: 0.75rem;
 }
@@ -54,19 +78,18 @@ h1 {
 }
 
 .main-panel{
-border: 2px solid #0d1f2d;
-margin: 2px 2px;
-border-radius: 8px;
+  border: 2px solid var(--color-border);
+  background: url("../media/bg2-low.jpg");
+  margin: 2px 2px;
+  border-radius: 8px;
 }
 /*--------------------------------------
   Forms & inputs
 --------------------------------------*/
 .relation-form-section {
-  background: var(--bg-lighter);
   padding: 0.75rem;
   box-shadow: 0 0.25rem 0.75rem var(--shadow);
   text-align: center;
-  border-bottom: 2px solid #0d1f2d;
   border-radius: 8px;
 }
 
@@ -82,13 +105,25 @@ border-radius: 8px;
 .inputSection{
   width: 100%;
 }
+.inputNames{
+  width: 100%;
+  font-size: 1.5rem;
+  padding: 6px 4px;
+  border: 2.5px outset var(--border-dark);
+  background-color: var(--overlay-light);
+  color: var(--color-text-main);
+  border-radius: 0.5rem;
+  font-weight: bold;
+  font-family: "Cairo";
+  text-align: center;
+}
 
-.inputNames,
 .duplicate-button {
   width: 100%;
   font-size: 1.5rem;
-  padding: 0.75rem;
-  border: 2px solid var(--border);
+  padding: 6px 4px;
+  border: 2px solid var(--color-border);
+  color: var(--color-text-main);
   border-radius: 0.5rem;
   font-weight: bold;
   font-family: "Cairo";
@@ -101,14 +136,15 @@ border-radius: 8px;
 }
 
 .duplicate-button {
-  background: var(--primary);
-  color: var(--accent);
+  background: var(--color-accent-muted);
+  color: var(--color-bg-primary);
   cursor: pointer;
+  width: 85%;
   transition: background 0.3s;
 }
 
 .duplicate-button:hover {
-  background: var(--primary-light);
+  background: var(--color-accent-hover);
 }
 
 /*--------------------------------------
@@ -134,7 +170,7 @@ border-radius: 8px;
   cursor: pointer;
   margin: 8px auto;
   font-family: "Cairo";
-  box-shadow: 0 0.25rem 0.625rem var(--shadow);
+  box-shadow: 0 0.25rem 0.625rem var(--color-border);
   transition: transform 0.2s, background 0.3s;
 }
 
@@ -143,18 +179,23 @@ border-radius: 8px;
 .button:active { transform: translateY(0.0625rem); }
 
 .checkButton {
-  background: linear-gradient(45deg, var(--primary), var(--primary-light));
+  background: linear-gradient(45deg, var(--color-accent-secondary), var(--color-node-alive));
 }
 .resetButton {
-  background: linear-gradient(45deg, #ba2b12, var(--danger));
+  background: linear-gradient(45deg, var(--color-error), var(--border-accent));
 }
 .swapButton {
-  background: linear-gradient(45deg, #f39c12, var(--warning));
+  background: linear-gradient(45deg, var(--color-node-dead), var(--border-muted));
 }
 
 /*--------------------------------------
   Person cards
 --------------------------------------*/
+#confirm p{
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-warning);
+}
 .foundPersons {
   text-align: center;
   display: block;
@@ -166,11 +207,12 @@ border-radius: 8px;
 }
 .foundPersons h2{
   font-size: 26px;
+  color: var(--color-bg-primary);
   border-bottom: var(--primary);
 }
 .person-card {
-  background: var(--bg-light);
-  border: 2px solid var(--border);
+  background: var(--color-accent-secondary);
+  border: 3px outset var(--border-success);
   border-radius: 0.5rem;
   padding: 0.75rem;
   transition: transform 0.3s, box-shadow 0.3s;
@@ -182,14 +224,22 @@ border-radius: 8px;
 }
 .person-card h4 {
   font-size: 1.5rem;
-  color: var(--text-light);
+  color: var(--color-bg-primary);
   text-align: center;
-  margin-bottom: 0.5rem;
 }
 
+.error-message{
+  background-color: transparent;
+}
 /*--------------------------------------
   Tables
 --------------------------------------*/
+.person-info-table td{
+  font-size: 18px;
+}
+.person-info-table th{
+  font-size: 20px;
+}
 table,
 .person-info-table {
   width: 100%;
@@ -199,18 +249,18 @@ table,
 table th,
 table td {
   padding: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border);
   text-align: center;
   font-size: 0.875rem;
 }
 table th {
-  background: var(--primary);
-  color: var(--accent);
+  background: var(--color-accent-secondary);
+  color: var(--color-bg-secondary);
   font-weight: bold;
 }
 table td {
-  font-weight: bold;
-  color: var(--text);
+  font-weight: 900;
+  color: var(--color-text-main);
 }
 
 /*--------------------------------------
@@ -233,7 +283,7 @@ table td {
 .score-bar-fill {
   height: 100%;
   border-radius: 6px;
-  background: linear-gradient(to right, #07eb2d, #e22706);
+  background: linear-gradient(to right, #07eb2d, var(--color-error));
   transition: width 0.4s ease-in-out;
 }
 
@@ -242,11 +292,6 @@ table td {
   justify-content: space-between;
   align-items: center;
   font-size: 14px;
-}
-
-.score-value {
-  font-weight: bold;
-  color: #1d56c7;
 }
 
 .score-category {
@@ -277,47 +322,42 @@ table td {
   padding: 4px 10px;
   border-radius: 8px;
   font-weight: bold;
-  text-transform: uppercase;
   margin-right: 8px;
 }
 
-.relationship-tag .tag.Blood { background-color: #f42e10; color: #fff; }
-.relationship-tag .tag.Marriage { background-color: #3498db; color: #fff; }
-.relationship-tag .tag.Marriage-related { background-color: #28c21d; color: #fff; }
+.relationship-tag .tag.Blood {
+  background-color: #a86943; /* Faded Terracotta */
+  color: #fff;
+}
 
-.closeness-level {
-  font-weight: bold;
-  color: #4caf50;
+.relationship-tag .tag.Marriage {
+  background-color: #4c7d7e; /* Oasis Teal */
+  color: #fff;
+}
+
+.relationship-tag .tag.Marriage-related {
+  background-color: #74825e; /* Olive Leaf */
+  color: #fff;
+}
+
+.score-value {
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--color-node-alive);
 }
 
 .relation-explanation {
   font-size: 16px;
-  color: #555;
-  padding-top: 10px;
+  color: var(--color-text-light);
 }
 
 .relation-explanation-type {
   font-weight: bold;
-  color: #333;
-  margin-right: 5px;
-}
-
-.relationship-desc {
-  color: #777;
-  font-style: italic;
-  padding-top: 5px;
-}
-
-.generation-distance {
-  font-weight: bold;
-  color: #2b4e8c;
-  padding: 8px 12px;
-  border-radius: 6px;
-  text-align: center;
+  color: var(--color-text-main);
 }
 
 #numGen {
-  background-color: rgb(125, 199, 34);
+  background-color: var(--color-accent-secondary);
   color: #fff;
   font-weight: bold;
   padding: 4px 10px;
@@ -331,8 +371,6 @@ table td {
 .common-ancestor {
   font-weight: 800;
   font-size: 16px;
-  color: #0d1f2d;
-  background-color: #f7f7f7;
   padding: 4px 12px;
   border-radius: 6px;
   text-align: center;
@@ -342,12 +380,13 @@ table td {
   position: relative;
   display: inline-block;
   cursor: help;
+  text-wrap: wrap;
 }
 
 .custom-tooltip {
   visibility: hidden;
-  background-color: #333;
-  color: #fff;
+  background-color: var(--color-accent-secondary);
+  color: var(--color-accent-primary);
   text-align: center;
   padding: 8px 12px;
   border-radius: 6px;
@@ -360,22 +399,23 @@ table td {
   transition: opacity 0.3s;
   width: 220px;
   font-size: 13px;
+  text-wrap: wrap;
 }
 
 .tooltip-container:hover .custom-tooltip {
   visibility: visible;
   opacity: 1;
+  text-wrap: wrap;
 }
 
 .relationship-result,
 #DescriptionZone,
 .result-details {
-  background: var(--bg-lighter);
   padding: 1rem;
   border-radius: 0.625rem;
-  box-shadow: 0 0.25rem 0.75rem var(--shadow);
+  box-shadow: 0 0.25rem 0.75rem var(--color-shadow);
   margin-bottom: 1rem;
-  color: var(--text-light);
+  color: var(--color-text-main);
 }
 
 #DescriptionZone::before {
@@ -397,15 +437,16 @@ table td {
 }
 
 .relationText {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--primary);
+  font-size: 1.50rem;
+  font-weight: 800;
+  color: var(--color-accent-secondary);
+  background: var(--gradient-sand);
   padding: 0.75rem;
   border-radius: 0.5rem;
   text-align: center;
   margin: 0.5rem auto;
   max-width: 95%;
+  border: 2px outset var(--border-success);
 }
 .relationText::before {
   content: "🔍 ";
@@ -455,24 +496,27 @@ table td {
 .optionalRelationCheck button{
   font-size: 18px;
   padding: 4px 6px;
-  background-color: #0d1f2d;
-  color: #07eb2d;
+  background-color: var(--color-accent-secondary);
+  color: var(--color-bg-primary);
 }
 /*--------------------------------------
   Loading spinner
 --------------------------------------*/
 .loading-message {
   display: flex;
-  align-items: center;
-  text-align: center;
-  font-size: 16px;
-  color: var(--primary);
+  margin: auto;
+  padding: 8px auto;
+}
+.loading-message p{
+  margin: auto 0;
+  font-size: 22 px;
+  color: var(--color-text-main);
 }
 .loading-message .spinner {
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 0.25rem solid #e3e3e3;
-  border-top-color: var(--primary);
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0.2rem solid var(--border-light);
+  border-top-color: var(--color-accent-secondary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -486,59 +530,37 @@ table td {
 .tree-wrapper {
   margin-top: 30px;
   padding: 20px;
-  border: 1px solid #ccc;
-  background-color: #fefefe;
+  border: 3px outset var(--border-focus);
   border-radius: 10px;
   overflow-x: auto;
   overflow-y: hidden;
+  touch-action: pan-y;
 }
 
 .tree-container {
   width: 100%;
-  height: 100%; /* Try increasing this from 500px */
+  height: 100%;
   position: relative;
 }
 
-/*--------------------------------------
-  Tips footer
---------------------------------------*/
-.tipsFooter {
-  background: var(--bg-light);
-  border-top: 2px solid var(--border);
-  text-align: center;
-  font-size: 0.875rem;
-}
 
-.tipsFooter ul {
-  display: block;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  list-style: none;
-}
-.tipsFooter li {
-  color: var(--primary);
-  padding: 0.5rem;
-  border-radius: 0.375rem;
-  flex: 1 1 calc(25% - 1rem);
-  text-align: center;
-  margin: 4px auto;
-}
 .History{
-  margin-top: 4px;
-  border-radius: 8px;
+  border-radius: 4px;
+  height: 100%;
   padding: 1px;
+  background: url("../media/bg2-low.jpg");
 }
 .clearButton{
   width: 50%;
-  color: rgb(242, 225, 225);
-  background-color: #d52d17;
+  color: var(--color-bg-secondary);
+  background-color: var(--color-error);
   font-size: 16px;
   padding: 2px;
 }
 .History h2, .tipsFooter h2{
   font-size: 20px;
-  color: #07eb2d;
-  background-color: #0d1f2d;
+  color: var(--color-bg-primary);
+  background-color: var(--color-accent-primary);
   border-radius: 8px;
 }
 .side{
@@ -546,7 +568,11 @@ table td {
   border-radius: 8px;
   width: 100%;
   text-align: center;
-  border: 2px solid #0d1f2d;
+  border: 2px solid var(--color-border);
+}
+#heading th{
+  color: var(--color-bg-secondary);
+  background-color: var(--color-accent-muted);
 }
 /*--------------------------------------
   Dark mode
@@ -567,14 +593,10 @@ body.dark-mode table th,
 body.dark-mode table td { color: #eee; border-color: #444; }
 body.dark-mode .tipsFooter { background: #222; }
 
-/*--------------------------------------
-  Media queries
---------------------------------------*/
-/* Small mobiles (<480px) */
+
 @media (max-width: 479px) {
   .relation-page{
     display: block;
-
   }
   .relationship-result{
     padding: 2px;
@@ -597,12 +619,19 @@ body.dark-mode .tipsFooter { background: #222; }
     padding: 2px;
   }
 
-  .inputNames { font-size: 0.9rem; }
+  .inputNames { 
+    font-size: 18px;
+    font-weight: 800;
+    padding: 8px;
+  }
   .button { 
-    font-size: 0.72rem; 
+    font-size: 0.75rem; 
     padding: 2px 2px;
     width: 33%;
     margin: 1px auto;
+  }
+  .ButtonSection{
+    display: block;
   }
   .person-card h4{
     font-size: 14px;
@@ -616,14 +645,16 @@ body.dark-mode .tipsFooter { background: #222; }
     text-align: center;
   }
   .result-table td, .result-table{
-    font-size: 11px;
+    font-size: 13px;
 
   }
   .result-table th{
-    font-size: 12px;
+    font-size: 15px;
     width: 30%;
   }
-
+  .optionalRelationCheck button{
+    width: 50%;
+  }
   .result-table tr{
     padding: 16px 2px;
   }
@@ -656,11 +687,10 @@ body.dark-mode .tipsFooter { background: #222; }
   }
 }
 
-/* Tablettes (480–767px) */
-@media (min-width: 480px) and (max-width: 767px) {
+@media (max-width: 767px) {
   .relation-page { 
-    padding: 0 1rem;
     display: block;
+    margin-top: -40px;
    }
    
   h1 { font-size: 1.75rem; }
@@ -676,7 +706,6 @@ body.dark-mode .tipsFooter { background: #222; }
     text-align: justify;
     padding: 2px;
   }
-  .inputNames { font-size: 0.875rem; }
   .button { 
     font-size: 1rem; 
     padding: 4px;
@@ -721,9 +750,10 @@ body.dark-mode .tipsFooter { background: #222; }
   }
 }
 
-/* Desktop (>=768px) */
-@media (max-width: 1024px) {
-  .relation-page {display: block; padding: 0 2rem; }
-  .main-panel { min-width: 500px; }
-  .person-card { width: 45%; }
+@media (max-width: 1080px){
+  .relation-page { 
+    display: block;
+    margin-top: -40px;
+   }
+   
 }

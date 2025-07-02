@@ -1,6 +1,45 @@
-/*----------------------------------------
-  Base Styles & RTL Setup
-----------------------------------------*/
+:root {
+  /* === Base Colors === */
+  --color-bg-primary: #f5f0e6;      /* Desert Sand - main background */
+  --color-bg-secondary: #e8dcc4;    /* Parchment Beige - sections/cards */
+  --color-surface: #fffdf8;         /* Very light neutral, e.g. modals */
+
+  /* === Text Colors === */
+  --color-text-main: #3b2c1a;       /* Dark brown - for main text */
+  --color-text-light: #7b6a55;      /* Lighter for descriptions/labels */
+  --color-heading: #5c3d28;         /* Palm Bark Brown - strong headers */
+
+  /* === Accent Colors === */
+  --color-accent-primary: #c47e45;  /* Clay Orange - buttons/CTAs */
+  --color-accent-hover: #b46934;    /* Darker clay for hover/active */
+  --color-accent-secondary: #4c7d7e;/* Oasis Teal - link highlights */
+  --color-accent-muted: #b89b63;    /* Dusty Gold - UI accents, borders */
+
+  /* === Node Colors === */
+  --color-node-alive: #74825e;      /* Olive Leaf - alive */
+  --color-node-dead: #a86943;       /* Faded Terracotta - deceased */
+
+  /* === Borders and Lines === */
+  --color-border: #d2bfa3;          /* Sandstone Grey - borders, dividers */
+  --color-shadow: rgba(0, 0, 0, 0.08); /* Light shadow for elevation */
+
+  /* === Transparent Overlays === */
+  --overlay-light: rgba(245, 240, 230, 0.85); /* Soft paper tone overlay */
+  --overlay-dark: rgba(40, 30, 20, 0.5);      /* Darker for modals, hovers */
+
+  /* === Gradients (Optional) === */
+  --gradient-sand: linear-gradient(135deg, #f5f0e6 0%, #e8dcc4 100%);
+  --gradient-paper: linear-gradient(180deg, #fffdf8 0%, #e8dcc4 100%);
+
+  /* === States === */
+  --color-success: #74825e;
+  --color-warning: #b89b63;
+  --color-error: #a86943;
+
+  /* === Scrollbar / Selection / Misc === */
+  --color-scroll-thumb: #d2bfa3;
+  --color-selection: #e8dcc4;
+}
 body,
 .mainPage,
 .welcome,
@@ -10,13 +49,12 @@ body,
 .feature-card,
 .wedding-feature-card .overlay {
   font-family: 'Cairo', sans-serif;
-  text-align: right;
   direction: rtl;
   box-sizing: border-box;
+  text-align: center;
 }
 
-.mainPage {
-  background: #f4f4f4;
+.mainPage, .description {
   min-height: 100vh;
 }
 
@@ -26,33 +64,33 @@ body,
 .welcome {
   position: relative;
   min-height: 1000px;
-  margin-bottom: 20px;
+  margin-bottom: 15px;
   padding: 15px;
-  background: url('../media/pic4.jpg') center 50%/cover no-repeat;
-  border-radius: 15px;
+  background: url('../media/bg9.png') center 50%/cover no-repeat;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
   overflow: hidden;
+  align-items: center;
+  text-align: center;
 }
 
 .welcomeMessage {
   max-width: 40%;
-  margin-left: auto;    /* keep it on the right */
   padding: 10px;
-  background: rgba(255,255,255,0.65);
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+  text-align: center;
+  align-self: center;
 }
 
 .welcomeMessage h1 {
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   font-size: 32px;
-  color: #0d1f2d;
-  background: rgba(255,255,255,0.65);
+  color: var(--color-bg-primary)	;
 }
 
 .welcomeMessage p {
   font-size: 16px;
-  color: #555;
+  color: var(--color-bg-primary);
   text-align: center;
 }
 
@@ -60,35 +98,29 @@ body,
   Description Section
 ----------------------------------------*/
 .description {
-  margin-bottom: 30px;
-  padding: 40px;
-  background: #f9f9f9;
-  border-top: 4px solid #4fc3f7;
-  border-radius: 12px;
-  color: #333;
+  padding: 5px 25px;
+  border-top: 4px solid var(--color-border);
+  color: var(--color-text-main);
 }
 
 .description h2 {
-  margin-bottom: 20px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #2c3e50;
+  margin-bottom: 5px;
+  border-bottom: 2px solid var(--color-border);
   font-size: 32px;
-  color: #2c3e50;
+  color: var(--color-heading);
   text-align: center;
 }
 
 .description h3{
   font-size: 22px;
   text-align: center;
-  margin-bottom: 20px;
-  color: #00d1b2;
-  background-color: #0d1f2d;
-  width: 25%;
-  margin: auto auto;
+  color: var(--color-accent-primary);
+  background-color: var(--color-bg-primary);
+  width: 33%;
+  margin: auto;
   border-radius: 8px;
 }
 .description p {
-  margin-bottom: 25px;
   font-size: 18px;
   line-height: 1.8;
   text-align: justify;
@@ -108,8 +140,8 @@ body,
   flex: 1 1 280px;
   min-height: 140px;
   padding: 20px;
-  background: linear-gradient(135deg,#fff,#e3f2fd);
-  border: 1px solid #b2ebf2;
+  background: url('../media/bg2-low.jpg');
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.1);
   transition: transform .3s ease;
@@ -130,7 +162,7 @@ body,
 .feature-card p {
   font-size: 22px;
   line-height: 1.6;
-  color: #333;
+  color: var(--color-text-main);
   line-height: 2;
 }
 
@@ -154,10 +186,10 @@ body,
   display: flex;
   flex-direction: row;
   margin-top: 16px;  
-  background: linear-gradient(135deg,#fff,#e3f2fd);
-  border: 1px solid #b2ebf2;
+  background: url('../media/bg4-low.jpg');
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  box-shadow: 0 8px 8px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 8px var(--color-shadow);
   text-align: center;
 }
 
@@ -167,6 +199,7 @@ body,
   margin-top: 50px;
   padding: 6px 18px;
   text-align: center;
+  color: var(--color-text-main);
   line-height: 3;
 }
 
@@ -184,11 +217,11 @@ body,
   text-align: center;
   padding: 4px 8px;
   align-items: center;
-  color: #00d1b2;
+  color: var(--color-bg-primary);
   font-family: "Cairo";
   font-size: 22px;
   width: 30%;
-  background-color: #121212;
+  background-color: var(--color-accent-primary);
 }
 
 .cardsDiv {
@@ -201,9 +234,9 @@ body,
 }
 
 .card {
-  background-color: #f7f7f7;
+  background: url("../media/bg2-low.jpg");
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px var(--color-shadow);
   padding: 20px;
   width: 300px;
   text-align: center;
@@ -213,13 +246,13 @@ body,
 .card h4 {
   font-size: 22px;
   margin-bottom: 10px;
-  color: #00d1b2;
-  background-color: #0d1f2d;
+  color: var(--color-accent-primary);
+  background-color: var(--color-bg-primary);
 }
 
 .card p {
   font-size: 18px;
-  color: #555;
+  color: var(--color-accent-primary);
   line-height: 2;
   text-align: center;
 }
@@ -235,8 +268,8 @@ body,
 }
 
 .cta-button{
-  color: #1bbc7b;
-  background-color: #0d1f2d;
+  color: var(--color-accent-primary);
+  background-color: var(--color-bg-primary);
   
 }
 
@@ -246,8 +279,8 @@ body,
 }
 
 .cta-secondary-button{
-  background-color: #dee7e6;
-  color: #0d1f2d;
+  color: var(--color-bg-primary);
+  background-color: var(--color-accent-primary);
 }
 
 /*----------------------------------------
@@ -347,7 +380,10 @@ body.dark-mode button:hover {
     line-height: 1.6;
     padding: 4px 0;
   }
-
+  .description h3{
+    font-size: 16px;
+    width: 100%;
+  }
   .features-cards {
     display: flex;
     flex-wrap: wrap;

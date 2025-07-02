@@ -1,11 +1,13 @@
 import React, {useRef,  useState, useEffect } from 'react';
 import "../styles/SearchPage.css"
 import PersonCINCard from './PersonCardCIN';
-import Tree from 'react-d3-tree';
 import * as utils from '../utils/utils';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import usePageTracking from '../utils/trackers';
+import { IconButton, Tooltip } from "@chakra-ui/react";
+import { MdContentCopy  } from "react-icons/md";
+import peopleWithNoChildren from '../data/peopleWithNoChildren.json';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER;
@@ -15,6 +17,7 @@ const driver = require('neo4j-driver').driver(
     neo4jURI,
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
+
 const copyToClipboard = (text) => {
   navigator.clipboard.writeText(text)
     .then(() => {
@@ -25,14 +28,26 @@ const copyToClipboard = (text) => {
       console.error('Copy failed:', err);
     });
 };
-
+function formatPerson(person) {
+  if (!person) return '';
+  const name = utils.translateName(person.name ?? '');
+  const fatherPart =
+    person.father &&
+    (person.gender === 'Male'
+      ? ` بن ${utils.translateName(person.father)}`
+      : ` بنت ${utils.translateName(person.father)}`);
+  const grandfatherPart =
+    person.grandfather ? ` بن ${utils.translateName(person.grandfather)}` : '';
+  const lastNamePart = person.lastName
+    ? ` ${utils.translateFamilyName(person.lastName)}`
+    : '';
+  return `${name}${fatherPart || ''}${grandfatherPart}${lastNamePart}`;
+};
 const SearchPage = () => {
   const [treeVisible, setTreeVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [personDetails, setPersonDetails] = useState(null);
   const [error, setError] = useState('');
-  const containerRef = useRef();
-  const [translate, setTranslate] = useState({ x: 500, y: 0 });
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [viewMode, setViewMode] = useState('card');
@@ -73,10 +88,12 @@ const SearchPage = () => {
     }
     await searchPerson(searchQuery.trim());
   };
+
   const handleResetPerson = async () => {
     setSearchQuery('');
     setPersonDetails(null);
   };
+
   const searchPerson = async (searchText) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
     let translatedInputName = utils.translateName(searchText, false);
@@ -473,7 +490,7 @@ const SearchPage = () => {
   return (
     <div className="search-page">
       <header className="search-header">
-      <h1>إبحث عن الأفراد في شجرة عائلتك</h1>
+        <h1>إبحث عن الأفراد في الشجرة</h1>
         <p>
           في هذه المخصصة للبحث عن الأفراد، يمكنك الوصول بسهولة إلى معلومات دقيقة عن أي شخص داخل شجرة العائلة،
            وذلك عبر إدخال أي تركيبة من الأسماء — سواء الاسم الكامل، أو اسم الأب، أو حتى جزء من الاسم. بمجرد إدخال البيانات،
@@ -496,7 +513,11 @@ const SearchPage = () => {
       
       </header>
 
-      {error && <div className="error-message">{error}</div>}
+      {error && 
+        <div className="error-message">
+          {error}
+        </div>
+      }
       {loading && (
         <div className="loading-message">
           <div className="spinner"></div>
@@ -522,15 +543,15 @@ const SearchPage = () => {
 
       {personDetails && personDetails.multipleMatches ? (
         <div className="multiple-matches">
-          <h2 id="">نتائج متعددة:</h2>
             <table className='duplicated-table'>
               <thead>
                 <tr>
-                  <th id="index">الترتيب</th>
-                  <th>الإسم</th>
-                  <th>إسم الأب</th>
-                  <th>إسم الجدّ</th>
-                  <th>اللقب</th>
+                  <th id="index">الرقم التسلسلي</th>
+                  <th className='WS'>الإسم</th>
+                  <th className='WS'>إسم الأب</th>
+                  <th className='WS'>إسم الجدّ</th>
+                  <th className='WS'>اللقب</th>
+                  <th className='SS'>الاسم الثلاثي</th>
                   <th>العمر </th>
                   <th>سنة الوفاة </th>
                   <th>عدد الأطفال</th>
@@ -539,20 +560,27 @@ const SearchPage = () => {
               </thead>
               <tbody>
                 {personDetails.multipleMatches.map((person, index) => (
-                  <tr 
-                    key={index} 
-                    onClick={() => handlePersonSelect(person)}
-                    
-                  >
-                    <td id="index">{index + 1}</td>
-                    <td>{utils.translateName(person.personName)}</td>
-                    <td>{person.fatherName ? ` ${utils.translateName(person.fatherName)}` : ''}</td>
-                    <td>{person.grandfatherName ? ` ${utils.translateName(person.grandfatherName)}` : ''}</td>
-                    <td>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
+                  <tr key={index} >
+                    <td id="index">{person.personID + 1}</td>
+                    <td className='WS'>
+                      {peopleWithNoChildren.includes(person.personID) 
+                        ? utils.translateName(person.personName) + " ∅" 
+                        : utils.translateName(person.personName)}
+                    </td>                    
+                    <td className='WS'>{person.fatherName ? ` ${utils.translateName(person.fatherName)}` : ''}</td>
+                    <td className='WS'>{person.grandfatherName ? ` ${utils.translateName(person.grandfatherName)}` : ''}</td>
+                    <td className='WS'>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
+                    <td className='SS'>{utils.translateName(person.personName)}
+  {person.fatherName && ` ${person.gender === 'Male' ? 'بن' : 'بنت'} ${utils.translateName(person.fatherName)}`}
+  {person.grandfatherName && ` بن ${utils.translateName(person.grandfatherName)}`}
+  {person.familyName && ` ${utils.translateFamilyName(person.familyName)}`}</td>
                     <td>{person.age !== -1 ? person.age : " - "}</td>
                     <td>{person.lifeStatus === true ? '-' : person.YoD ? person.YoD : " غير متوفر "}</td>
                     <td>{person.childrenCount ? person.childrenCount : " - "}</td>
-                    <td><button className='choiceButton'>إختيار</button></td>
+                    <td><button className='choiceButton' onClick={() => {
+                      handlePersonSelect(person);
+                      setError(false);
+                      }}>إختيار</button></td>
                   </tr>
                 ))}
               </tbody>
@@ -566,11 +594,26 @@ const SearchPage = () => {
             <div className="person-table-view">
               <table className="person-side-table">
                 <tbody>
-                  <tr><th>الرقم التسلسلي</th>
-                  <td >
-                    <p className='highlight-id' onDoubleClick={() => copyToClipboard(personDetails.personID)}>{personDetails.personID}</p>
-                    </td></tr>
-                  <tr><th>الإسم الكامل</th>
+                <tr>
+                  <th>الرقم التسلسلي</th>
+                  <td>
+                    <Tooltip label="نسخ الرقم" hasArrow>
+                      <IconButton
+                        icon={<MdContentCopy />}
+                        aria-label="نسخ الرقم"
+                        className="highlight-id"
+                        onClick={() => copyToClipboard(personDetails.personID)}
+                        size="sm"
+                        colorScheme="teal"
+                        variant="outline"
+                      />
+                    </Tooltip>
+                    <span>{personDetails.personID}</span>
+                  </td>
+                </tr>
+
+                  <tr>
+                    <th>الإسم الكامل</th>
 
                   <td>
                     {utils.translateName(personDetails?.personName)}
@@ -698,12 +741,10 @@ const SearchPage = () => {
   </div>
       <div className='tipsFooter'>
         <p className="minor-tip">💡 يمكنك البحث باستخدام الاسم الكامل أو جزء منه فقط.</p>
-        <p className="minor-tip">🔍 إذا لم تجد الشخص، جرّب كتابة اسم الأب أو الجد أيضاً.</p>
         <p className="minor-tip">📛 تأكد من عدم وجود أخطاء إملائية في الأسماء المدخلة.</p>
         <p className="minor-tip">🔒 جميع المعلومات محفوظة ولا تُستخدم إلا لأغراض توثيق العائلة.</p>
         <p className="minor-tip">🔒 إذا أرّدت إخفاء بعض من معطياتك الشخصية ، عليك فقط التواصل معنا ، اننا نحترم خصوصيتك.</p>
         <p className="minor-tip">🤝 إذا لاحظت خطأ في المعلومات، ساعدنا بتحديثها عبر التواصل معنا.</p>
-        <p className="minor-tip">📚 هذا الموقع لا يزال قيد التطوير، سيتم إضافة المزيد من الميزات قريباً.</p>
       </div>
     </div>
   );

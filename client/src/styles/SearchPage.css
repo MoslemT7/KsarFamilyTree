@@ -1,62 +1,99 @@
-
 :root {
-  --primary: #0d1f2d;
-  --primary-light: #3f8de1;
-  --accent: #12e362;
-  --danger: #e74c3c;
-  --warning: #e67e22;
-  --bg-light: #f9f9f9;
-  --bg-lighter: #fff;
-  --text: #333;
-  --text-light: #555;
-  --border: #ddd;
-  --shadow: rgba(0, 0, 0, 0.1);
+  /* === Base Colors === */
+  --color-bg-primary: #f5f0e6;      /* Desert Sand - main background */
+  --color-bg-secondary: #e8dcc4;    /* Parchment Beige - sections/cards */
+  --color-surface: #fffdf8;         /* Very light neutral, e.g. modals */
+
+  /* === Text Colors === */
+  --color-text-main: #3b2c1a;       /* Dark brown - for main text */
+  --color-text-light: #7b6a55;      /* Lighter for descriptions/labels */
+  --color-heading: #5c3d28;         /* Palm Bark Brown - strong headers */
+
+  /* === Accent Colors === */
+  --color-accent-primary: #c47e45;  /* Clay Orange - buttons/CTAs */
+  --color-accent-hover: #b46934;    /* Darker clay for hover/active */
+  --color-accent-secondary: #4c7d7e;/* Oasis Teal - link highlights */
+  --color-accent-muted: #b89b63;    /* Dusty Gold - UI accents, borders */
+
+  /* === Node Colors === */
+  --color-node-alive: #74825e;      /* Olive Leaf - alive */
+  --color-node-dead: #a86943;       /* Faded Terracotta - deceased */
+
+  /* === Borders and Lines === */
+  --color-border: #d2bfa3;          /* Sandstone Grey - borders, dividers */
+  --color-shadow: rgba(0, 0, 0, 0.08); /* Light shadow for elevation */
+  --border-base: #d2bfa3;            /* Existing - Sandstone Grey */
+  --border-light: #e8dcc4;           /* Light beige border (soft components) */
+  --border-dark: #a78c69;            /* Deeper sandstone for strong sections */
+  --border-accent: #c47e45;          /* Clay orange border for highlights */
+  --border-muted: #cab99d;           /* Muted soft divider (for subtles) */
+  --border-error: #a86943;           /* For errors or danger messages */
+  --border-success: #74825e;         /* Olive-green border */
+  --border-focus: #ffb84d;           /* Light ochre for inputs/buttons focus */
+
+  /* === Transparent Overlays === */
+  --overlay-light: rgba(245, 240, 230, 0.85); /* Soft paper tone overlay */
+  --overlay-dark: rgba(40, 30, 20, 0.5);      /* Darker for modals, hovers */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);       /* Minimal shadow */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);       /* Light elevation */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);       /* Mid depth (default) */
+  --shadow-lg: 0 6px 12px rgba(0, 0, 0, 0.1);       /* Elevated panels */
+  --shadow-xl: 0 10px 20px rgba(0, 0, 0, 0.15);     /* Modals, overlays */
+  --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.06); /* Inset shadow */
+
+  /* === Gradients (Optional) === */
+  --gradient-sand: linear-gradient(135deg, #f5f0e6 0%, #e8dcc4 100%);
+  --gradient-paper: linear-gradient(180deg, #fffdf8 0%, #e8dcc4 100%);
+
+  /* === States === */
+  --color-success: #74825e;
+  --color-warning: #b89b63;
+  --color-error: #a86943;
+
+  /* === Scrollbar / Selection / Misc === */
+  --color-scroll-thumb: #d2bfa3;
+  --color-selection: #e8dcc4;
+
+  --main-font: "Cairo";
+
 }
 
 .search-page {
-  font-family: 'Cairo', sans-serif;
-  direction: rtl;
   text-align: center;
-  background-color: #F9FAFB;
-  border-radius: 15px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  margin-top: 20px;
+  background: url("../media/bg2-low.jpg");
 }
 
 .search-header {
-  margin-bottom: 20px;
+  margin: 2px;
   text-align: center;
   align-items: center;
+  border: 3px outset var(--border-muted);
 }
+
 .choiceButton{
     font-size: 12px;
     text-align: center;
     padding: 2px 8px;
     width: 60%;
     font-family: "Cairo";
-  }
+}
+
 .search-header h1 {
   font-size: 48px;
   width: 75%;
-  background-color: var(--primary);
-  color: var(--accent);
-  font-family: 'Cairo', sans-serif;
-  transition: transform 0.3s ease;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  color: var(--color-text-main);
+  text-shadow: 1px 1px 2px var(--overlay-dark);
   border-radius: 16px;
   margin: 4px auto;
 }
 
-.search-header h1:hover {
-  transform: scale(1.04);
-}
-
 .search-header p{
   font-size: 16px;
-  padding: 4px 8px;
-  text-align: center;
+  padding: 4px 4px;
+  text-align: justify;
 }
 
 .buttons{
@@ -78,14 +115,15 @@ button{
 }
 
 .search-button {
-  background: var(--primary);
-  color: var(--accent);
+  background: var(--color-success);
+  color: var(--color-bg-primary);
   font-family: "Cairo";
 }
 
 .search-button:hover {
-  background-color: #168A3D; 
-  color: white;
+  background-color: var(--color-bg-primary); 
+  color: var(--color-accent-secondary);
+  border: 2px solid var(--border-success);
   transform: scale(1.05); 
 }
 
@@ -95,18 +133,20 @@ button{
 }
 
 .search-button:disabled {
-  background-color: #D3D3D3; 
+  background-color: var(--border-muted); 
   cursor: not-allowed;
 }
 
 .reset-button {
-  background: linear-gradient(20deg, #d53616, #d7bc0e);
-  color: white;
+  background: var(--border-error);
+  color: var(--color-bg-primary);
   font-family: "Cairo";
 }
 
 .reset-button:hover {
-  background-color: var(--accent); 
+  background-color: var(--color-bg-primary);
+  color: var(--color-accent-primary);
+  border: 2px solid var(--border-accent);
   transform: scale(1.05); 
 }
 
@@ -121,29 +161,29 @@ button{
 }
 
 .search-bar {
-  padding: 10px 15px;
-  font-size: 28px;
+  padding: 8px 12px;
+  font-size: 30px;
   width: 50%;
   border-radius: 8px;
-  border: 2px solid #B0BEC5;
-  margin-bottom: 20px;
-  background-color: #FFF;
+  border: 3px outset var(--border-base);
+  margin-bottom: 10px;
+  background-color: var(--color-bg-primary);
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  color: #333;
+  color: var(--color-text-main);
   font-family: 'Cairo', sans-serif;
   text-align: center;
+  font-weight: 800;
   letter-spacing: 0.5px;
 }
 
 .search-bar:focus {
-  border: 3px solid #12e362;
+  border: 2px outset var(--border-focus);
   outline: none;
-  box-shadow: 0 0 16px rgba(27, 147, 79, 0.3);
+  box-shadow: 0 0 16px var(--border-success);
 }
 
 #duplicated-title{
-  border-bottom: 4px solid #12e362;
-  color: #0d3b5a;
+  color: var(--color-text-main);
   margin: 4px auto;
   width: 50%;
   text-align: center;
@@ -151,40 +191,33 @@ button{
 
 .duplicated-table{
   margin-top: 4px;
-  border: 2px solid black;
+  border: 2px solid var(--border-muted);
 }
 
 .duplicated-table tr th {
-  background-color: #0d3b5a;
-  color: #12e362;
+  background-color: var(--color-accent-secondary);
+  color: var(--color-bg-primary);
   text-align: center;
   border-left: 2px solid #fefefe;
 }
 
 .duplicated-table td{
   text-align: center;
-  border-left: 2px solid #0d3b5a;
-  border-top: 2px solid #0d3b5a;
   font-size: 18px;
+  color: var(--color-text-main);
 }
 
 .choiceButton{
-  color: #12e362;
-  background-color: #0d3b5a;
+  color: var(--color-bg-primary);
+  background-color: var(--color-accent-muted);
   width: 50%;
   font-size: 18px;
   padding: 8px auto;
 }
 
-.choiceButton :hover{
-  background-color: #12e362;
-  color: white;
-  transform: translateY(-5px);
-}
-
 .person-side-table {
-  width: 50%;
-  margin: 20px auto;
+  width: 75%;
+  margin: 15px auto;
   border-collapse: collapse;
   border: 2px solid black;
   direction: rtl;
@@ -193,14 +226,14 @@ button{
 
 .person-side-table th {
   width: 30%;
-  background-color: #0d3b5a;
-  color: #12e362;
+  color: var(--color-bg-primary);
+  background-color: var(--color-accent-secondary);
   padding: 10px;
   text-align: right;
-  border-left: 2px solid #0d3b5a;
-  border-bottom: 2px solid #ffffff;
+  border-left: 2px solid var(--color-success);
+  border-bottom: 2px solid var(--color-border);
   font-weight: bold;
-    font-size: 20px;
+  font-size: 20px;
 
 }
 
@@ -208,55 +241,39 @@ button{
   width: 70%;
   background-color: #f9f9f9;
   color: #000;
-  padding: 10px;
+  padding: 10px 20px;
   text-align: right;
   border-bottom: 2px solid #0d3b5a;
   border-left: 2px solid #0d3b5a;
   font-size: 20px;
 }
 
-
-
 .view-toggle-buttons {
   display: flex;
   width: 100%;
-  text-align: center;
-  border-top: 4px solid #12e362;
-  
+  text-align: center;  
 }
 
 .view-toggle-buttons button {
   padding: 2px 8px;
   margin: 20px 20px;
-  border: 1px solid #ccc;
+  border: 2px outset var(--border-base);
   cursor: pointer;
   width: 95%;
   text-align: center;
-  font-family: "Cairo";
 }
 
 .view-toggle-buttons .active {
-  background-color: #0d3b5a;
-  color: #12e362;
-}
-
-
-.view-toggle-buttons button :hover{
-  color: #0d3b5a;
-  background-color: #12e362;
-
-  
-}
-button{
-  color: #0d3b5a;
+  background-color: var(--color-accent-secondary);
+  color: var(--color-bg-primary);
 }
 
 .highlight-id {
-  color: white;
+  color: var(--color-success);
   font-weight: bold;
   padding: 4px 14px;
   border-radius: 6px;
-  background-color:#daa428;
+  background-color:var(--color-bg-primary);
   font-family: 'Courier New', monospace;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   font-size: 24px;
@@ -270,9 +287,7 @@ body.dark-mode .highlight-id {
 }
 
 .error-message {
-  color: #D32F2F;
-  background-color: #FFEBEE;
-  border-color: #D32F2F;
+  color: var(--color-warning);
   text-align: center;
   padding: 18px;
   font-size: 18px;
@@ -282,11 +297,10 @@ body.dark-mode .highlight-id {
 
 /* No Results Section */
 .no-results p {
-  color: #888;
+  color: var(--color-accent-muted);
   font-size: 18px;
   text-align: center;
 }
-
 
 body.dark-mode .search-header,
 body.dark-mode .search-page{
@@ -309,20 +323,20 @@ body.dark-mode td{
 
 .loading-message {
   display: flex;
-  gap: 10px;
-  font-size: 18px;
-  color: #007bff;
-  padding: 10px;
-  text-align: center;
+  margin: auto;
+  padding: 8px auto;
 }
-
+.loading-message p{
+  margin: auto 0;
+  font-size: 22 px;
+  color: var(--color-text-main);
+}
 .loading-message .spinner {
-  border: 4px solid #e3e3e3;
-  border-top: 4px solid #007bff;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0.2rem solid var(--border-light);
+  border-top-color: var(--color-accent-secondary);
   border-radius: 50%;
-  text-align: center;
-  width: 20px;
-  height: 20px;
   animation: spin 1s linear infinite;
 }
 
@@ -442,18 +456,12 @@ body.dark-mode td{
 }
 
 @media screen and (max-width: 768px) {
-  .search-page {
-    padding: 1px !important; 
-  }
+
   header p{
     text-align: center;
   }
   .search-header h1 {
     font-size: 24px; 
-  }
-  .buttons{
-    width: 100%;
-
   }
 
   .search-bar {
@@ -472,19 +480,8 @@ body.dark-mode td{
     width: 40%;
   }
 
-  .titles {
-    display: block;
-    text-align: center;
-    padding: 5px;
-  }
-
   .person-details h2 {
     font-size: 20px;
-    margin: 5px 0;
-  }
-
-  #idPerson {
-    font-size: 14px;
     margin: 5px 0;
   }
 
@@ -492,45 +489,21 @@ body.dark-mode td{
     font-size: 14px;
     padding: 3px 6px;
   }
-  .personTables{
+  .person-side-table{
     display: block;
+    width: 95%;
   }
   .person-details h3 {
     font-size: 18px;
     width: 90%;
     padding: 8px;
-    margin-top: 10px;
   }
-  .person-details-table th{
+  .person-side-table th{
     padding: 4px;
     font-size: 14px;
     max-width: 20px;
-  }
-  
-  .person-details-table .personDetails,
-  .person-details-table #person,
-  .person-details-table #mother{
-    font-size: 12px;
-    padding: 2px;
   }
 
-  .person-details2-table th{
-    padding: 4px;
-    font-size: 14px;
-    max-width: 20px;
-  }
-  .person-details2-table td{
-    padding: 4px;
-    font-size: 12px;
-    max-width: 20px;
-  }
-  #childrenButton{
-    padding: 0;
-    font-size: 10px;
-    width: 80%;
-    margin: 0;
-    text-align: center;
-  }
   .tipsFooter{
     text-align: center;
     display: block;
@@ -556,25 +529,24 @@ body.dark-mode td{
     font-size: 12px;
     text-align: center;
     padding: 2px 8px;
-    width: 60%;
+    width: 80%;
     font-family: "Cairo";
   }
   
 }
 
-@media screen and (max-width: 480px) {
-  .header {
-    width: 100%;
-    padding: 10px;
-    background-color: var(--header-bg-color); /* Use your theme variable */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+@media screen and (min-width: 481px) {
+  .SS{
+    display: none;
   }
+}
+@media screen and (max-width: 480px) {
   .multiple-matches table td{
-    font-size: 12px;
-    padding: 1px;
+    font-size: 11px;
+    padding: 0.5px;
   }
   .multiple-matches table th{
-    font-size: 12px;
+    font-size: 11px;
     padding: 1px;
   }
   .duplicated-table #index{
@@ -586,22 +558,15 @@ body.dark-mode td{
     padding: 2px 8px;
     width: 60%;
   }
-  .header-top {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .logo {
-    margin-bottom: 8px;
-  }
-
   .serach-header h1 {
     font-size: 20px;
   }
+  .WS{
+    display: none;
+  }
   .serach-header p{
     font-size: 10px;
+    padding: 2px;
   }
   .title h2 {
     font-size: 14px;
@@ -614,46 +579,7 @@ body.dark-mode td{
     transform: scale(0.8); /* Smaller toggle for mobile */
   }
 
-  .menu-toggle {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--text-color);
-    position: absolute;
-    top: 15px;
-    right: 2px;
-    z-index: 999;
-  }
-
-  .sidebar {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 50%;
-    height: 100%;
-    background-color: var(--sidebar-bg-color);
-    padding-top: 60px;
-    transition: right 0.3s ease;
-    z-index: 998;
-  }
-
-  .sidebar.open {
-    right: 0;
-  }
-
-  .sidebar ul {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
-    list-style: none;
-  }
-
-  .sidebar ul li a {
-    font-size: 18px;
-    text-decoration: none;
-    color: var(--text-color);
-  }
+ 
   .search-page {
     padding: 0;
   }
@@ -712,7 +638,8 @@ body.dark-mode td{
     
   }
   .person-side-table td, .person-side-table th{
-    font-size: 15px;
+    font-size: 16px;
+    padding: 4px 6px;
     text-align: center;
   }
 
@@ -720,23 +647,15 @@ body.dark-mode td{
     padding: 0;
     margin: auto;
     width: 100%;
-
   }
+
   .tipsFooter{
-    text-align: center;
-    padding: 0;
+    text-align: justify;
     width: 100%;
     display: block;
-    padding: 4px 2px;
+    padding: 6px 8px;
   }
-  .buttons{
-    font-size: 14px;
 
-  }
-  button{
-    font-family: "Cairo";
-    width: 40%;
-  }
   .person-side-table{
     margin: 2px 6px;
   }

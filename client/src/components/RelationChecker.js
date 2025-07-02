@@ -75,7 +75,7 @@ const RelationPage = () => {
         <h2>تاريخ العلاقات</h2>
         <table>
           <thead>
-            <tr>
+            <tr id="heading">
               <th className="personZone">الشخص الأول</th>
               <th className="personZone">الشخص الثاني</th>
               <th className="relationZone">العلاقة</th>
@@ -1993,59 +1993,56 @@ RETURN
   };
 
   useEffect(() => {
-    const updateConfig = () => {
-      const screenWidth = window.innerWidth;
-      const containerWidth = treeContainerRef.current?.offsetWidth || screenWidth;
-      console.log(screenWidth, containerWidth);
-      let nodeSize = { x: 40, y: 90 };
-      let separation = { siblings: 3.5, nonSiblings: 3.5 };
-      let yTranslate = 30;
-      let fontSize = 12;
-      if (screenWidth < 400) {
-        nodeSize = { x: 45, y: 100 };
-        separation = { siblings: 3.5, nonSiblings: 3.5   };
-        yTranslate = 30;
-        fontSize = 14;
-      } else if (screenWidth < 500) {
-        nodeSize = { x: 55, y: 100  };
-        separation = { siblings: 3.5, nonSiblings: 3.5 };
-        yTranslate = 30;
-        fontSize = 15;
-      } else if (screenWidth < 1024) {
-        nodeSize = { x: 55, y: 100 };
-        separation = { siblings: 3, nonSiblings: 3 };
-        yTranslate = 30;
-        fontSize = 16;
-      } else {
-        nodeSize = { x: 60, y: 110 };
-        separation = { siblings: 3, nonSiblings: 3 };
-        yTranslate = 30;
-        fontSize = 17;
-      }
+  const updateConfig = () => {
+    const screenWidth = window.innerWidth;
+    const containerWidth = treeContainerRef.current?.offsetWidth || screenWidth;
 
-      if (screenWidth > 1024){
-        setConfig({
-        translate: { x: containerWidth / 2 - 250, y: yTranslate },
-        nodeSize,
-        separation,
-        fontSize,
-      });
-      }
-      else{
-        setConfig({
-        translate: { x: containerWidth / 2 - 50, y: yTranslate },
-        nodeSize,
-        separation,
-        fontSize,
-      });
-      }
-      
-    };
-    
-    updateConfig();
-    window.addEventListener('resize', updateConfig);
-    return () => window.removeEventListener('resize', updateConfig);
-  }, []);
+    let nodeSize = { x: 40, y: 90 };
+    let separation = { siblings: 2, nonSiblings: 2 };
+    let yTranslate = 40;
+    let fontSize = 12;
+
+    if (screenWidth < 400) {
+      nodeSize = { x: 50, y: 90 };
+      separation = { siblings: 3, nonSiblings: 3 };
+      fontSize = 14;
+    } else if (screenWidth < 500) {
+      nodeSize = { x: 55, y: 100 };
+      separation = { siblings: 3, nonSiblings: 3 };
+      fontSize = 18;
+    } else if (screenWidth < 768) {
+      nodeSize = { x: 60, y: 110 };
+      separation = { siblings: 2.5, nonSiblings: 2.5 };
+      fontSize = 18;
+    } else if (screenWidth < 1024) {
+      nodeSize = { x: 65, y: 115 };
+      separation = { siblings: 2.5, nonSiblings: 2.5 };
+      fontSize = 18;
+    } else if (screenWidth < 1440) {
+      nodeSize = { x: 70, y: 120 };
+      separation = { siblings: 3, nonSiblings: 3 };
+      fontSize = 20;
+    } else {
+      nodeSize = { x: 80, y: 130 };
+      separation = { siblings: 3, nonSiblings: 3 };
+      fontSize = 22;
+    }
+
+    const translateX = screenWidth > 1024 ? containerWidth / 2 - 20 : containerWidth / 2 - 20;
+
+    setConfig({
+      translate: { x: translateX, y: yTranslate },
+      nodeSize,
+      separation,
+      fontSize,
+    });
+  };
+
+  updateConfig();
+  window.addEventListener('resize', updateConfig);
+  return () => window.removeEventListener('resize', updateConfig);
+}, []);
+
 
   return (
   <div className="relation-page">
@@ -2054,11 +2051,11 @@ RETURN
       <section className="relation-form-section">
         <h1 className="section-title">ماهي العلاقة بينهما؟</h1>
         <p id="DescriptionZone">
-          يمكنك خلال هذه الأداء التعرف على العلاقة الي تربط أي شخصين في شجرة العائلة. كل ماعليك هو إدخال اسمَي الشخصين ،
-          يمكنك كتابة الاسم ، على الشكل التالي (فلان بن فلان بن فلان الفلاني). يمكنك كتابة الاسم فقط أو الاسم واللقب معاً أيضا. 
-          من الأفضل ان تدخل الاسم الكامل للشخص لكي تتعرف الأداء جيدًا على الشخص المقصود. في حالة وجود شخصين يحملان نفس الإسم، سوف تظهر
-          قائمة يمكنك اختيار من خلالها الشخص المحدد. يمكنك عبر هذه الأداة معرفة مدى قرب العلاقة بين الشخصين ، نوعها وتفاصيل اخرى عنها ، كما يمكنك إلقاء نظرة على
-          شجرة العائلة الي تربطمها بالجد المشترك بينهما. اكتشف قدرات هذه الأداة القوية الآن!
+          من خلال هذه الأداة، يمكنك معرفة العلاقة العائلية الأقرب التي تربط بين أي شخصين ضمن العرش.  
+          كل ما عليك فعله هو إدخال اسمي الشخصين في الخانتين المخصصتين.  
+          يمكنك كتابة الأسماء بأي شكل متاح لك، سواء كان الاسم كاملاً (مثال: فلان بن فلان الفلاني)، أو مجرد الاسم الأول أو الأخير.  
+          النظام سيقوم بمحاولة مطابقة الأسماء والبحث في شجرة العائلة لإيجاد الرابط الأسرع بينهما.  
+          تأكد من اختيار الأشخاص الصحيحين من الاقتراحات التي ستظهر، ثم اضغط على زر "تحقق من العلاقة" لمشاهدة النتيجة.
         </p>
         <form onSubmit={fetchRelationship} className="relation-form">
           <div className="input-group">
@@ -2220,35 +2217,118 @@ RETURN
         )}
       </section>
 
-      {error && <div className="error-message">
-        {error}
-        </div>}
-        {selectedPerson1 && selectedPerson2  && error && (
-          <div id="confirm"><p>الرجاء تأكيد الاختيار عبر الضغط على زر التحقق من العلاقة.</p></div>
-        )}
+      {error && 
+        <div className="error-message">
+          <p>{error}</p>
+        </div>
+      }
+      {selectedPerson1 && selectedPerson2  && error && (
+        <div id="confirm">
+          <p>الرجاء تأكيد الاختيار عبر الضغط على زر التحقق من العلاقة.</p>
+        </div>
+      )}
       {loading && lookoutMode === 'Blood' && (
         <div className="loading-message">
           <div className="spinner"></div>
           <p>{loadingMessage}</p>
         </div>
       )}
-      {!loading && relationship && !error  && (
+      {!loading && relationship && !error  && 
+      (Array.isArray(duplicates.person1) && duplicates.person1.length === 0) &&
+      (Array.isArray(duplicates.person2) && duplicates.person2.length === 0) &&  (
         
         <section className="relationship-result">
           <div className="foundPersons">
             <h2 id="resultTitle" className="resultsTitles">الأشخاص الذين تم البحث عنهم:</h2>
             <div className='personsCards'>
               <div className="person-card">
-                <h4>{formatPerson(relationship.relationshipPerson1Details)}</h4>
+                <h4>{relationship.person1ID} - {formatPerson(relationship.relationshipPerson1Details)}</h4>
               </div>
               <div className="person-card">
-                <h4>{formatPerson(relationship.relationshipPerson2Details)}</h4>
+                <h4>{relationship.person2ID} - {formatPerson(relationship.relationshipPerson2Details)}</h4>
               </div>
             </div>
           </div>
           <h2 id="resultTitle" className="resultsTitles">نتيجة العلاقة</h2>
           <p className="relationText">{relationship.relationshipDescription}</p>
           <div className="result-details">
+          {relationship.ancestorstreeData && (
+              <>
+              <h2 id="resultTitle" className="resultsTitles">شجرة العائلة التي تجمع الشخصين :</h2>
+              <div className="tree-wrapper" style={{
+                height: `${Math.max(
+                  ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
+                  100
+                ) + 50}px`
+              }}>
+              <>
+              
+              <div className="tree-container">
+              <Tree
+                data={relationship.ancestorstreeData}
+                orientation="vertical"
+                ref={treeContainerRef}
+                pathFunc="diagonal"
+                translate={config.translate}
+                nodeSize={config.nodeSize}
+                separation={config.separation}
+                zoomable={false}
+                draggable={false}  
+                renderCustomNodeElement={({ nodeDatum }) => (
+                <g className="tree-node">
+                    <title>{nodeDatum.id}</title>
+                    <rect
+                      className="tree-node-rect"
+                      x="-60"
+                      y="-20"
+                      width="120"
+                      height="40"
+                      style={{
+                        fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                          ? '#d3f9d8'
+                          : nodeDatum.id === relationship.commonAncestor.ancestorID
+                          ? '#ffe4b5' 
+                          : '#ffffff',
+                        stroke: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                          ? '#4caf50' 
+                          : nodeDatum.id === relationship.commonAncestor.ancestorID
+                          ? '#ffa500'
+                          : '#4a90e2',
+                        strokeWidth: '2.5px',
+                        rx: '10',
+                        ry: '10',
+                      }}
+                    />
+                    <text
+                      className="tree-node-text"
+                      x="0"
+                      y="0"
+                      style={{
+                        fontSize: config.fontSize + 'px',
+                        fontFamily: 'Cairo',
+                        fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                          ? '#388e3c'
+                          : nodeDatum.id === relationship.commonAncestor.ancestorID
+                          ? '#ff9800'
+                          : '#333',
+                        textAnchor: 'middle',
+                        dominantBaseline: 'middle',
+                        fontWeight: 800,
+                        letterSpacing: '1.5px',
+                        strokeWidth: '1px',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      {utils.translateNodeName(nodeDatum.name)}
+                    </text>
+                  </g>
+                )}
+              />
+            </div>
+              </>
+            </div>
+            </>
+            )}
             <table className="result-table">
               <tbody>
                 <tr>
@@ -2377,98 +2457,13 @@ RETURN
                 <p>{loadingMessage}</p>
               </div>
             )}
-            {relationship.ancestorstreeData && (
-              <>
-              <h2 id="resultTitle" className="resultsTitles">شجرة العائلة التي تجمع الشخصين :</h2>
-              <div className="tree-wrapper" style={{
-                height: `${Math.max(
-                  ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
-                  100
-                ) + 50}px`
-              }}>
-              <>
-              
-              <div className="tree-container">
-              <Tree
-                data={relationship.ancestorstreeData}
-                orientation="vertical"
-                ref={treeContainerRef}
-                pathFunc="step"
-                translate={config.translate}
-                nodeSize={config.nodeSize}
-                separation={config.separation}
-                zoomable={false}
-                draggable={false}  
-                renderCustomNodeElement={({ nodeDatum }) => (
-                <g className="tree-node">
-                    <title>{nodeDatum.id}</title>
-                    <rect
-                      className="tree-node-rect"
-                      x="-75"
-                      y="-20"
-                      width="150"
-                      height="40"
-                      style={{
-                        fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
-                          ? '#d3f9d8'  // Leaf node color (light green)
-                          : nodeDatum.id === relationship.commonAncestor.ancestorID
-                          ? '#ffe4b5'  // Ancestor node color (light yellow)
-                          : '#ffffff', // Default color for other nodes
-                        stroke: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
-                          ? '#4caf50'  // Leaf node border (green)
-                          : nodeDatum.id === relationship.commonAncestor.ancestorID
-                          ? '#ffa500'  // Ancestor node border (orange)
-                          : '#4a90e2', // Default border color
-                        strokeWidth: '2.5px',
-                        rx: '10',  // Rounded corners
-                        ry: '10',  // Rounded corners
-                      }}
-                    />
-                    <text
-                      className="tree-node-text"
-                      x="0"
-                      y="0"
-                      style={{
-                        fontSize: config.fontSize + 'px',
-                        fontFamily: 'Cairo',
-                        fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
-                          ? '#388e3c'
-                          : nodeDatum.id === relationship.commonAncestor.ancestorID
-                          ? '#ff9800'
-                          : '#333',
-                        textAnchor: 'middle',
-                        dominantBaseline: 'middle',
-                        letterSpacing: '1px',
-                        strokeWidth: '1px',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      {utils.translateNodeName(nodeDatum.name)}
-                    </text>
-                  </g>
-                )}
-              />
-            </div>
-              </>
-            </div>
-            </>
-            )}
+            
               
           </div>
         </section>
       )}
     </main>
     <div className="side"> 
-      <div className="tipsFooter">
-        <h2>نصائح حول استخدام أداة معرفة العلاقة</h2>
-        <ul>
-          <li>اختر الأشخاص بدقة لضمان نتائج صحيحة.</li>
-          <li>إذا كان أحد الطرفين متزوج، تأكد من اختيار الزوج أو الزوجة المناسبة.</li>
-          <li>يمكنك استخدام زر "إلغاء" لإعادة التحديد بسهولة.</li>
-          <li>يمكن لهذه الأداء التعرف على أكثر من 200 علاقة ممكنة بين الشخصين .</li>
-        </ul>
-      </div>
-      <hr></hr>
           <RelationHistory></RelationHistory>
     </div>
     

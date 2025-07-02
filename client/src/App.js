@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
+import { FaUserCircle, FaMoon, FaSun } from 'react-icons/fa';
+import Header from './components/Header';
 import FamilyTree from './components/FamilyTree';
 import RelationPage from './components/RelationChecker';
 import StatisticsDashboard from './components/StatisticsDashboard';
@@ -23,70 +24,34 @@ const WeddingPage = () => {
 
 const App = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const toggleMenu = () => setMenuOpen(open => !open);
+  const toggleMenu = () => setMenuOpen(prev => !prev);
+  const location = useLocation();
+  
+  const isWeddingsRoute = location.pathname === '/weddings';
 
   usePageTracking();
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'light') {
-      document.body.classList.add('dark-mode');
-    }
-  }, []);
-
-  const toggleDarkMode = () => {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('theme', isDark ? 'light' : 'dark');
-  };
-
-  const location = useLocation();
-  const isWeddingsRoute = location.pathname === '/weddings';
-
   return (
     <div className="app-container">
-      <>
-        <header className="header">
-          <div className="header-top">
-            <div className="logo-title">
-              <div className="title">
-                <h1>
-                  <a href="https://shorturl.at/Ktu6p" target="_blank" rel="noopener noreferrer">
-                    موقع قصر أولاد بوبكر
-                  </a>
-                </h1>
-              </div>
-              
-            </div>
-            <button
-              className="menu-tog"
-              onClick={() => setMenuOpen(o => !o)}
-              aria-label="Toggle menu"
-            >☰</button>
-          </div>
-          <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
-          <button className="close-btn" onClick={toggleMenu}>×</button>
-          <ul>
+      <Header toggleMenu={toggleMenu} />
 
-            <li onClick={() => setMenuOpen(o => !o)}><Link to="">الرئيسية</Link></li>
-            <li onClick={() => setMenuOpen(o => !o)}><Link to="familyTree">شجرة العائلة</Link></li>
-            <li onClick={() => setMenuOpen(o => !o)}><Link to="search">البحث</Link></li>
-            <li onClick={() => setMenuOpen(o => !o)}><Link to="statistics">إحصائيات</Link></li>
-            <li onClick={() => setMenuOpen(o => !o)}><Link to="relationChecker">ماهي العلاقة بينهما؟</Link></li>
-            <li>
-              <Link to="weddings" onClick={() => sessionStorage.setItem('allowWedding','true')}>
-                أعراسنا
-              </Link>
-            </li>
-            <li id="contactUs"><Link to="/contact">إتصل بنا</Link></li>
-          </ul>
-        </nav>
-        </header>        
-      </>
+      <nav className={`sidebar ${menuOpen ? 'open' : ''}`}>
+        <ul>
+          <li onClick={toggleMenu}><Link to="">الرئيسية</Link></li>
+          <li onClick={toggleMenu}><Link to="familyTree">شجرة العائلة</Link></li>
+          <li onClick={toggleMenu}><Link to="search">البحث</Link></li>
+          <li onClick={toggleMenu}><Link to="statistics">إحصائيات</Link></li>
+          <li onClick={toggleMenu}><Link to="relationChecker">ماهي العلاقة بينهما؟</Link></li>
+          <li onClick={toggleMenu}>
+            <Link to="weddings" onClick={() => sessionStorage.setItem('allowWedding', 'true')}>
+              أعراسنا
+            </Link>
+          </li>
+        </ul>
+      </nav>
 
       <div className="main-container">
         <ToastContainer position="top-center" autoClose={2000} />
-
         {isWeddingsRoute ? (
           <WeddingPage />
         ) : (
@@ -111,7 +76,6 @@ const App = () => {
               هذا الموقع يهدف إلى توثيق شجرة عرش قصر أولاد بوبكر، ويجمع بين التكنولوجيا والتراث، لتقديم تجربة تفاعلية فريدة لكل أفراد العائلة.
             </p>
           </div>
-
           <div className="footer-column">
             <h4>روابط مهمة</h4>
             <ul>
@@ -130,7 +94,6 @@ const App = () => {
               </li>
             </ul>
           </div>
-
           <div className="footer-column">
             <h4>تواصل معنا</h4>
             <ul>

@@ -70,48 +70,48 @@ const StatisticsDashboard = () => {
       document.title = "إحصائيات قصر أولاد بوبكر";
     }, []);
   const ageBins = async () => {
-    const session = driver.session();
-    try {
-      // Run the Cypher query
-      const result = await session.run(`
-        WITH date().year AS currentYear
-        MATCH (p:Person)
-        WHERE p.YoB IS NOT NULL AND p.isAlive = true
-        WITH currentYear - p.YoB AS age
-        WITH CASE
-          WHEN age < 3 THEN '0-2'
-          WHEN age < 19 THEN '13-18'
-          WHEN age < 30 THEN '19-29'
-          WHEN age < 13 THEN '3-12'
+  const session = driver.session();
+  try {
+    const result = await session.run(`
+      WITH date().year AS currentYear
+      MATCH (p:Person)
+      WHERE p.YoB IS NOT NULL AND p.isAlive = true
+      WITH currentYear - toInteger(p.YoB) AS age
+      WITH CASE
+        WHEN age < 3 THEN '0-2'
+        WHEN age < 13 THEN '3-12'
+        WHEN age < 19 THEN '13-18'
+        WHEN age < 30 THEN '19-29'
+        WHEN age < 45 THEN '30-44'
+        WHEN age < 60 THEN '45-59'
+        WHEN age < 70 THEN '60-69'
+        WHEN age < 80 THEN '70-79'
+        ELSE '80+'
+      END AS ageBin
+      RETURN ageBin, count(*) AS count
+      ORDER BY ageBin
+    `);
 
-          WHEN age < 45 THEN '30-44'
-          WHEN age < 60 THEN '45-59'
-          WHEN age < 70 THEN '60-69'
-          WHEN age < 80 THEN '70-79'
-          ELSE '80+'
-        END AS ageBin
-        RETURN ageBin, count(*) AS count
-        ORDER BY ageBin
-      `);
-  
-      const ageDistribution = result.records.map(record => ({
-        ageBin: record.get('ageBin'),
-        count: record.get('count').toNumber(),
-      }));
-      return ageDistribution;
-    } catch (error) {
-      console.error('Error running the query:', error);
-    } finally {
-      await session.close();
-    }
-  };
+    const ageDistribution = result.records.map(record => ({
+      ageBin: record.get('ageBin'),
+      count: record.get('count').toNumber(),
+    }));
+    return ageDistribution;
+  } catch (error) {
+    console.error('Error running the query:', error);
+    return [];
+  } finally {
+    await session.close();
+  }
+};
+
 
   const populationGrowth = async () => {
     const session = driver.session();
     try {
       // Run the Cypher query
       const result = await session.run(`
-        WITH range(1900, 2025) AS years
+        WITH range(1700, 2025) AS years
         UNWIND years AS year
         MATCH (p:Person)
         WHERE p.YoB <= year
@@ -146,6 +146,8 @@ const StatisticsDashboard = () => {
 
         const total = Population.totalPopulation;
         const totalAlive = Population.totalAlive;
+        const aliveWomen = Population.aliveWomen;
+        const aliveMen = Population.aliveMen
         const totalDead = (total-totalAlive).toFixed(1);
       
         const avgAge = AgeStats.averageAge;
@@ -173,8 +175,8 @@ const StatisticsDashboard = () => {
         setStats({
           totalPopulation: total,
           totalAlivePopulation: totalAlive,
-          totalMen: GenderStats.maleCount,
-          totalWomen: GenderStats.femaleCount,
+          totalMen: aliveMen,
+          totalWomen: aliveWomen,
           deadPopulation: totalDead,
           avgAge,
           medAge,
@@ -331,223 +333,222 @@ const StatisticsDashboard = () => {
   return () => {
     chartInstance.current?.destroy();
   };
-}, [ageGenderDATA]);
-
-useEffect(() => {
-  if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
-
-  const ctx = cumulativePopulationGrowthRef.current.getContext('2d');
-
-  if (cumulativePopulationGrowthInstance.current) {
-    cumulativePopulationGrowthInstance.current.destroy();
-  }
-
-  const labels = cumulativePopulationGrowth.map(item => item.year);
-  const cumulativeValues = cumulativePopulationGrowth.map(item => item.cumulativePopulation);
-  const aliveValues = cumulativePopulationGrowth.map(item => item.alivePopulation);
-
-  cumulativePopulationGrowthInstance.current = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'عدد السكان التراكمي',
-          data: cumulativeValues,
-          borderColor: '#36A2EB',
-          backgroundColor: 'rgba(54, 162, 235, 0.2)',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 3,
-        },
-        {
-          label: 'الأشخاص الأحياء',
-          data: aliveValues,
-          borderColor: '#FF6384',
-          backgroundColor: 'rgba(255, 99, 132, 0.2)',
-          fill: true,
-          tension: 0.4,
-          pointRadius: 3,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: (tooltipItem) => tooltipItem.raw + ' نسمة',
-          },
-        },
-        legend: {
-          position: 'bottom',
-        },
-      },
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'السنة',
-          },
-        },
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'السكّان',
-          },
-        },
-      },
-    },
-  });
-
-  return () => {
-    cumulativePopulationGrowthInstance.current?.destroy();
-  };
-}, [cumulativePopulationGrowth]);
-
+  }, [ageGenderDATA]);
 
   useEffect(() => {
-  if (!weddingChartRef.current || weddingData.length === 0) return;
+    if (!cumulativePopulationGrowthRef.current || cumulativePopulationGrowth.length === 0) return;
 
-  // Destroy previous chart if it exists
-  if (weddingChartInstance.current) {
-    weddingChartInstance.current.destroy();
-  }
+    const ctx = cumulativePopulationGrowthRef.current.getContext('2d');
 
-  // Count the occurrences of each year in the wedding data
-  const countOccurrences = (data) => {
-    const counts = {};
-    data.forEach(year => {
-      counts[year] = (counts[year] || 0) + 1;
-    });
-    return counts;
-  };
+    if (cumulativePopulationGrowthInstance.current) {
+      cumulativePopulationGrowthInstance.current.destroy();
+    }
 
-  const weddingCount = countOccurrences(weddingData);
-  // Convert the object to arrays for labels and data
-  const labels = Object.keys(weddingCount);
-  const data = Object.values(weddingCount);
+    const labels = cumulativePopulationGrowth.map(item => item.year);
+    const cumulativeValues = cumulativePopulationGrowth.map(item => item.cumulativePopulation);
+    const aliveValues = cumulativePopulationGrowth.map(item => item.alivePopulation);
 
-  // Dynamically set canvas height: 50px per bar (adjust as needed)
-  weddingChartRef.current.height = labels.length * 50;
-
-  // Create a new chart instance
-  const ctx = weddingChartRef.current.getContext('2d');
-
-  weddingChartInstance.current = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        {
-          label: 'عدد حفلات الزواج حسب السنة',
-          data: data,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue color
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,  // important to respect canvas height
-      plugins: {
-        title: {
-          display: true,
-          font: {
-            size: 20,
+    cumulativePopulationGrowthInstance.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'عدد السكان التراكمي',
+            data: cumulativeValues,
+            borderColor: '#36A2EB',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+          },
+          {
+            label: 'الأشخاص الأحياء',
+            data: aliveValues,
+            borderColor: '#FF6384',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (tooltipItem) => tooltipItem.raw + ' نسمة',
+            },
+          },
+          legend: {
+            position: 'bottom',
           },
         },
-        tooltip: {
-          callbacks: {
-            label: (tooltipItem) => {
-              return `${tooltipItem.raw} حفلة زواج`;
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'السنة',
+            },
+          },
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'السكّان',
             },
           },
         },
       },
-      scales: {
-        x: {
-          title: {
-            display: true,
-            text: 'السنة',
-          },
-        },
-        y: {
-          title: {
-            display: true,
-            text: 'عدد الحفلات',
-          },
-          beginAtZero: true,
-        },
-      },
-    },
-  });
+    });
 
-  return () => {
-    weddingChartInstance.current?.destroy(); // Clean up chart instance when unmounting/updating
-  };
-}, [weddingData]);
+    return () => {
+      cumulativePopulationGrowthInstance.current?.destroy();
+    };
+  }, [cumulativePopulationGrowth]);
+
 
   useEffect(() => {
-  if (!topFamiliesRef.current || topFamiliesData.length === 0) return;
+    if (!weddingChartRef.current || weddingData.length === 0) return;
 
-  if (topFamiliesInstance.current) {
-    topFamiliesInstance.current.destroy();
-  }
+    // Destroy previous chart if it exists
+    if (weddingChartInstance.current) {
+      weddingChartInstance.current.destroy();
+    }
 
-  const ctx = topFamiliesRef.current.getContext('2d');
+    // Count the occurrences of each year in the wedding data
+    const countOccurrences = (data) => {
+      const counts = {};
+      data.forEach(year => {
+        counts[year] = (counts[year] || 0) + 1;
+      });
+      return counts;
+    };
 
-  // Dynamically set canvas height before chart creation
-  const barCount = topFamiliesData.length;
-  topFamiliesRef.current.height = barCount * 50; // 50px per bar — adjust as needed
+    const weddingCount = countOccurrences(weddingData);
+    // Convert the object to arrays for labels and data
+    const labels = Object.keys(weddingCount);
+    const data = Object.values(weddingCount);
 
-  topFamiliesInstance.current = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: topFamiliesData.map(f => f.familyName),
-      datasets: [{
-        label: 'عدد الأفراد في العائلة',
-        data: topFamiliesData.map(f => f.occurences),
-        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        borderColor: 'rgba(255, 99, 132, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false, // important for dynamic height
-      indexAxis: 'y',
-      plugins: {
-        title: {
-          display: true,
-          text: 'أكثر 5 عائلات عددًا في قصر أولاد بوبكر'
-        }
+    // Dynamically set canvas height: 50px per bar (adjust as needed)
+    weddingChartRef.current.height = labels.length * 50;
+
+    // Create a new chart instance
+    const ctx = weddingChartRef.current.getContext('2d');
+
+    weddingChartInstance.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'عدد حفلات الزواج حسب السنة',
+            data: data,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)', // Blue color
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1,
+          },
+        ],
       },
-      scales: {
-        y: {
-          beginAtZero: true,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,  // important to respect canvas height
+        plugins: {
           title: {
             display: true,
-            text: 'اللقب'
+            font: {
+              size: 20,
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: (tooltipItem) => {
+                return `${tooltipItem.raw} حفلة زواج`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'السنة',
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'عدد الحفلات',
+            },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+
+    return () => {
+      weddingChartInstance.current?.destroy(); // Clean up chart instance when unmounting/updating
+    };
+  }, [weddingData]);
+
+  useEffect(() => {
+    if (!topFamiliesRef.current || topFamiliesData.length === 0) return;
+
+    if (topFamiliesInstance.current) {
+      topFamiliesInstance.current.destroy();
+    }
+
+    const ctx = topFamiliesRef.current.getContext('2d');
+
+    const barCount = topFamiliesData.length;
+    topFamiliesRef.current.height = barCount * 50; // 50px per bar — adjust as needed
+
+    topFamiliesInstance.current = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: topFamiliesData.map(f => f.familyName),
+        datasets: [{
+          label: 'عدد الأفراد في العائلة',
+          data: topFamiliesData.map(f => f.occurences),
+          backgroundColor: 'rgba(255, 99, 132, 0.5)',
+          borderColor: 'rgba(255, 99, 132, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // important for dynamic height
+        indexAxis: 'y',
+        plugins: {
+          title: {
+            display: true,
+            text: 'أكثر 5 عائلات عددًا في قصر أولاد بوبكر'
           }
         },
-        x: {
-          title: {
-            display: true,
-            text: "عدد الأشخاص الحاملين لـاللقب"
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'اللقب'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: "عدد الأشخاص الحاملين لـاللقب"
+            }
           }
         }
       }
-    }
-  });
+    });
 
-  return () => {
-    topFamiliesInstance.current?.destroy();
-  };
+    return () => {
+      topFamiliesInstance.current?.destroy();
+    };
 
-}, [topFamiliesData]);
+  }, [topFamiliesData]);
 
   if (loading) return (
     <div className="loading-container">
@@ -560,10 +561,12 @@ useEffect(() => {
   return (
     <div className="stats-dashboard">
       <section className="statistics-dashboard">
-
-        <h1 class="dashboard-title">لوحة الإحصائيات العامة</h1>
-        <p>صفحة الإحصائيات هي مصدر شامل يقدم مجموعة متنوعة من البيانات والرسوم البيانية التي تسلط الضوء على مختلف جوانب المجتمع. تشمل الصفحة نظرة عامة عن التعداد السكاني، الهيكل العائلي، التوزيع الجغرافي، والتوجهات الديموغرافية. كما توفر تفاصيل حول نسبة الجنس، متوسط الأعمار، وأنماط الزواج، بالإضافة إلى تحليل مفصل حول الظروف الاقتصادية والاجتماعية. من خلال الرسوم البيانية التفاعلية والمخططات المبتكرة، يتمكن المستخدمون من استكشاف الإحصائيات بسهولة ومعرفة التوجهات التاريخية والمقارنات مع المتوسطات المحلية والعالمية. تُعتبر هذه الصفحة أداة قيمة لفهم التغيرات الاجتماعية والاقتصادية في المجتمع وتتبع التطورات المستقبلية.
-        </p>
+        <header>
+          <h1 class="dashboard-title">لوحة الإحصائيات العامة</h1>
+          <p id='description'>صفحة الإحصائيات هي مصدر شامل يقدم مجموعة متنوعة من البيانات والرسوم البيانية التي تسلط الضوء على مختلف جوانب المجتمع. تشمل الصفحة نظرة عامة عن التعداد السكاني، الهيكل العائلي، التوزيع الجغرافي، والتوجهات الديموغرافية. كما توفر تفاصيل حول نسبة الجنس، متوسط الأعمار، وأنماط الزواج، بالإضافة إلى تحليل مفصل حول الظروف الاقتصادية والاجتماعية. من خلال الرسوم البيانية التفاعلية والمخططات المبتكرة، يتمكن المستخدمون من استكشاف الإحصائيات بسهولة ومعرفة التوجهات التاريخية والمقارنات مع المتوسطات المحلية والعالمية. تُعتبر هذه الصفحة أداة قيمة لفهم التغيرات الاجتماعية والاقتصادية في المجتمع وتتبع التطورات المستقبلية.
+          </p>
+        </header>
+        
         <div class="category-block population-overview">
           <h3 class="category-title" id="overview">نظرة عامة على السكان</h3>
           <div class="stats-grid">
@@ -719,13 +722,13 @@ useEffect(() => {
             <h2>نسبة الأفراد الأحياء في قاعدة البيانات</h2>
             <div class="content-wrapper">
               <div class="percentage">
-                <span className="percentageText">{(stats.totalAlivePopulation * 100 / 1800).toFixed(1)}%</span>
+                <span className="percentageText">{(stats.totalAlivePopulation * 100 / 2100).toFixed(1)}%</span>
                 <div class="progress-bar">
-                <div className="progress" style={{ width: `${(stats.totalAlivePopulation * 100 / 1800).toFixed(1)}%` }}></div>
+                <div className="progress" style={{ width: `${(stats.totalAlivePopulation * 100 / 2100).toFixed(1)}%` }}></div>
                 </div>
               </div>
               <div class="data-completeness-content">
-                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>{(stats.totalAlivePopulation * 100 / 1800).toFixed(1)}%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
+                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>{(stats.totalAlivePopulation * 100 / 2100).toFixed(1)}%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
               </div>
             </div>
           </div>

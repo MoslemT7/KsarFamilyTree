@@ -7,9 +7,6 @@ import * as utils from '../utils/utils';
 
 const PersonCINCard = ({ person }) => {
   const [flipped, setFlipped] = useState(false);
-  useEffect(() => {
-    console.log(person);
-  })
   const handleClick = () => {
     setFlipped(f => !f);
   };

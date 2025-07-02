@@ -1,6 +1,62 @@
-/*========================================
-=            Reset & Base Styles         =
-========================================*/
+:root {
+  /* === Base Colors === */
+  --color-bg-primary: #f5f0e6;      /* Desert Sand - main background */
+  --color-bg-secondary: #e8dcc4;    /* Parchment Beige - sections/cards */
+  --color-surface: #fffdf8;         /* Very light neutral, e.g. modals */
+
+  /* === Text Colors === */
+  --color-text-main: #3b2c1a;       /* Dark brown - for main text */
+  --color-text-light: #7b6a55;      /* Lighter for descriptions/labels */
+  --color-heading: #5c3d28;         /* Palm Bark Brown - strong headers */
+
+  /* === Accent Colors === */
+  --color-accent-primary: #c47e45;  /* Clay Orange - buttons/CTAs */
+  --color-accent-hover: #b46934;    /* Darker clay for hover/active */
+  --color-accent-secondary: #4c7d7e;/* Oasis Teal - link highlights */
+  --color-accent-muted: #b89b63;    /* Dusty Gold - UI accents, borders */
+
+  /* === Node Colors === */
+  --color-node-alive: #74825e;      /* Olive Leaf - alive */
+  --color-node-dead: #a86943;       /* Faded Terracotta - deceased */
+
+  /* === Borders and Lines === */
+  --color-border: #d2bfa3;          /* Sandstone Grey - borders, dividers */
+  --color-shadow: rgba(0, 0, 0, 0.08); /* Light shadow for elevation */
+  --border-base: #d2bfa3;            /* Existing - Sandstone Grey */
+  --border-light: #e8dcc4;           /* Light beige border (soft components) */
+  --border-dark: #a78c69;            /* Deeper sandstone for strong sections */
+  --border-accent: #c47e45;          /* Clay orange border for highlights */
+  --border-muted: #cab99d;           /* Muted soft divider (for subtles) */
+  --border-error: #a86943;           /* For errors or danger messages */
+  --border-success: #74825e;         /* Olive-green border */
+  --border-focus: #ffb84d;           /* Light ochre for inputs/buttons focus */
+
+  /* === Transparent Overlays === */
+  --overlay-light: rgba(245, 240, 230, 0.85); /* Soft paper tone overlay */
+  --overlay-dark: rgba(40, 30, 20, 0.5);      /* Darker for modals, hovers */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);       /* Minimal shadow */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);       /* Light elevation */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);       /* Mid depth (default) */
+  --shadow-lg: 0 6px 12px rgba(0, 0, 0, 0.1);       /* Elevated panels */
+  --shadow-xl: 0 10px 20px rgba(0, 0, 0, 0.15);     /* Modals, overlays */
+  --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.06); /* Inset shadow */
+
+  /* === Gradients (Optional) === */
+  --gradient-sand: linear-gradient(135deg, #f5f0e6 0%, #e8dcc4 100%);
+  --gradient-paper: linear-gradient(180deg, #fffdf8 0%, #e8dcc4 100%);
+
+  /* === States === */
+  --color-success: #74825e;
+  --color-warning: #b89b63;
+  --color-error: #a86943;
+
+  /* === Scrollbar / Selection / Misc === */
+  --color-scroll-thumb: #d2bfa3;
+  --color-selection: #e8dcc4;
+
+  --main-font: "Cairo";
+
+}
 * {
   margin: 0;
   padding: 0;
@@ -8,7 +64,6 @@
 }
 
 body {
-  background-color: #f4f4f4;
   color: #333;
   overflow-x: hidden;
   display: flex;
@@ -22,42 +77,10 @@ body {
   flex: 1;
   overflow: hidden;
 }
-
-/*========================================
-=               Header & Nav            =
-========================================*/
-.header {
-  display: block;
-  align-items: center;
-  background-color: #f0f2f3;
-  padding: 5px 10px;
-  border-bottom: 5px solid #0d1f2d;
-}
-
-.logo-title{
-  width: 100%;
-  align-items: center;
-}
-
 .menu-tog{
   display: none;
   width: 15px;
-}
-
-.title h1 {
-  font-size: 28px;
-  color: #0d1f2d;
-  background: whitesmoke;
-  padding-bottom: 5px;
-  border-radius: 8px;
-  border-bottom: 5px solid #0d1f2d;
-  transition: transform 0.5s;
-}
-.title h1:hover { transform: translateY(-5px); }
-.title h1 a { all: unset; }
-.title h2 {
-  font-size: 18px;
-  color: #d1d8e0;
+  background-color: transparent;
 }
 
 /* Sidebar (mobile off-canvas) */
@@ -66,15 +89,13 @@ body {
   top: 0; right: 0;
   width: 250px;
   height: 100vh;
-  background: linear-gradient(145deg,#fff,#e6e6e6);
+  background: url("../media/bg8-low.jpg");
   box-shadow: -4px 0 15px rgba(0,0,0,0.2);
   padding: 20px 20px;
   transform: translateX(100%);
   transition: transform .4s ease-in-out;
   z-index: 1000;
   overflow-y: auto;
-  border: 1px solid #00d1b2;
-  border-radius: 10px;
 }
 .sidebar.open {
   transform: translateX(0);
@@ -93,34 +114,14 @@ body {
 }
 .sidebar ul {
   list-style: none;
-  margin-top: 40px;
+  background: url('../media/bg8-low.jpg');
 }
 .sidebar ul li {
-  margin: 20px 0;
+  margin: 10px 0;
 }
 .sidebar ul li a {
-  display: block;
-  font-family: "Cairo", sans-serif;
-  font-weight: bold;
-  color: #0d1f2d;
   text-decoration: none;
-  position: relative;
-  transition: color .3s;
-  border-radius: 4px;
-  font-size: 26px;
-}
-
-.sidebar ul li a::after {
-  content: "";
-  position: absolute;
-  right: 0; bottom: -4px;
-  width: 0; height: 2px;
-  background: #00d1b2;
-  transition: width .3s;
-}
-.sidebar ul li a:hover{
-  color: #00d1b2;
-  background-color: #0d1f2d;
+  color: inherit; /* Optional: makes link color same as parent */
 }
 .overlay {
   position: fixed;
@@ -135,13 +136,12 @@ body {
 }
 
 
-
 /*========================================
 =               Footer                  =
 ========================================*/
 .footer {
-  background-color: #0d1f2d;
-  color: #fff;
+  background-color: var(--color-accent-muted);
+  color: var(--color-bg-primary);
   padding: 40px 20px 20px;
   font-family: 'Cairo', sans-serif;
   margin-top: auto;
@@ -162,9 +162,9 @@ body {
 
 .footer-column h4 {
   font-size: 20px;
-  color: #00d1b2;
+  color: var(--color-heading);
   text-align: center;
-  border-bottom: 2px solid #fff;
+  border-bottom: 2px solid var(--color-border);
   padding-bottom: 2px;
   margin-bottom: 15px;
 }
@@ -174,7 +174,7 @@ body {
 .footer-column a {
   font-size: 15px;
   line-height: 1.8;
-  color: #d3d3d3;
+  color: var(--color-bg-primary);
   text-align: center;
   list-style: none;
 }
@@ -184,20 +184,24 @@ body {
   transition: color .3s;
 }
 .footer-column a:hover {
-  color: #fff;
+  color: var(--color-accent-hover);
+  background-color: var(--color-bg-primary);
+  padding: 4px;
+  width: 50%;
+  border-radius: 6px;
 }
 
 .footer-bottom {
   text-align: center;
   margin-top: 30px;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--color-border);
   padding-top: 15px;
   font-size: 14px;
-  color: #aaa;
+  color: var(--color-bg-primary);
 }
 footer h4{
-  color: #00d1b2;
-  background-color: #0d1f2d;
+  color: var(--color-bg-secondary);
+  border-radius: 6px;
 }
 /*========================================
 =            Dark Mode Overrides        =
@@ -228,8 +232,6 @@ body.dark-mode .sidebar ul li a {
   .header { text-align: center; padding: 10px; }
   .header-left { width: 100%; justify-content: center; }
   .logo { margin: 0 auto 10px; }
-  .title h1 { font-size: 24px; }
-  .title h2 { font-size: 12px; }
   .sidebar.open ~ .overlay { display: block; }
   .sidebar.open ul li a{
     font-size: 14px;
@@ -242,7 +244,6 @@ body.dark-mode .sidebar ul li a {
     margin: 0;
     gap: 1px;
   }
-  /* hide header links container if present */
   .links { display: none; }
   .header-top{
     display: flex;
@@ -254,44 +255,17 @@ body.dark-mode .sidebar ul li a {
   .title h1{
     margin: 0;
   }
-
-  .wedding-feature-card{
-    display: block;
-
+  #DescriptionZone{
+    font-size: 14px;
+    font-weight: 700;
   }
-
-  .wedding-picture{
-    width: 100%;
-  }
-  
-  #r {
-    position: relative; /* required for absolute child */
-    height: 300px;
-    border: 1px solid #ccc;
-  }
-
-  #r .wedding-picture {
-    position: absolute;
-    top: 0;
-    left: 0;
-    padding: 10px;
-    box-sizing: border-box;
-  }
-
-  #r .weddingfeaturetext{
-    margin: 50px; 
-  }
-  .close-btn{
-    margin: 2px auto;
-    width: 75%;
+  .sidebar ul{
+    background: transparent;
   }
 }
 @media (max-width: 760px){
-  .header-top{
-    display: flex;
-    flex-direction: row;
-    direction: ltr;
-    align-items: center;
+  #menu-tog{
+    display: block;
   }
 
   .title h1{
@@ -332,16 +306,16 @@ body.dark-mode .sidebar ul li a {
     background: none;
     box-shadow: none;
     padding: 0;
+    margin-top: -40px;
     text-align: center;
+    border: 2px inset var(--border-accent);
   }
 
   .sidebar ul {
     display: flex;
-    gap: 25px;
-    margin: 0;
-    padding: 0;
     list-style: none;
     text-align: center;
+    
   }
 
   .sidebar ul li { 
@@ -350,9 +324,17 @@ body.dark-mode .sidebar ul li a {
     margin: 0; 
     width: 100%;
   }
-  .sidebar ul li a { 
-    font-size: 16px; 
 
+  .sidebar ul li a {
+    display: block;
+    font-family: "Cairo", sans-serif;
+    font-weight: 800;
+    color: var(--color-text-main);
+    text-decoration: none;
+    position: relative;
+    transition: color .2s;
+    border-radius: 4px;
+    font-size: 22px;
   }
 
 }

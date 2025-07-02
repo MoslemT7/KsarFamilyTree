@@ -19,7 +19,12 @@ const rl = readline.createInterface({
       terminal: true
     });
 
-const createParentChildRelationship = async (parentFullName, childFullName, relationshipLabel) => {
+const createParentChildRelationship = async (
+  sessionOrTx, // pass session or transaction here
+  parentFullName,
+  childFullName,
+  relationshipLabel
+) => {
   const [parentFirst, ...parentLastArr] = parentFullName.trim().split(' ');
   const [childFirst, ...childLastArr] = childFullName.trim().split(' ');
   const parentFirstName = formatName(parentFirst);
@@ -28,8 +33,10 @@ const createParentChildRelationship = async (parentFullName, childFullName, rela
   const childLastName = formatName(childLastArr.join(' '));
 
   try {
-    const parentCandidates = await getPeopleWithSameName(parentFirstName, parentLastName);
-    const childCandidates = await getPeopleWithSameName(childFirstName, childLastName);
+    // Now getPeopleWithSameName uses the global session, so no need to pass session here
+
+    const parentCandidates = await getPeopleWithSameName(parentFirstName, parentLastName, sessionOrTx);
+    const childCandidates = await getPeopleWithSameName(childFirstName, childLastName, sessionOrTx);
 
     if (parentCandidates.length === 0 || childCandidates.length === 0) {
       console.log('❌ Parent or child not found.');
@@ -44,14 +51,14 @@ const createParentChildRelationship = async (parentFullName, childFullName, rela
       ? await promptUserForSelection(childCandidates)
       : childCandidates[0].personId;
 
-    const result = await session.run(
+    const result = await sessionOrTx.run(
       `
       MATCH (parent:Person), (child:Person)
       WHERE id(parent) = $parentId AND id(child) = $childId
       MERGE (parent)-[:${relationshipLabel}]->(child)
       RETURN parent.name AS parentName, child.name AS childName
       `,
-      { parentId: parentId, childId: childId }
+      { parentId, childId }
     );
 
     if (result.records.length > 0) {
@@ -66,6 +73,7 @@ const createParentChildRelationship = async (parentFullName, childFullName, rela
   }
 };
 
+
 const createPerson = async ({
   name,
   lastName,
@@ -77,13 +85,12 @@ const createPerson = async ({
   nickname,
   notes,
   YoB_confidence
-}) => {
+}, tx = null) => {
   if (!name || !lastName || !gender || isAlive === undefined) {
     console.error('❌ Missing required fields (name, lastName, gender, isAlive)');
-    return;
+    return null;
   }
 
-  // Format & sanitize
   const props = {
     name: formatName(name),
     lastName: formatName(lastName),
@@ -101,17 +108,23 @@ const createPerson = async ({
   const cypherFields = Object.keys(props).map(k => `${k}: $${k}`).join(', ');
 
   try {
-    const result = await session.run(
-      `CREATE (person:Person {${cypherFields}}) RETURN person`,
+    const runner = tx || session;
+    const result = await runner.run(
+      `CREATE (person:Person {${cypherFields}}) RETURN id(person) AS personId`,
       props
     );
+
     if (result.records.length > 0) {
-      console.log(`✅ Created person: ${props.name} ${props.lastName}`);
+      const personId = result.records[0].get('personId').toNumber();
+      console.log(`✅ Created person: ${props.name} ${props.lastName} (ID: ${personId})`);
+      return personId;
     } else {
       console.log('⚠️ Person not created.');
+      return null;
     }
   } catch (err) {
     console.error('❌ Error creating person:', err);
+    return null;
   }
 };
 
@@ -134,6 +147,7 @@ const deletePerson = async (ID) => {
     console.error('❌ Error deleting person:', err);
   }
 };
+
 const selectPerson = async (ID) => {
   try {
     const result = await session.run(
@@ -201,12 +215,12 @@ const changeAlive = async (ID, newStatus) => {
 };
 
 const createMarriage = async (
-  maleFullName, 
-  femaleFullName, 
-  marriageYear = null, 
-  status, 
+  maleFullName,
+  femaleFullName,
+  marriageYear = null,
+  status,
   endYear = null,
-  linkChildren = false // new param, default false
+  linkChildren = false
 ) => {
   const [maleFirst, ...maleLastArr] = maleFullName.trim().split(' ');
   const [femaleFirst, ...femaleLastArr] = femaleFullName.trim().split(' ');
@@ -216,24 +230,33 @@ const createMarriage = async (
   const femaleFirstName = formatName(femaleFirst);
   const femaleLastName = formatName(femaleLastArr.join(' '));
 
+  const session = driver.session();
+  const tx = session.beginTransaction();
+
   try {
-    const maleCandidates = await getPeopleWithSameName(maleFirstName, maleLastName);
-    const femaleCandidates = await getPeopleWithSameName(femaleFirstName, femaleLastName);
+    // Search both once using tx
+    const [maleCandidates, femaleCandidates] = await Promise.all([
+      getPeopleWithSameName(maleFirstName, maleLastName, tx),
+      getPeopleWithSameName(femaleFirstName, femaleLastName, tx)
+    ]);
 
     if (maleCandidates.length === 0 || femaleCandidates.length === 0) {
       console.log('❌ Male or female person not found.');
+      await tx.rollback();
+      await session.close();
       return;
     }
 
     const maleId = maleCandidates.length > 1
       ? await promptUserForSelection(maleCandidates)
-      : maleCandidates[0].personId;
+      : (maleCandidates[0].personId.toNumber?.() ?? maleCandidates[0].personId);
 
     const femaleId = femaleCandidates.length > 1
       ? await promptUserForSelection(femaleCandidates)
-      : femaleCandidates[0].personId;
+      : (femaleCandidates[0].personId.toNumber?.() ?? femaleCandidates[0].personId);
 
-    const result = await session.run(
+    // Create MARRIED_TO
+    const result = await tx.run(
       `
       MATCH (husband:Person), (wife:Person)
       WHERE id(husband) = $maleId AND id(wife) = $femaleId
@@ -245,8 +268,8 @@ const createMarriage = async (
       RETURN husband.name AS husband, wife.name AS wife
       `,
       {
-        maleId: maleId.toNumber ? maleId.toNumber() : maleId,
-        femaleId: femaleId.toNumber ? femaleId.toNumber() : femaleId,
+        maleId,
+        femaleId,
         ...(marriageYear !== null ? { marriageYear } : {}),
         status,
         ...(endYear !== null ? { endYear } : {})
@@ -257,7 +280,7 @@ const createMarriage = async (
       console.log(`✅ Created MARRIED_TO between ${maleFullName} and ${femaleFullName} (${status}${marriageYear ? `, ${marriageYear}` : ''}${endYear ? ` – ${endYear}` : ''})`);
 
       if (linkChildren) {
-        await session.run(
+        await tx.run(
           `
           MATCH (father:Person)-[:FATHER_OF]->(child)
           WHERE id(father) = $maleId
@@ -265,10 +288,10 @@ const createMarriage = async (
           MATCH (mother:Person) WHERE id(mother) = $femaleId
           CREATE (mother)-[:MOTHER_OF]->(child)
           `,
-          { maleId: maleId.toNumber ? maleId.toNumber() : maleId, femaleId: femaleId.toNumber ? femaleId.toNumber() : femaleId }
+          { maleId, femaleId }
         );
 
-        await session.run(
+        await tx.run(
           `
           MATCH (mother:Person)-[:MOTHER_OF]->(child)
           WHERE id(mother) = $femaleId
@@ -276,22 +299,27 @@ const createMarriage = async (
           MATCH (father:Person) WHERE id(father) = $maleId
           CREATE (father)-[:FATHER_OF]->(child)
           `,
-          { maleId: maleId.toNumber ? maleId.toNumber() : maleId, femaleId: femaleId.toNumber ? femaleId.toNumber() : femaleId }
+          { maleId, femaleId }
         );
 
         console.log('🔗 All children linked to both parents where missing.');
       }
 
+      await tx.commit();
     } else {
       console.log('⚠️ Marriage not created — check selected persons.');
+      await tx.rollback();
     }
+
   } catch (err) {
+    await tx.rollback();
     console.error('❌ Error creating MARRIED_TO relationship:', err);
+  } finally {
+    await session.close();
   }
 };
 
-
-const getPeopleWithSameName = async (name, lastName) => {
+const getPeopleWithSameName = async (name, lastName, tx) => {
   const query = `
     MATCH (p:Person {name: $name, lastName: $lastName})
     OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(p)
@@ -302,18 +330,15 @@ const getPeopleWithSameName = async (name, lastName) => {
            grandfather.name AS grandfatherName
   `;
 
-  const result = await session.run(query, { name, lastName });
+  const result = await tx.run(query, { name, lastName });
 
-  // Map the result records to include the person's ID and other information
-  const people = result.records.map(record => ({
+  return result.records.map(record => ({
     personId: record.get('personId'),
     personName: record.get('personName'),
     lastName: record.get('lastName'),
     fatherName: record.get('fatherName'),
     grandfatherName: record.get('grandfatherName')
   }));
-
-  return people;
 };
 
 const promptUserForSelection = (people) => {
@@ -348,7 +373,6 @@ const promptUserForSelection = (people) => {
   });
 };
 
-
 async function askValidatedQuestion(prompt, validAnswers) {
   while (true) {
     const answer = (await question(prompt)).trim().toLowerCase();
@@ -357,7 +381,7 @@ async function askValidatedQuestion(prompt, validAnswers) {
     }
     console.log(`Please enter one of the following: ${validAnswers.join(', ')}`);
   }
-}
+};
 
 const question = (q) =>
   new Promise((resolve) => {
@@ -458,7 +482,9 @@ async function terminalConversation() {
         const childFullNameRaw = await question('Child Full Name (First Last): ');
         const fatherFullName = formatFullName(fatherFullNameRaw);
         const childFullName = formatFullName(childFullNameRaw);
-        await createParentChildRelationship(fatherFullName, childFullName, "FATHER_OF");
+        await session.writeTransaction(async (tx) => {
+          await createParentChildRelationship(tx, fatherFullName, childFullName, "FATHER_OF");
+        });
         break;
       }
 
@@ -467,39 +493,59 @@ async function terminalConversation() {
         const childFullNameRaw = await question('Child Full Name (First Last): ');
         const motherFullName = formatFullName(motherFullNameRaw);
         const childFullName = formatFullName(childFullNameRaw);
-        await createParentChildRelationship(motherFullName, childFullName, "MOTHER_OF");
+
+        await session.writeTransaction(async (tx) => {
+          await createParentChildRelationship(tx, motherFullNameRaw, childFullName, "MOTHER_OF");
+        });
         break;
       }
 
       case '4': {
-        const maleFullNameRaw = await question('Husband Full Name (First Last): ');
-        const femaleFullNameRaw = await question('Wife Full Name (First Last): ');
-        const marriageYearInput = await question('Year of Marriage: ');
-        const statusInput = await question("Marriage Status ('married', 'divorced', 'widowed', 'historical'): ");
-        const status = statusInput.trim().toLowerCase();
-        let endYearInput;
-        let endYear;
+        const maleFullNameRaw = await question('👤 Husband Full Name (First Last): ');
+        const femaleFullNameRaw = await question('👩 Wife Full Name (First Last): ');
+
+        if (!maleFullNameRaw.trim() || !femaleFullNameRaw.trim()) {
+          console.log('❌ Both husband and wife names are required.');
+          break;
+        }
+
+        const maleFullName = formatFullName(maleFullNameRaw.trim());
+        const femaleFullName = formatFullName(femaleFullNameRaw.trim());
+
+        const marriageYearInput = await question('📅 Year of Marriage (optional): ');
+        const marriageYear = marriageYearInput.trim() && !isNaN(marriageYearInput)
+          ? parseInt(marriageYearInput)
+          : null;
+
+        const statusInput = await question("🔗 Marriage Status ('married', 'divorced', 'widowed', 'historical'): ");
+        const statusMap = {
+          m: 'married',
+          d: 'divorced',
+          w: 'widowed',
+          h: 'historical'
+        };
+        let status = statusInput.trim().toLowerCase();
+        status = statusMap[status] || status;
+
+        const validStatuses = ['married', 'divorced', 'widowed', 'historical'];
+        if (!validStatuses.includes(status)) {
+          console.log(`⚠️ Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+          break;
+        }
+
+        let endYear = null;
         if (status !== 'married') {
-          endYearInput = await question('Year of End (leave empty if not ended): ');
+          const endYearInput = await question('📅 Year of End (optional): ');
           if (endYearInput.trim() && !isNaN(endYearInput)) {
             endYear = parseInt(endYearInput);
           }
         }
 
-        const maleFullName = formatFullName(maleFullNameRaw);
-        const femaleFullName = formatFullName(femaleFullNameRaw);
-
-        const marriageYear = marriageYearInput.trim() && !isNaN(marriageYearInput) ? parseInt(marriageYearInput) : null;
-         endYear = !isNaN(endYearInput) ? parseInt(endYearInput) : null;
-
-        if (!status || !['married', 'divorced', 'widowed', 'historical', 'm', 'd', 'w', 'h'].includes(status)) {
-          console.log("⚠️ Invalid input. 'Status' is required.");
-          break;
-        }
-        const linkChildrenInput = await question('Link all children between husband and wife? (yes/no): ');
+        const linkChildrenInput = await question('👶 Link all children between husband and wife? (yes/no): ');
         const linkChildren = ['yes', 'y', 'true', 't'].includes(linkChildrenInput.trim().toLowerCase());
 
-        await createMarriage(maleFullName, femaleFullName, marriageYear, status, endYear, linkChildren);
+        linkChildren ? 
+        await createMarriage(maleFullName, femaleFullName, marriageYear, status, endYear, linkChildren) : 
         await createMarriage(maleFullName, femaleFullName, marriageYear, status, endYear);
         break;
       }
@@ -537,94 +583,166 @@ async function terminalConversation() {
         }
         await selectPerson(ID);  // call with ID and boolean status
         break;
+      
       case '8': {
-  const fatherFullNameRaw = await question('Father Full Name (First Last, leave empty if none): ');
-  const motherFullNameRaw = await question('Mother Full Name (First Last, leave empty if none): ');
+        const fatherFullNameRaw = await question('👨 Father Full Name (First Last, leave empty if none): ');
+        const motherFullNameRaw = await question('👩 Mother Full Name (First Last, leave empty if none): ');
 
-  const fatherFullName = fatherFullNameRaw.trim() ? formatFullName(fatherFullNameRaw) : null;
-  const motherFullName = motherFullNameRaw.trim() ? formatFullName(motherFullNameRaw) : null;
+        const fatherFullName = fatherFullNameRaw.trim() ? formatFullName(fatherFullNameRaw) : null;
+        const motherFullName = motherFullNameRaw.trim() ? formatFullName(motherFullNameRaw) : null;
 
-  if (!fatherFullName && !motherFullName) {
-    console.log('❌ At least one parent is required.');
-    break;
-  }
+        if (!fatherFullName && !motherFullName) {
+          console.log('❌ At least one parent is required.');
+          break;
+        }
 
-  const howManyInput = await question('How many children do you want to add? ');
-  const howMany = parseInt(howManyInput);
-  if (isNaN(howMany) || howMany <= 0) {
-    console.log('❌ Invalid number.');
-    break;
-  }
+        // Prepare to fetch father/mother only once
+        const session = driver.session();
+        const tx = session.beginTransaction();
 
-  for (let i = 0; i < howMany; i++) {
-    console.log(`\n👶 Child ${i + 1} of ${howMany}`);
+        try {
+          let fatherId = null;
+          let motherId = null;
 
-    const nameInput = await question('  First Name: ');
-    const lastNameInput = await question('  Last Name: ');
-    const genderInput = await askValidatedQuestion('  Gender (Male/Female): ', ['male', 'female', 'm', 'f']);
-    const isAliveInput = await askValidatedQuestion('  Is Alive? (yes/no): ', ['yes', 'no', 'y', 'n', 'true', 'false']);
+          // Get father ID once
+          if (fatherFullName) {
+            const [fatherFirst, ...fatherLastArr] = fatherFullName.split(' ');
+            const fatherCandidates = await getPeopleWithSameName(
+              formatName(fatherFirst),
+              formatName(fatherLastArr.join(' ')),
+              tx
+            );
+            if (fatherCandidates.length === 0) {
+              console.log(`❌ Father "${fatherFullName}" not found.`);
+              await tx.rollback(); await session.close();
+              break;
+            }
+            fatherId = fatherCandidates.length === 1
+              ? fatherCandidates[0].personId
+              : await promptUserForSelection(fatherCandidates);
+          }
 
-    const name = formatName(nameInput);
-    const lastName = formatName(lastNameInput);
-    const gender = ['male', 'm'].includes(genderInput.toLowerCase()) ? 'Male' : 'Female';
-    const isAlive = ['yes', 'y', 'true'].includes(isAliveInput.toLowerCase());
+          // Get mother ID once
+          if (motherFullName) {
+            const [motherFirst, ...motherLastArr] = motherFullName.split(' ');
+            const motherCandidates = await getPeopleWithSameName(
+              formatName(motherFirst),
+              formatName(motherLastArr.join(' ')),
+              tx
+            );
+            if (motherCandidates.length === 0) {
+              console.log(`❌ Mother "${motherFullName}" not found.`);
+              await tx.rollback(); await session.close();
+              break;
+            }
+            motherId = motherCandidates.length === 1
+              ? motherCandidates[0].personId
+              : await promptUserForSelection(motherCandidates);
+          }
 
-    const YoBInput = await question('  Year of Birth (optional): ');
-    const YoB = YoBInput.trim() && !isNaN(YoBInput) ? parseInt(YoBInput) : undefined;
+          // Ask how many children to add
+          const howManyInput = await question('👶 How many children do you want to add? ');
+          const howMany = parseInt(howManyInput);
+          if (isNaN(howMany) || howMany <= 0) {
+            console.log('❌ Invalid number.');
+            await tx.rollback(); await session.close();
+            break;
+          }
 
-    let YoB_confidence;
-    if (YoB !== undefined) {
-      const YoBConfInput = await question('  YoB Confidence (optional): ');
-      if (YoBConfInput.trim() && !isNaN(YoBConfInput)) {
-        YoB_confidence = parseFloat(YoBConfInput);
+          for (let i = 0; i < howMany; i++) {
+            console.log(`\n👶 Child ${i + 1} of ${howMany}`);
+
+            const nameInput = await question('  First Name: ');
+            const lastNameInput = await question('  Last Name: ');
+            const genderInput = await askValidatedQuestion('  Gender (Male/Female): ', ['male', 'female', 'm', 'f']);
+            const isAliveInput = await askValidatedQuestion('  Is Alive? (yes/no): ', ['yes', 'no', 'y', 'n', 'true', 'false']);
+
+            const name = formatName(nameInput);
+            const lastName = formatName(lastNameInput);
+            const gender = ['male', 'm'].includes(genderInput.toLowerCase()) ? 'Male' : 'Female';
+            const isAlive = ['yes', 'y', 'true'].includes(isAliveInput.toLowerCase());
+
+            const YoBInput = await question('  Year of Birth (optional): ');
+            const YoB = YoBInput.trim() && !isNaN(YoBInput) ? parseInt(YoBInput) : undefined;
+
+            let YoB_confidence;
+            if (YoB !== undefined) {
+              const YoBConfInput = await question('  YoB Confidence (optional): ');
+              if (YoBConfInput.trim() && !isNaN(YoBConfInput)) {
+                YoB_confidence = parseFloat(YoBConfInput);
+              }
+            }
+
+            let YoD;
+            if (!isAlive) {
+              const YoDInput = await question('  Year of Death (optional): ');
+              if (YoDInput.trim() && !isNaN(YoDInput)) {
+                YoD = parseInt(YoDInput);
+              }
+            }
+
+            const WorkCountryInput = await question('  Work Country (optional): ');
+            const nicknameInput = await question('  Nickname (optional): ');
+            const notesInput = await question('  Notes (optional): ');
+
+            const WorkCountry = WorkCountryInput.trim() || undefined;
+            const nickname = nicknameInput.trim() || undefined;
+            const notes = notesInput.trim() || undefined;
+
+            // Create child person
+            const childId = await createPerson({
+              name,
+              lastName,
+              gender,
+              isAlive,
+              YoB,
+              YoD,
+              WorkCountry,
+              nickname,
+              notes,
+              YoB_confidence
+            });
+
+            const childFullName = `${name} ${lastName}`;
+
+            // Link to father (within transaction)
+            if (fatherId !== null) {
+              await tx.run(
+                `
+                MATCH (father:Person), (child:Person)
+                WHERE id(father) = $fatherId AND id(child) = $childId
+                MERGE (father)-[:FATHER_OF]->(child)
+                `,
+                { fatherId, childId }
+              );
+            }
+
+            // Link to mother
+            if (motherId !== null) {
+              await tx.run(
+                `
+                MATCH (mother:Person), (child:Person)
+                WHERE id(mother) = $motherId AND id(child) = $childId
+                MERGE (mother)-[:MOTHER_OF]->(child)
+                `,
+                { motherId, childId }
+              );
+            }
+
+            console.log(`✅ Child ${childFullName} created and linked.`);
+          }
+
+          await tx.commit();
+          await session.close();
+        } catch (err) {
+          console.error('❌ Error linking children:', err);
+          await tx.rollback();
+          await session.close();
+        }
+
+        break;
       }
-    }
 
-    let YoD;
-    if (!isAlive) {
-      const YoDInput = await question('  Year of Death (optional): ');
-      if (YoDInput.trim() && !isNaN(YoDInput)) {
-        YoD = parseInt(YoDInput);
-      }
-    }
-
-    const WorkCountryInput = await question('  Work Country (optional): ');
-    const nicknameInput = await question('  Nickname (optional): ');
-    const notesInput = await question('  Notes (optional): ');
-
-    const WorkCountry = WorkCountryInput.trim() || undefined;
-    const nickname = nicknameInput.trim() || undefined;
-    const notes = notesInput.trim() || undefined;
-
-    // Create child person
-    await createPerson({
-      name,
-      lastName,
-      gender,
-      isAlive,
-      YoB,
-      YoD,
-      WorkCountry,
-      nickname,
-      notes,
-      YoB_confidence
-    });
-
-    const childFullName = `${name} ${lastName}`;
-
-    if (fatherFullName) {
-      await createParentChildRelationship(fatherFullName, childFullName, "FATHER_OF");
-    }
-
-    if (motherFullName) {
-      await createParentChildRelationship(motherFullName, childFullName, "MOTHER_OF");
-    }
-
-    console.log(`✅ Child ${childFullName} created and linked.`);
-  }
-
-  break;
-}
 
       case '-1':
         console.log('👋 Exiting...');

@@ -164,12 +164,29 @@ export function splitName(fullName) {
   }
   else if (parts.length === 5) {
     if (bentCount === 2){
+      
+      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
+        return {
+          personName: `${parts[0]} ${parts[1]}`,
+          fatherName: `${parts[2]} ${parts[3]}`,
+          grandfatherName: parts[4],
+          familyName: ""
+        };
+      }
       if (isCompoundName(parts[0]+ " " + parts[1])){
         return {
           personName: `${parts[0]} ${parts[1]}`,
           fatherName: parts[2],
           grandfatherName: parts[3],
           familyName: parts[4]
+        };
+      }
+      if (isCompoundName(parts[1] + " " + parts[2]) && isCompoundName(parts[3]+ " " + parts[4])){
+        return {
+          personName: parts[0],
+          fatherName: `${parts[1]} ${parts[2]}`,
+          grandfatherName: `${parts[3]} ${parts[4]}`,
+          familyName: ""
         };
       }
       if (isCompoundName(parts[1] + " " + parts[2])){
@@ -180,14 +197,8 @@ export function splitName(fullName) {
           familyName: parts[4]
         };
       }
-      if (isCompoundName(parts[0] + " " + parts[1]) && isCompoundName(parts[2]+ " " + parts[3])){
-        return {
-          personName: `${parts[0]} ${parts[1]}`,
-          fatherName: `${parts[2]} ${parts[3]}`,
-          grandfatherName: parts[4],
-          familyName: ""
-        };
-      }
+      
+      
     }
   }
   else if (parts.length === 6) {
