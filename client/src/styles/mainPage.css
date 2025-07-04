@@ -22,10 +22,24 @@
   /* === Borders and Lines === */
   --color-border: #d2bfa3;          /* Sandstone Grey - borders, dividers */
   --color-shadow: rgba(0, 0, 0, 0.08); /* Light shadow for elevation */
+  --border-base: #d2bfa3;            /* Existing - Sandstone Grey */
+  --border-light: #e8dcc4;           /* Light beige border (soft components) */
+  --border-dark: #a78c69;            /* Deeper sandstone for strong sections */
+  --border-accent: #c47e45;          /* Clay orange border for highlights */
+  --border-muted: #cab99d;           /* Muted soft divider (for subtles) */
+  --border-error: #a86943;           /* For errors or danger messages */
+  --border-success: #74825e;         /* Olive-green border */
+  --border-focus: #ffb84d;           /* Light ochre for inputs/buttons focus */
 
   /* === Transparent Overlays === */
   --overlay-light: rgba(245, 240, 230, 0.85); /* Soft paper tone overlay */
   --overlay-dark: rgba(40, 30, 20, 0.5);      /* Darker for modals, hovers */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);       /* Minimal shadow */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);       /* Light elevation */
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.08);       /* Mid depth (default) */
+  --shadow-lg: 0 6px 12px rgba(0, 0, 0, 0.1);       /* Elevated panels */
+  --shadow-xl: 0 10px 20px rgba(0, 0, 0, 0.15);     /* Modals, overlays */
+  --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.06); /* Inset shadow */
 
   /* === Gradients (Optional) === */
   --gradient-sand: linear-gradient(135deg, #f5f0e6 0%, #e8dcc4 100%);
@@ -39,6 +53,9 @@
   /* === Scrollbar / Selection / Misc === */
   --color-scroll-thumb: #d2bfa3;
   --color-selection: #e8dcc4;
+
+  --main-font: "Cairo";
+
 }
 body,
 .mainPage,
@@ -75,11 +92,24 @@ body,
 
 .welcomeMessage {
   max-width: 40%;
-  padding: 10px;
+  padding: 4px;
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
   text-align: center;
+  display: flex;
+  flex-direction: row;
   align-self: center;
+}
+
+#imageDiv{
+  width: 100%;
+  height: 100%;
+}
+
+#imageDiv img{
+  width: 100%;
+  height: 100%;
+  margin-top: 17.5px;
 }
 
 .welcomeMessage h1 {
@@ -97,13 +127,13 @@ body,
 /*----------------------------------------
   Description Section
 ----------------------------------------*/
-.description {
+.IntroDescription {
   padding: 5px 25px;
   border-top: 4px solid var(--color-border);
   color: var(--color-text-main);
 }
 
-.description h2 {
+.IntroDescription h2 , .cta-content h2{
   margin-bottom: 5px;
   border-bottom: 2px solid var(--color-border);
   font-size: 32px;
@@ -111,7 +141,7 @@ body,
   text-align: center;
 }
 
-.description h3{
+.IntroDescription h3{
   font-size: 22px;
   text-align: center;
   color: var(--color-accent-primary);
@@ -120,9 +150,11 @@ body,
   margin: auto;
   border-radius: 8px;
 }
-.description p {
+.IntroDescription p {
   font-size: 18px;
-  line-height: 1.8;
+  line-height: 2.5;
+  margin-bottom: 10px;
+
   text-align: justify;
 }
 
@@ -246,13 +278,16 @@ body,
 .card h4 {
   font-size: 22px;
   margin-bottom: 10px;
-  color: var(--color-accent-primary);
+  color: var(--color-heading);
+  font-weight: 900;
+  border-radius: 6px;
+  border: 3px outset var(--border-dark);
   background-color: var(--color-bg-primary);
 }
 
 .card p {
   font-size: 18px;
-  color: var(--color-accent-primary);
+  color: var(--color-text-main);
   line-height: 2;
   text-align: center;
 }
@@ -269,7 +304,7 @@ body,
 
 .cta-button{
   color: var(--color-accent-primary);
-  background-color: var(--color-bg-primary);
+  background-color: var(--color-bg-secondary);
   
 }
 
@@ -344,43 +379,63 @@ body.dark-mode button:hover {
 @media (max-width: 480px) {
   .welcome {
     min-height: auto;
-    padding: 10px;
+    padding: 8px;
     margin-bottom: 15px;
+    min-height: 350px;
+    margin-top: -40px;
   }
 
   .welcomeMessage {
     max-width: 100%;
-    margin: 0 auto;
-    padding: 10px;
+    padding: 8px;
     text-align: center;
+    display: block;
+  }
+  .welcomeMessage {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 60px 20px;
   }
 
-  .welcomeMessage h1 {
-    font-size: 22px;
-    line-height: 1.4;
+  .ImageDiv img{
+    margin-top: 0px;
   }
+  .welcomeMessage h1 {
+    font-size: 24px;
+    line-height: 1.4;
+    color: var(--color-heading);
+    background-color: var(--color-bg-secondary);
+    border-radius: 12px;
+    padding: 4px;
+    border: 2px outset var(--border-base)
+  }
+
 
   .welcomeMessage p {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-bg-primary);
+    font-weight: 700;
   }
 
-  .description {
-    padding: 15px;
+  .IntroDescription {
     text-align: justify;
+    padding: 4px 16px;
   }
 
-  .description h2 {
+  .IntroDescription h2, .cta-content h2 {
     font-size: 20px;
     margin-bottom: 10px;
+    font-weight: 800;
   }
 
-  .description p {
+  .IntroDescription p {
     font-size: 15px;
     line-height: 1.6;
     padding: 4px 0;
   }
-  .description h3{
+  .IntroDescription h3{
     font-size: 16px;
     width: 100%;
   }
@@ -429,7 +484,18 @@ body.dark-mode button:hover {
     margin: 0;
   }
   .cta-section button{
-    font-size: 14px;
+    font-size: 20px;
+    margin: 6px;
+    width: 80%;
+  }
+  .cta-section{
+    margin: 1px;
+  }
+  .cta-content{
+    padding: 1px;
+  }
+  .cta-content p{
+    font-size: 16px;
   }
 
 }

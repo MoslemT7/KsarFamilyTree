@@ -28,21 +28,7 @@ const copyToClipboard = (text) => {
       console.error('Copy failed:', err);
     });
 };
-function formatPerson(person) {
-  if (!person) return '';
-  const name = utils.translateName(person.name ?? '');
-  const fatherPart =
-    person.father &&
-    (person.gender === 'Male'
-      ? ` بن ${utils.translateName(person.father)}`
-      : ` بنت ${utils.translateName(person.father)}`);
-  const grandfatherPart =
-    person.grandfather ? ` بن ${utils.translateName(person.grandfather)}` : '';
-  const lastNamePart = person.lastName
-    ? ` ${utils.translateFamilyName(person.lastName)}`
-    : '';
-  return `${name}${fatherPart || ''}${grandfatherPart}${lastNamePart}`;
-};
+
 const SearchPage = () => {
   const [treeVisible, setTreeVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +37,8 @@ const SearchPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [viewMode, setViewMode] = useState('card');
+  const [showFullName, setShowFullName] = useState(false);
+
   usePageTracking();
   
   const handleSearchChange = (e) => {
@@ -95,32 +83,361 @@ const SearchPage = () => {
   };
 
   const searchPerson = async (searchText) => {
-    const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
-    let translatedInputName = utils.translateName(searchText, false);
-    const { personName: personName, fatherName: fatherName, grandfatherName: grandfatherName, familyName: familyName } = utils.splitName(translatedInputName);
-    let translatedpersonName = isArabic(personName) ? utils.translateName(personName, false) : personName;
-    let translatedfatherName = isArabic(fatherName) ? utils.translateName(fatherName, false) : fatherName;
-    let translatedgrandfatherName = isArabic(grandfatherName) ? utils.translateName(grandfatherName, false) : grandfatherName;
-    let translatedfamilyName = isArabic(familyName) ? utils.translateFamilyName(familyName, false) : familyName;
     let cypherQuery = ``;
     const queryParamsObject = {};
-    setLoading(true);
-    setLoadingMessage("جاري البحث عن الشخص ...");
-    if (translatedpersonName){
-      
-      if (translatedfatherName) {
-        
-        if (translatedgrandfatherName) {
-          
-          if (translatedfamilyName) {
-            
-            cypherQuery += `
-              MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
-              WHERE child.name = $personName AND 
-                    father.name = $fatherName AND 
-                    grandfather.name = $grandfatherName AND 
-                    child.lastName = $familyName
 
+    if (!isNaN(searchText)){
+      cypherQuery += `
+        MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+        WHERE id(child) = $personID
+
+        OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
+        OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
+        OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
+
+        OPTIONAL MATCH (child)-[r:MARRIED_TO]-(spouse:Person)
+        OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
+        OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
+          WHERE sibling <> child
+
+        OPTIONAL MATCH lineagePath = (child)<-[:FATHER_OF*]-(ancestor:Person)
+        WITH *, 
+            lineagePath
+        ORDER BY length(lineagePath) DESC
+
+        WITH *, 
+            [n IN reverse(nodes(lineagePath)) | n.name] + child.name AS lineageNames
+
+        RETURN 
+        child.name AS childName, 
+        child.YoB AS childYoB, 
+        child.gender AS childGender,
+
+        father.name AS fatherName, 
+        grandfather.name AS grandfatherName,
+
+        mother.name AS motherName,
+        motherFather.name AS motherFatherName,
+        motherGrandfather.name AS motherGrandfatherName,
+        mother.lastName AS motherFamilyName,
+        child.lastName AS familyName,
+        id(child) AS childID,
+        child.isAlive AS lifeStatus,
+        child.YoD AS YoD, 
+        child.WorkCountry AS Country,
+        child.Branch AS Branch,
+        child.Notes AS Notes,
+        child.Nickname as Nickname,
+
+        r.status AS maritalStatus,
+        COUNT(DISTINCT childOf) AS childrenCount,
+        COUNT(DISTINCT sibling) AS siblingsCount,
+        lineageNames AS fullLineage`;
+      
+      queryParamsObject.personID = Number(searchText);
+      const session = driver.session();
+      setLoading(true);
+      try {
+        const result = await session.run(cypherQuery, queryParamsObject);
+        setLoadingMessage("جاري البحث عن الشخص بـالرقم" + searchText);
+        if (result.records.length === 0) {
+          setLoading(false);
+          setError('هذا الشخص ليس مسجل في الشجرة ، الرجاء التحقق من الإسم.');
+          setPersonDetails(null);
+          return;
+        }
+        else {
+          setLoadingMessage("تم إيجاد الشخص ...");
+          const record = result.records[0];
+          let age;
+          let YoB = record.get('childYoB');
+          let YoD = record.get('YoD');
+          if (YoB == null){
+            age = -1;
+          }
+          else{
+            age = new Date().getFullYear() - YoB;
+          }
+          const childID = record.get("childID").toNumber();
+          setLoadingMessage("جاري التحقق من المعلومات ...");
+          const personDetails = {
+            personID: childID,
+            personName: record.get('childName') ?? "غير متوفر",
+            fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
+            grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", 
+            familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر",
+            Branch: record.has('Branch') ? record.get('Branch') : "غير متوفر", 
+            fullLineage: record.has('lineageNames') ? record.get('lineageNames') : "غير متوفر",
+            gender: record.has('childGender') ? record.get('childGender') : "غير متوفر", 
+            age, YoB, YoD,
+            motherName: record.has('motherName') && record.get('motherName') !== null ? record.get('motherName') : null,
+            motherFatherName: record.has('motherFatherName') && record.get('motherFatherName') !== null ? record.get('motherFatherName') : null,
+            motherGrandFatherName: record.has('motherGrandfatherName') && record.get('motherGrandfatherName') !== null ? record.get('motherGrandfatherName') : null,
+            motherFamilyName: record.has('motherFamilyName') && record.get('motherFamilyName') !== null ? record.get('motherFamilyName') :null,
+            maritalStatus: record.has('maritalStatus') && record.get('maritalStatus') !== null ? record.get('maritalStatus') : null,
+            Nickname: record.has('Nickname') && record.get('Nickname') !== null ? record.get('Nickname') :null,
+            Notes: record.has('Notes') && record.get('Notes') !== null ? record.get('Notes') : null,
+
+            lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر",
+            
+            childrenCount: record.has('childrenCount') && record.get('childrenCount') !== null
+            ? record.get('childrenCount').toNumber()
+            : 0,
+            siblingsCount: record.has('siblingsCount') && record.get('siblingsCount') !== null
+            ? record.get('siblingsCount').toNumber()
+            : 0,
+            country: record.get("Country")
+          };
+          console.log(personDetails);
+          setPersonDetails(personDetails);
+          setLoading(false);
+          setError('');
+        }
+      }
+      catch (err) {
+        setLoading(false);
+        console.error('Query Error:', err);
+        setError('حدث خطأ أثناء البحث.');
+        setPersonDetails(null);
+      } 
+      finally {
+        setLoading(false);
+        await session.close();
+      }
+    }
+    else{
+      const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
+      let translatedInputName = utils.translateName(searchText, false);
+      const { personName: personName, fatherName: fatherName, grandfatherName: grandfatherName, familyName: familyName } = utils.splitName(translatedInputName);
+      let translatedpersonName = isArabic(personName) ? utils.translateName(personName, false) : personName;
+      let translatedfatherName = isArabic(fatherName) ? utils.translateName(fatherName, false) : fatherName;
+      let translatedgrandfatherName = isArabic(grandfatherName) ? utils.translateName(grandfatherName, false) : grandfatherName;
+      let translatedfamilyName = isArabic(familyName) ? utils.translateFamilyName(familyName, false) : familyName;
+      console.log(translatedpersonName, translatedfatherName, translatedgrandfatherName, translatedfamilyName);
+      setLoading(true);
+      setLoadingMessage("جاري البحث عن الشخص ...");
+      if (translatedpersonName){
+        
+        if (translatedfatherName) {
+          
+          if (translatedgrandfatherName) {
+            
+            if (translatedfamilyName) {
+              
+              cypherQuery += `
+                MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+                WHERE (child.name = $personName OR child.Nickname = $personName) AND 
+                      (father.name = $fatherName OR father.Nickname = $fatherName) AND 
+                      (grandfather.name = $grandfatherName OR grandfather.Nickname = $grandfatherName AND 
+                      child.lastName = $familyName
+
+                OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
+                OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
+                OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
+
+                OPTIONAL MATCH (child)-[r:MARRIED_TO]-(spouse:Person)
+                OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
+                OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
+                  WHERE sibling <> child
+
+                OPTIONAL MATCH lineagePath = (child)<-[:FATHER_OF*]-(ancestor:Person)
+                WITH child, father, grandfather, mother, motherFather, motherGrandfather, r,
+              childOf, sibling, lineagePath
+
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            COLLECT(lineagePath) AS lineagePaths
+          WITH child, father, grandfather, mother, motherFather, motherGrandfather, r, childOf, sibling,
+              REDUCE(acc = null, path IN lineagePaths |
+                CASE
+                  WHEN acc IS NULL OR length(path) > length(acc) THEN path
+                  ELSE acc
+                END
+              ) AS longestPath
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            [n IN nodes(longestPath) | n.name] + child.name AS lineageNames
+
+          // Final aggregation grouped by child
+          WITH 
+            child,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            mother.name AS motherName,
+            motherFather.name AS motherFatherName,
+            motherGrandfather.name AS motherGrandfatherName,
+            mother.lastName AS motherFamilyName,
+            child.lastName AS familyName,
+            id(child) AS childID,
+            child.isAlive AS lifeStatus,
+            child.YoD AS YoD, 
+            child.WorkCountry AS Country,
+            child.Branch AS Branch,
+            child.Notes AS Notes,
+            child.Nickname AS Nickname,
+            r.status AS maritalStatus,
+            lineageNames,
+            COUNT(DISTINCT childOf) AS childrenCount,
+            COUNT(DISTINCT sibling) AS siblingsCount
+
+          RETURN 
+            childName, 
+            childYoB, 
+            childGender,
+            fatherName, 
+            grandfatherName,
+            motherName,
+            motherFatherName,
+            motherGrandfatherName,
+            motherFamilyName,
+            familyName,
+            childID,
+            lifeStatus,
+            YoD,
+            Country,
+            Branch,
+            Notes,
+            Nickname,
+            maritalStatus,
+            childrenCount,
+            siblingsCount,
+            lineageNames
+            ORDER BY childName
+            `;
+              
+              queryParamsObject.personName = translatedpersonName;
+              queryParamsObject.fatherName = translatedfatherName;
+              queryParamsObject.grandfatherName = translatedgrandfatherName;
+              queryParamsObject.familyName = translatedfamilyName;
+              
+            } 
+            else {
+              cypherQuery += `
+                MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
+                WHERE (child.name = $personName OR child.Nickname = $personName) AND 
+                      (father.name = $fatherName OR father.Nickname = $fatherName) AND 
+                      grandfather.name = $grandfatherName
+                OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather:Person)-[:FATHER_OF]->(mother:Person)-[:MOTHER_OF]->(child)
+                OPTIONAL MATCH (child)-[r:MARRIED_TO]-(spouse:Person)
+                OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
+                OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
+                  WHERE sibling <> child
+                
+                OPTIONAL MATCH lineagePath = (child)<-[:FATHER_OF*]-(ancestor:Person)
+                WITH child, father, grandfather, mother, motherFather, motherGrandfather, r,
+              childOf, sibling, lineagePath
+
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            COLLECT(lineagePath) AS lineagePaths
+          WITH child, father, grandfather, mother, motherFather, motherGrandfather, r, childOf, sibling,
+              REDUCE(acc = null, path IN lineagePaths |
+                CASE
+                  WHEN acc IS NULL OR length(path) > length(acc) THEN path
+                  ELSE acc
+                END
+              ) AS longestPath
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            [n IN nodes(longestPath) | n.name] + child.name AS lineageNames
+
+          // Final aggregation grouped by child
+          WITH 
+            child,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            mother.name AS motherName,
+            motherFather.name AS motherFatherName,
+            motherGrandfather.name AS motherGrandfatherName,
+            mother.lastName AS motherFamilyName,
+            child.lastName AS familyName,
+            id(child) AS childID,
+            child.isAlive AS lifeStatus,
+            child.YoD AS YoD, 
+            child.WorkCountry AS Country,
+            child.Branch AS Branch,
+            child.Notes AS Notes,
+            child.Nickname AS Nickname,
+            r.status AS maritalStatus,
+            lineageNames,
+            COUNT(DISTINCT childOf) AS childrenCount,
+            COUNT(DISTINCT sibling) AS siblingsCount
+
+          RETURN 
+            childName, 
+            childYoB, 
+            childGender,
+            fatherName, 
+            grandfatherName,
+            motherName,
+            motherFatherName,
+            motherGrandfatherName,
+            motherFamilyName,
+            familyName,
+            childID,
+            lifeStatus,
+            YoD,
+            Country,
+            Branch,
+            Notes,
+            Nickname,
+            maritalStatus,
+            childrenCount,
+            siblingsCount,
+            lineageNames
+          ORDER BY childName`;
+              queryParamsObject.personName = translatedpersonName;
+              queryParamsObject.fatherName = translatedfatherName;
+              queryParamsObject.grandfatherName = translatedgrandfatherName;
+            }
+            
+          } 
+          else {
+            if (translatedfamilyName){
+              cypherQuery += `
+              MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+              WHERE (child.name = $personName OR child.Nickname = $personName) AND 
+                    (father.name = $fatherName OR father.Nickname = $fatherName) AND
+                    child.lastName = $familyName
+              OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
               OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
               OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
               OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
@@ -129,198 +446,299 @@ const SearchPage = () => {
               OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
               OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
                 WHERE sibling <> child
-              RETURN 
-              child.name AS childName, 
-              child.YoB AS childYoB, 
-              child.gender AS childGender,
+              OPTIONAL MATCH lineagePath = (child)<-[:FATHER_OF*]-(ancestor:Person)
+              WITH child, father, grandfather, mother, motherFather, motherGrandfather, r,
+              childOf, sibling, lineagePath
 
-              father.name AS fatherName, 
-              grandfather.name AS grandfatherName,
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            COLLECT(lineagePath) AS lineagePaths
+          WITH child, father, grandfather, mother, motherFather, motherGrandfather, r, childOf, sibling,
+              REDUCE(acc = null, path IN lineagePaths |
+                CASE
+                  WHEN acc IS NULL OR length(path) > length(acc) THEN path
+                  ELSE acc
+                END
+              ) AS longestPath
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            [n IN nodes(longestPath) | n.name] + child.name AS lineageNames
 
-              mother.name AS motherName,
-              motherFather.name AS motherFatherName,
-              motherGrandfather.name AS motherGrandfatherName,
-              mother.lastName AS motherFamilyName,
-              child.lastName AS familyName,
-              id(child) AS childID,
-              child.isAlive AS lifeStatus,
-              child.YoD AS YoD, 
-              child.WorkCountry AS Country,
-              child.Branch AS Branch,
+          // Final aggregation grouped by child
+          WITH 
+            child,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            mother.name AS motherName,
+            motherFather.name AS motherFatherName,
+            motherGrandfather.name AS motherGrandfatherName,
+            mother.lastName AS motherFamilyName,
+            child.lastName AS familyName,
+            id(child) AS childID,
+            child.isAlive AS lifeStatus,
+            child.YoD AS YoD, 
+            child.WorkCountry AS Country,
+            child.Branch AS Branch,
+            child.Notes AS Notes,
+            child.Nickname AS Nickname,
+            r.status AS maritalStatus,
+            lineageNames,
+            COUNT(DISTINCT childOf) AS childrenCount,
+            COUNT(DISTINCT sibling) AS siblingsCount
 
-              r.status AS maritalStatus,
-              COUNT(DISTINCT childOf) AS childrenCount,
-              COUNT(DISTINCT sibling) AS siblingsCount`;
-            
-            queryParamsObject.personName = translatedpersonName;
-            queryParamsObject.fatherName = translatedfatherName;
-            queryParamsObject.grandfatherName = translatedgrandfatherName;
-            queryParamsObject.familyName = translatedfamilyName;
-            
-          } 
-          else {
-            cypherQuery += `
-              MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
-              WHERE child.name = $personName AND 
-                    father.name = $fatherName AND 
-                    grandfather.name = $grandfatherName
-              OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather:Person)-[:FATHER_OF]->(mother:Person)-[:MOTHER_OF]->(child)
+          RETURN 
+            childName, 
+            childYoB, 
+            childGender,
+            fatherName, 
+            grandfatherName,
+            motherName,
+            motherFatherName,
+            motherGrandfatherName,
+            motherFamilyName,
+            familyName,
+            childID,
+            lifeStatus,
+            YoD,
+            Country,
+            Branch,
+            Notes,
+            Nickname,
+            maritalStatus,
+            childrenCount,
+            siblingsCount,
+            lineageNames
+          ORDER BY childName
+              
+              `;
+              queryParamsObject.personName = translatedpersonName;
+              queryParamsObject.fatherName = translatedfatherName;
+              queryParamsObject.familyName = translatedfamilyName;
+            }
+            else{
+              cypherQuery += `
+              MATCH (father:Person)-[:FATHER_OF]->(child:Person)
+              
+              WHERE (child.name = $personName OR child.Nickname = $personName) AND 
+                    (father.name = $fatherName OR father.Nickname = $fatherName)
+              OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
+              OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
+              OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
+              OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
+
               OPTIONAL MATCH (child)-[r:MARRIED_TO]-(spouse:Person)
               OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
               OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
                 WHERE sibling <> child
-              RETURN 
-              child.name AS childName, 
-              child.YoB AS childYoB, 
-              child.gender AS childGender,
 
-              father.name AS fatherName, 
-              grandfather.name AS grandfatherName,
+              OPTIONAL MATCH lineagePath = (child)<-[:FATHER_OF*]-(ancestor:Person)
+              WITH child, father, grandfather, mother, motherFather, motherGrandfather, r,
+              childOf, sibling, lineagePath
 
-              mother.name AS motherName,
-              motherFather.name AS motherFatherName,
-              motherGrandfather.name AS motherGrandfatherName,
-              mother.lastName AS motherFamilyName,
-              child.lastName AS familyName,
-              id(child) AS childID,
-              child.isAlive AS lifeStatus,
-              child.YoD AS YoD, 
-              child.WorkCountry AS Country,
-              child.Branch AS Branch,
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            COLLECT(lineagePath) AS lineagePaths
+          WITH child, father, grandfather, mother, motherFather, motherGrandfather, r, childOf, sibling,
+              REDUCE(acc = null, path IN lineagePaths |
+                CASE
+                  WHEN acc IS NULL OR length(path) > length(acc) THEN path
+                  ELSE acc
+                END
+              ) AS longestPath
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            [n IN nodes(longestPath) | n.name] + child.name AS lineageNames
 
-              r.status AS maritalStatus,
-              COUNT(DISTINCT childOf) AS childrenCount,
-              COUNT(DISTINCT sibling) AS siblingsCount`;
-            
-            queryParamsObject.personName = translatedpersonName;
-            queryParamsObject.fatherName = translatedfatherName;
-            queryParamsObject.grandfatherName = translatedgrandfatherName;
-          }
-          
-        } 
-        else {
-          if (translatedfamilyName){
-            cypherQuery += `
-            MATCH (father:Person)-[:FATHER_OF]->(child:Person)
-            WHERE child.name = $personName AND 
-                  father.name = $fatherName AND
-                  child.lastName = $familyName
-            OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
-            OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
-            OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
-            OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
+          // Final aggregation grouped by child
+          WITH 
+            child,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            mother.name AS motherName,
+            motherFather.name AS motherFatherName,
+            motherGrandfather.name AS motherGrandfatherName,
+            mother.lastName AS motherFamilyName,
+            child.lastName AS familyName,
+            id(child) AS childID,
+            child.isAlive AS lifeStatus,
+            child.YoD AS YoD, 
+            child.WorkCountry AS Country,
+            child.Branch AS Branch,
+            child.Notes AS Notes,
+            child.Nickname AS Nickname,
+            r.status AS maritalStatus,
+            lineageNames,
+            COUNT(DISTINCT childOf) AS childrenCount,
+            COUNT(DISTINCT sibling) AS siblingsCount
 
-            OPTIONAL MATCH (child)-[r:MARRIED_TO]-(spouse:Person)
-            OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
-            OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
-              WHERE sibling <> child
-            RETURN 
-              child.name AS childName, 
-              child.YoB AS childYoB, 
-              child.gender AS childGender,
-
-              father.name AS fatherName, 
-              grandfather.name AS grandfatherName,
-
-              mother.name AS motherName,
-              motherFather.name AS motherFatherName,
-              motherGrandfather.name AS motherGrandfatherName,
-              mother.lastName AS motherFamilyName,
-              child.lastName AS familyName,
-              id(child) AS childID,
-              child.isAlive AS lifeStatus,
-              child.YoD AS YoD, 
-              child.WorkCountry AS Country,
-              child.Branch AS Branch,
-
-              r.status AS maritalStatus,
-              COUNT(DISTINCT childOf) AS childrenCount,
-              COUNT(DISTINCT sibling) AS siblingsCount
-            `;
-            queryParamsObject.personName = translatedpersonName;
-            queryParamsObject.fatherName = translatedfatherName;
-            queryParamsObject.familyName = translatedfamilyName;
-          }
-          else{
-            cypherQuery += `
-            MATCH (father:Person)-[:FATHER_OF]->(child:Person)
-            
-            WHERE child.name = $personName AND 
-                  father.name = $fatherName
-            OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
-            OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
-            OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
-            OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
-
-            OPTIONAL MATCH (child)-[r:MARRIED_TO]-(spouse:Person)
-            OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
-            OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
-              WHERE sibling <> child
-            RETURN 
-              child.name AS childName, 
-              child.YoB AS childYoB, 
-              child.gender AS childGender,
-
-              father.name AS fatherName, 
-              grandfather.name AS grandfatherName,
-
-              mother.name AS motherName,
-              motherFather.name AS motherFatherName,
-              motherGrandfather.name AS motherGrandfatherName,
-              mother.lastName AS motherFamilyName,
-              child.lastName AS familyName,
-              id(child) AS childID,
-              child.isAlive AS lifeStatus,
-              child.YoD AS YoD, 
-              child.WorkCountry AS Country,
-              child.Branch AS Branch,
-
-              r.status AS maritalStatus,
-              COUNT(DISTINCT childOf) AS childrenCount,
-              COUNT(DISTINCT sibling) AS siblingsCount
-            `;
-            queryParamsObject.personName = translatedpersonName;
-            queryParamsObject.fatherName = translatedfatherName;
+          RETURN 
+            childName, 
+            childYoB, 
+            childGender,
+            fatherName, 
+            grandfatherName,
+            motherName,
+            motherFatherName,
+            motherGrandfatherName,
+            motherFamilyName,
+            familyName,
+            childID,
+            lifeStatus,
+            YoD,
+            Country,
+            Branch,
+            Notes,
+            Nickname,
+            maritalStatus,
+            childrenCount,
+            siblingsCount,
+            lineageNames
+          ORDER BY childName
+              `;
+              queryParamsObject.personName = translatedpersonName;
+              queryParamsObject.fatherName = translatedfatherName;
+            }
           }
         }
-      }
       else {
         if (translatedfamilyName){
           cypherQuery += `
           MATCH (child:Person)
-          WHERE child.name = $personName AND child.lastName = $familyName
+          WHERE (child.name = $personName OR child.Nickname = $personName) AND child.lastName = $familyName
+
           OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
           OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
           OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
           OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
           OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
-          
+
           OPTIONAL MATCH (child)-[r:MARRIED_TO]-(spouse:Person)
           OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
           OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
             WHERE sibling <> child
+
+          // Lineage path collection
+          OPTIONAL MATCH lineagePath = (child)<-[:FATHER_OF*]-(ancestor:Person)
+          WITH child, father, grandfather, mother, motherFather, motherGrandfather, r,
+              childOf, sibling, lineagePath
+
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            COLLECT(lineagePath) AS lineagePaths
+          WITH child, father, grandfather, mother, motherFather, motherGrandfather, r, childOf, sibling,
+              REDUCE(acc = null, path IN lineagePaths |
+                CASE
+                  WHEN acc IS NULL OR length(path) > length(acc) THEN path
+                  ELSE acc
+                END
+              ) AS longestPath
+          WITH 
+            child,
+            father,
+            grandfather,
+            mother,
+            motherFather,
+            motherGrandfather,
+            r,
+            childOf,
+            sibling,
+            [n IN nodes(longestPath) | n.name] + child.name AS lineageNames
+
+          // Final aggregation grouped by child
+          WITH 
+            child,
+            child.name AS childName, 
+            child.YoB AS childYoB, 
+            child.gender AS childGender,
+            father.name AS fatherName, 
+            grandfather.name AS grandfatherName,
+            mother.name AS motherName,
+            motherFather.name AS motherFatherName,
+            motherGrandfather.name AS motherGrandfatherName,
+            mother.lastName AS motherFamilyName,
+            child.lastName AS familyName,
+            id(child) AS childID,
+            child.isAlive AS lifeStatus,
+            child.YoD AS YoD, 
+            child.WorkCountry AS Country,
+            child.Branch AS Branch,
+            child.Notes AS Notes,
+            child.Nickname AS Nickname,
+            r.status AS maritalStatus,
+            lineageNames,
+            COUNT(DISTINCT childOf) AS childrenCount,
+            COUNT(DISTINCT sibling) AS siblingsCount
+
           RETURN 
-              child.name AS childName, 
-              child.YoB AS childYoB, 
-              child.gender AS childGender,
+            childName, 
+            childYoB, 
+            childGender,
+            fatherName, 
+            grandfatherName,
+            motherName,
+            motherFatherName,
+            motherGrandfatherName,
+            motherFamilyName,
+            familyName,
+            childID,
+            lifeStatus,
+            YoD,
+            Country,
+            Branch,
+            Notes,
+            Nickname,
+            maritalStatus,
+            childrenCount,
+            siblingsCount,
+            lineageNames
+          ORDER BY childName
 
-              father.name AS fatherName, 
-              grandfather.name AS grandfatherName,
-
-              mother.name AS motherName,
-              motherFather.name AS motherFatherName,
-              motherGrandfather.name AS motherGrandfatherName,
-              mother.lastName AS motherFamilyName,
-              child.lastName AS familyName,
-              id(child) AS childID,
-              child.isAlive AS lifeStatus,
-              child.YoD AS YoD, 
-              child.WorkCountry AS Country,
-              child.Branch AS Branch,
-
-              r.status AS maritalStatus,
-              COUNT(DISTINCT childOf) AS childrenCount,
-              COUNT(DISTINCT sibling) AS siblingsCount
         `;
         queryParamsObject.personName = translatedpersonName;
         queryParamsObject.familyName = translatedfamilyName;
@@ -328,7 +746,7 @@ const SearchPage = () => {
         else{
           cypherQuery += `
             MATCH (child:Person)
-            WHERE child.name = $personName
+            WHERE child.name = $personName OR child.Nickname = $personName
 
             OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(child)
             OPTIONAL MATCH (grandfather:Person)-[:FATHER_OF]->(father)
@@ -340,15 +758,48 @@ const SearchPage = () => {
             OPTIONAL MATCH (child)-[:FATHER_OF|MOTHER_OF]->(childOf:Person)
             OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
               WHERE sibling <> child
+            OPTIONAL MATCH lineagePath = (child)<-[:FATHER_OF*]-(ancestor:Person)
+            WITH child, father, grandfather, mother, motherFather, motherGrandfather, r,
+                childOf, sibling, lineagePath
 
-            RETURN 
+            WITH 
+              child,
+              father,
+              grandfather,
+              mother,
+              motherFather,
+              motherGrandfather,
+              r,
+              childOf,
+              sibling,
+              COLLECT(lineagePath) AS lineagePaths
+            WITH child, father, grandfather, mother, motherFather, motherGrandfather, r, childOf, sibling,
+                REDUCE(acc = null, path IN lineagePaths |
+                  CASE
+                    WHEN acc IS NULL OR length(path) > length(acc) THEN path
+                    ELSE acc
+                  END
+                ) AS longestPath
+            WITH 
+              child,
+              father,
+              grandfather,
+              mother,
+              motherFather,
+              motherGrandfather,
+              r,
+              childOf,
+              sibling,
+              [n IN nodes(longestPath) | n.name] + child.name AS lineageNames
+
+            // Final aggregation grouped by child
+            WITH 
+              child,
               child.name AS childName, 
               child.YoB AS childYoB, 
               child.gender AS childGender,
-
               father.name AS fatherName, 
               grandfather.name AS grandfatherName,
-
               mother.name AS motherName,
               motherFather.name AS motherFatherName,
               motherGrandfather.name AS motherGrandfatherName,
@@ -359,134 +810,170 @@ const SearchPage = () => {
               child.YoD AS YoD, 
               child.WorkCountry AS Country,
               child.Branch AS Branch,
-
+              child.Notes AS Notes,
+              child.Nickname AS Nickname,
               r.status AS maritalStatus,
+              lineageNames,
               COUNT(DISTINCT childOf) AS childrenCount,
               COUNT(DISTINCT sibling) AS siblingsCount
+
+            RETURN 
+              childName, 
+              childYoB, 
+              childGender,
+              fatherName, 
+              grandfatherName,
+              motherName,
+              motherFatherName,
+              motherGrandfatherName,
+              motherFamilyName,
+              familyName,
+              childID,
+              lifeStatus,
+              YoD,
+              Country,
+              Branch,
+              Notes,
+              Nickname,
+              maritalStatus,
+              childrenCount,
+              siblingsCount,
+              lineageNames
+            ORDER BY childName
+
             `;
           queryParamsObject.personName = translatedpersonName;
         }
       }
-    }
-    
-    const session = driver.session();
-    try {
-      const result = await session.run(cypherQuery, queryParamsObject);
-      if (result.records.length === 0) {
-        setLoading(false);
-        setError('هذا الشخص ليس مسجل في الشجرة ، الرجاء التحقق من الإسم.');
-        setPersonDetails(null);
-        return;
       }
-      else if (result.records.length === 1) {
-        setLoading(false);
-        setLoadingMessage("تم إيجاد الشخص ...");
-        const record = result.records[0];
-        let age;
-        let YoB = record.get('childYoB');
-        let YoD = record.get('YoD');
-        if (YoB == null){
-          age = -1;
+      
+      const session = driver.session();
+      try {
+        const result = await session.run(cypherQuery, queryParamsObject);
+        if (result.records.length === 0) {
+          setLoading(false);
+          setError('هذا الشخص ليس مسجل في الشجرة ، الرجاء التحقق من الإسم.');
+          setPersonDetails(null);
+          return;
         }
-        else{
-          age = new Date().getFullYear() - YoB;
-        }
-        const childID = record.get("childID").toNumber();
-        setLoadingMessage("جاري التحقق من المعلومات ...");
-        const personDetails = {
-          personID: childID,
-          personName: record.get('childName') ?? "غير متوفر",
-          fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
-          grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", 
-          familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر",
-          Branch: record.has('Branch') ? record.get('Branch') : "غير متوفر", 
-          gender: record.has('childGender') ? record.get('childGender') : "غير متوفر", 
-          age,
-          YoB,
-          YoD,
-          motherName: record.has('motherName') && record.get('motherName') !== null ? record.get('motherName') : null,
-          motherFatherName: record.has('motherFatherName') && record.get('motherFatherName') !== null ? record.get('motherFatherName') : null,
-          motherGrandFatherName: record.has('motherGrandfatherName') && record.get('motherGrandfatherName') !== null ? record.get('motherGrandfatherName') : null,
-          motherFamilyName: record.has('motherFamilyName') && record.get('motherFamilyName') !== null ? record.get('motherFamilyName') :null,
-          maritalStatus: record.has('maritalStatus') && record.get('maritalStatus') !== null ? record.get('maritalStatus') : null,
-
-          lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر",
-          
-          childrenCount: record.has('childrenCount') && record.get('childrenCount') !== null
-          ? record.get('childrenCount').toNumber()
-          : 0,
-          siblingsCount: record.has('siblingsCount') && record.get('siblingsCount') !== null
-          ? record.get('siblingsCount').toNumber()
-          : 0,
-          country: record.get("Country")
-        };
-        console.log(personDetails);
-        setPersonDetails(personDetails);
-        setLoading(false);
-        setError('');
-      } 
-      else if (result.records.length >= 2) {
-        setLoadingMessage("تم العثور على أكثر من شخص ...");
-        const multipleMatches = [];
-        for (const record of result.records) {
+        else if (result.records.length === 1) {
+          setLoading(false);
+          setLoadingMessage("تم إيجاد الشخص ...");
+          const record = result.records[0];
           let age;
           let YoB = record.get('childYoB');
           let YoD = record.get('YoD');
-      
-          if (YoB == null) {
+          if (YoB == null){
             age = -1;
-          } 
-          else {
+          }
+          else{
             age = new Date().getFullYear() - YoB;
           }
-      
           const childID = record.get("childID").toNumber();
+          setLoadingMessage("جاري التحقق من المعلومات ...");
           const personDetails = {
             personID: childID,
             personName: record.get('childName') ?? "غير متوفر",
             fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
             grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", 
-            familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر", 
-            gender: record.has('childGender') ? record.get('childGender') : "غير متوفر",
+            familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر",
             Branch: record.has('Branch') ? record.get('Branch') : "غير متوفر", 
-            age, YoB, YoD,
+            fullLineage: record.has('lineageNames') ? record.get('lineageNames') : "غير متوفر",
+            gender: record.has('childGender') ? record.get('childGender') : "غير متوفر", 
+            age,
+            YoB,
+            YoD,
             motherName: record.has('motherName') && record.get('motherName') !== null ? record.get('motherName') : null,
             motherFatherName: record.has('motherFatherName') && record.get('motherFatherName') !== null ? record.get('motherFatherName') : null,
             motherGrandFatherName: record.has('motherGrandfatherName') && record.get('motherGrandfatherName') !== null ? record.get('motherGrandfatherName') : null,
             motherFamilyName: record.has('motherFamilyName') && record.get('motherFamilyName') !== null ? record.get('motherFamilyName') :null,
             maritalStatus: record.has('maritalStatus') && record.get('maritalStatus') !== null ? record.get('maritalStatus') : null,
-
+            Nickname: record.has('Nickname') && record.get('Nickname') !== null ? record.get('Nickname') :null,
+            Notes: record.has('Notes') && record.get('Notes') !== null ? record.get('Notes') : null,
             lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر",
             
             childrenCount: record.has('childrenCount') && record.get('childrenCount') !== null
             ? record.get('childrenCount').toNumber()
             : 0,
-
             siblingsCount: record.has('siblingsCount') && record.get('siblingsCount') !== null
             ? record.get('siblingsCount').toNumber()
             : 0,
-
             country: record.get("Country")
           };
-          console.log(multipleMatches);
-          multipleMatches.push(personDetails);
-        }
+          console.log(personDetails);
+          setPersonDetails(personDetails);
+          setLoading(false);
+          setError('');
+        } 
+        else if (result.records.length >= 2) {
+          setLoadingMessage("تم العثور على أكثر من شخص ...");
+          const multipleMatches = [];
+          for (const record of result.records) {
+            let age;
+            let YoB = record.get('childYoB');
+            let YoD = record.get('YoD');
         
-        setPersonDetails({ multipleMatches });
-        setError('هناك العديد من الأشخاص يحملون نفس الاسم. الرجاء اختيار الشخص الصحيح.');
+            if (YoB == null) {
+              age = -1;
+            } 
+            else {
+              age = new Date().getFullYear() - YoB;
+            }
+        
+            const childID = record.get("childID").toNumber();
+            const personDetails = {
+              personID: childID,
+              personName: record.get('childName') ?? "غير متوفر",
+              fatherName: record.has('fatherName') ? record.get('fatherName') : "غير متوفر",
+              grandfatherName: record.has('grandfatherName') ? record.get('grandfatherName') : "غير متوفر", 
+              familyName: record.has('familyName') ? record.get('familyName') : "غير متوفر", 
+              gender: record.has('childGender') ? record.get('childGender') : "غير متوفر",
+              Branch: record.has('Branch') ? record.get('Branch') : "غير متوفر",
+              fullLineage: record.has('lineageNames') ? record.get('lineageNames') : "غير متوفر",
+              age, YoB, YoD,
+              motherName: record.has('motherName') && record.get('motherName') !== null ? record.get('motherName') : null,
+              motherFatherName: record.has('motherFatherName') && record.get('motherFatherName') !== null ? record.get('motherFatherName') : null,
+              motherGrandFatherName: record.has('motherGrandfatherName') && record.get('motherGrandfatherName') !== null ? record.get('motherGrandfatherName') : null,
+              motherFamilyName: record.has('motherFamilyName') && record.get('motherFamilyName') !== null ? record.get('motherFamilyName') :null,
+              maritalStatus: record.has('maritalStatus') && record.get('maritalStatus') !== null ? record.get('maritalStatus') : null,
+              Nickname: record.has('Nickname') && record.get('Nickname') !== null ? record.get('Nickname') :null,
+              Notes: record.has('Notes') && record.get('Notes') !== null ? record.get('Notes') : null,
+              lifeStatus: record.has('lifeStatus') ? record.get('lifeStatus') : "غير متوفر",
+              
+              childrenCount: record.has('childrenCount') && record.get('childrenCount') !== null
+              ? record.get('childrenCount').toNumber()
+              : 0,
+
+              siblingsCount: record.has('siblingsCount') && record.get('siblingsCount') !== null
+              ? record.get('siblingsCount').toNumber()
+              : 0,
+
+              country: record.get("Country")
+            };
+            console.log(multipleMatches);
+            multipleMatches.push(personDetails);
+          }
+          
+          setPersonDetails({ multipleMatches });
+          setError('هناك العديد من الأشخاص يحملون نفس الاسم. الرجاء اختيار الشخص الصحيح.');
+        }
+      } 
+      catch (err) {
+        setLoading(false);
+        console.error('Query Error:', err);
+        setError('حدث خطأ أثناء البحث.');
+        setPersonDetails(null);
+      } 
+      finally {
+        setLoading(false);
+        await session.close();
       }
-    } catch (err) {
-      setLoading(false);
-      console.error('Query Error:', err);
-      setError('حدث خطأ أثناء البحث.');
-      setPersonDetails(null);
-    } finally {
-      setLoading(false);
-      await session.close();
     }
-    
   };
 
+  useEffect(() => {
+      document.title = "إبحث عن شخص";
+    }, []);
   return (
     <div className="search-page">
       <header className="search-header">
@@ -571,9 +1058,10 @@ const SearchPage = () => {
                     <td className='WS'>{person.grandfatherName ? ` ${utils.translateName(person.grandfatherName)}` : ''}</td>
                     <td className='WS'>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
                     <td className='SS'>{utils.translateName(person.personName)}
-  {person.fatherName && ` ${person.gender === 'Male' ? 'بن' : 'بنت'} ${utils.translateName(person.fatherName)}`}
-  {person.grandfatherName && ` بن ${utils.translateName(person.grandfatherName)}`}
-  {person.familyName && ` ${utils.translateFamilyName(person.familyName)}`}</td>
+                    {person.fatherName && ` ${person.gender === 'Male' ? 'بن' : 'بنت'} ${utils.translateName(person.fatherName)}`}
+                    {person.grandfatherName && ` بن ${utils.translateName(person.grandfatherName)}`}
+                    {person.familyName && ` ${utils.translateFamilyName(person.familyName)}`}
+                    </td>
                     <td>{person.age !== -1 ? person.age : " - "}</td>
                     <td>{person.lifeStatus === true ? '-' : person.YoD ? person.YoD : " غير متوفر "}</td>
                     <td>{person.childrenCount ? person.childrenCount : " - "}</td>
@@ -613,23 +1101,34 @@ const SearchPage = () => {
                 </tr>
 
                   <tr>
-                    <th>الإسم الكامل</th>
-
-                  <td>
-                    {utils.translateName(personDetails?.personName)}
-                    {personDetails?.fatherName
-                      ? ` ${personDetails.gender === 'Female' ? 'بنت' : 'بن'} ${utils.translateName(personDetails.fatherName)}`
-                      : ''}
-                    {personDetails?.grandfatherName
-                      ? ` بن ${utils.translateName(personDetails.grandfatherName)}`
-                      : ''}
-                    {personDetails?.familyName ? 
-                      ` ${utils.translateFamilyName(personDetails.familyName)}` 
-                      : ''}
-                  </td></tr>
-
+                    <th>الإسم الثلاثي</th>
+                    <td>
+                      {utils.translateName(personDetails?.personName)} {personDetails.Nickname ? "(" +  personDetails.Nickname + ")": ""}
+                      {personDetails?.fatherName
+                        ? ` ${personDetails.gender === 'Female' ? 'بنت' : 'بن'} ${utils.translateName(personDetails.fatherName)}`
+                        : ''}
+                      {personDetails?.grandfatherName
+                        ? ` بن ${utils.translateName(personDetails.grandfatherName)}`
+                        : ''}
+                      {personDetails?.familyName ? 
+                        ` ${utils.translateFamilyName(personDetails.familyName)}` 
+                        : ''}
+                    </td>
+                  </tr>
                   <tr>
-                    <th>إسم الأم الكامل</th>
+                    <th>
+                      الاسم الكامل
+                      <button id="showFullName" onClick={() => setShowFullName(!showFullName)}>{!showFullName ? "اظهار": "اخفاء"}</button>
+                      </th>
+                    <td>
+                      {showFullName ?
+                      utils.formatFullName(personDetails.fullLineage, personDetails.gender, 2, 10) :
+                      "-"
+                      }
+                    </td>
+                  </tr>
+                  <tr>
+                    <th>إسم الأم الثلاثي</th>
                     <td>
                       {utils.translateName(personDetails?.motherName) || ''}
                       {personDetails?.motherFatherName
@@ -727,6 +1226,9 @@ const SearchPage = () => {
                       : '—'}
                   </td>
 
+                </tr>
+                <tr>
+                  {personDetails.Notes}
                 </tr>
                 </tbody>
               </table>

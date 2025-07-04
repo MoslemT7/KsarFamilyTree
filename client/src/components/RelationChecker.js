@@ -1997,7 +1997,7 @@ RETURN
     const screenWidth = window.innerWidth;
     const containerWidth = treeContainerRef.current?.offsetWidth || screenWidth;
 
-    let nodeSize = { x: 40, y: 90 };
+    let nodeSize = { x: 50, y: 90 };
     let separation = { siblings: 2, nonSiblings: 2 };
     let yTranslate = 40;
     let fontSize = 12;
@@ -2028,7 +2028,7 @@ RETURN
       fontSize = 22;
     }
 
-    const translateX = screenWidth > 1024 ? containerWidth / 2 - 20 : containerWidth / 2 - 20;
+    const translateX = screenWidth > 1024 ? containerWidth / 2 - 200 : containerWidth / 2 - 20;
 
     setConfig({
       translate: { x: translateX, y: yTranslate },
@@ -2259,7 +2259,7 @@ RETURN
                 height: `${Math.max(
                   ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
                   100
-                ) + 50}px`
+                ) + 100}px`
               }}>
               <>
               
@@ -2279,9 +2279,9 @@ RETURN
                     <title>{nodeDatum.id}</title>
                     <rect
                       className="tree-node-rect"
-                      x="-60"
+                      x="-100"
                       y="-20"
-                      width="120"
+                      width="200"
                       height="40"
                       style={{
                         fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID

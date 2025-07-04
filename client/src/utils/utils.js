@@ -1,11 +1,13 @@
+
 const nameTranslation = require('../translations/names.json');
 const compoundNameTranslation = require('../translations/compundNames.json');
 const familyNameTranslation = require('../translations/familyNames.json');
 const countriesTranslation = require('../translations/countries.json');
+const Nickname = require('../translations/nicknames.json');
 
 export function translateCountry(country){
     return countriesTranslation[country] || country;
-}
+};
 
 export function countBenAndBent(str) {
   const words = str.trim().split(/\s+/);
@@ -15,7 +17,11 @@ export function countBenAndBent(str) {
 };
 
 export function isCompoundName(name) {
-  return Object.values(compoundNameTranslation).includes(name);
+  return Object.values(compoundNameTranslation).includes(name) || Object.keys(compoundNameTranslation).includes(name);
+};
+
+export function isNickname(name) {
+  return Object.values(Nickname).includes(name) || Object.keys(Nickname).includes(name);
 };
 
 export function splitName(fullName) {
@@ -25,15 +31,16 @@ export function splitName(fullName) {
     return [];
   }
   const parts = fullName.replace(/\s*(بنت|بن|bent|ben)\s*/gi, ' ').trim().split(/\s+/);
-  console.log(parts);
   const bentCount = countBenAndBent(fullName);
   let compundName;
-  console.log(bentCount);
+  let nickname;
+  console.log(parts, bentCount);
 
   if (parts.length === 2) {
     if (bentCount === 0) {
       if (isCompoundName(parts[0]+ " " + parts[1])){
         compundName = `${parts[0]} ${parts[1]}`;
+        console.log("fdsfds");
         return {
           personName: compundName,
           fatherName: "",
@@ -262,7 +269,7 @@ export function mergePaths(pathToP1, pathToP2) {
 
 function normalizeArabicName(name) {
   return name
-    .replace(/[أإآ]/g, 'ا')  // Normalize Alif variants to bare Alif
+    .replace(/[أإآ]/g, 'ا');
 };
 
 function _translate(
@@ -344,3 +351,18 @@ export const formatArabicYears = (num) => {
   if (num >= 3 && num <= 10) return "سنوات";
   return "سنة"; // for 11+
 };
+
+
+export function formatFullName(nameArray, gender, begin, max) {
+  if (max === -1) max = nameArray.length;
+  if (!Array.isArray(nameArray) || nameArray.length < 2) return "";
+
+  let fullname = (gender === "Male" ? " بن " : " بنت ") +  translateName(nameArray[begin]) ;
+
+  for (let i = begin+1; i < max; i++) {
+    fullname += " بن " + translateName(nameArray[i]);
+
+  }
+
+  return fullname;
+}

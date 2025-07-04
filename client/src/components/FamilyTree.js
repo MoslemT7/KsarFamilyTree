@@ -113,137 +113,6 @@ const renderFamilyTree = (person, parentId = null, level = 0) => {
   );
 };
 
-const fetchFamilyTree = async (rootID, type) => {
-  const session = driver.session();
-  const queryParamsObject = {};
-  try {
-    const defaultQuery = `
-      MATCH (root:Person)
-      WHERE id(root) = $rootID
-      CALL {
-        WITH root
-        MATCH (root)-[:FATHER_OF*]->(descendant)
-        RETURN collect(DISTINCT descendant) AS allDescendants
-      }
-      WITH root, allDescendants
-      UNWIND [root] + allDescendants AS person
-      
-      OPTIONAL MATCH (person)-[:FATHER_OF]->(child)
-      WHERE child IS NOT NULL
-      
-      OPTIONAL MATCH (mother)-[:MOTHER_OF]->(person)
-      
-      WITH person, mother, collect(DISTINCT child) AS children
-      
-      RETURN {
-        id: id(person),
-        name: person.name,
-        lastName: person.lastName,
-        gender: person.gender,
-        isAlive: person.isAlive,
-        Nickname: person.Nickname,
-        Notes: person.Notes,
-        motherId: CASE WHEN mother IS NULL THEN NULL ELSE id(mother) END,
-        children: [child IN children | {
-          id: id(child),
-          name: child.name,
-          lastName: child.lastName,
-          gender: child.gender,
-          isAlive: child.isAlive,
-          Nickname: child.Nickname,
-          Notes: child.Notes,
-          motherId: head([ (child)<-[:MOTHER_OF]-(m:Person) | id(m) ])  // get mother's ID for each child
-        }]
-      } AS treeNode
-      ORDER BY person.name
-    `;
-
-    const queryWithMother = `
-      MATCH (root:Person)
-      WHERE id(root) = $rootID
-      CALL {
-        WITH root
-        MATCH (root)-[:FATHER_OF|MOTHER_OF*]->(descendant)
-        RETURN collect(DISTINCT descendant) AS allDescendants
-      }
-      WITH root, allDescendants
-      UNWIND [root] + allDescendants AS person
-
-      OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(child)
-      WHERE child IS NOT NULL
-
-      WITH person, collect(DISTINCT child) AS children
-
-      RETURN {
-        id: id(person),
-        name: person.name,
-        lastName: person.lastName,
-        gender: person.gender,
-        isAlive: person.isAlive,
-        Nickname: person.Nickname,
-        Notes: person.Notes,
-        children: [child IN children | {
-          id: id(child),
-          name: child.name,
-          lastName: child.lastName,
-          gender: child.gender,
-          isAlive: child.isAlive,
-          Nickname: child.Nickname,
-          Notes: child.Notes,
-          motherId: head([ (child)<-[:MOTHER_OF]-(m:Person) | id(m) ])  // get mother's ID for each child
-        }]
-      } AS treeNode
-      ORDER BY person.name
-    `;
-
-    let query;
-    if (type) {
-      query = defaultQuery;
-    } else {
-      query = queryWithMother;
-    }
-
-    queryParamsObject.rootID = Number(rootID);
-    const result = await session.run(query, queryParamsObject);
-
-    const familyTree = result.records.map(record => {
-      const node = record.get('treeNode');
-      const includeChildren =
-        Number(node.id) === 719 ? Number(rootID) !== 395 : true;
-
-      return {
-        id: Number(node.id),
-        name: node.name,
-        gender: node.gender,
-        lastName: node.lastName,
-        isAlive: node.isAlive,
-        Nickname: node.Nickname,
-        Notes: node.Notes,
-        motherId: Number(node.motherId) || null,
-        children: includeChildren
-          ? node.children.map(child => ({
-              id: Number(child.id),
-              name: child.name,
-              gender: child.gender,
-              isAlive: child.isAlive,
-              lastName: child.lastName,
-              Nickname: child.Nickname,
-              Notes: child.Notes,
-              motherId: Number(child.motherId) || null,
-            }))
-          : [] // return no children if condition fails
-      };
-    });
-
-    return familyTree;
-  } catch (error) {
-    console.error('Error fetching family tree:', error);
-    return [];
-  } finally {
-    session.close();
-  }
-};
-
 
 const fetchSpecifiedFamilyTree = async (rootID) => {
   const session = driver.session();
@@ -307,6 +176,7 @@ const fetchSpecifiedFamilyTree = async (rootID) => {
         Nickname: node.Nickname,
         Notes: node.Notes,
         motherId: node.motherId,
+        spouseId: Number(node.spouseId) || null,
         children: includeChildren
           ? node.children.map(child => ({
               id: Number(child.id),
@@ -316,7 +186,8 @@ const fetchSpecifiedFamilyTree = async (rootID) => {
               lastName: child.lastName,
               Nickname: child.Nickname,
               Notes: child.Notes,
-              motherId: child.motherId || null
+              motherId: child.motherId || null,
+              spouseId: Number(child.spouseId) || null
             }))
           : [] // return no children if condition fails
       };
@@ -352,7 +223,8 @@ const buildTreeSafe = (person, childMap, seen = new Set(), generation = 0) => {
         isAlive: child.isAlive,
         Nickname: child.Nickname,
         Notes : child.Notes,
-        MotherID: child.MotherID
+        motherId: child.motherId,
+        spouseId: child.spouseId
       };
       return buildTreeSafe(childObj, childMap, seen, generation + 1);
     })
@@ -366,17 +238,47 @@ const buildTreeSafe = (person, childMap, seen = new Set(), generation = 0) => {
     isAlive: person.isAlive,
     Nickname: person.Nickname,
     Notes : person.Notes,
-    MotherID: person.MotherID,
+    motherId: person.motherId,
+    spouseId: person.spouseId,
     generation,
     ...(childrenNodes.length > 0 ? { children: childrenNodes } : {})
   };
 };
 
 const buildChildrenMap = (allPeople) => {
+  // 1. Create a lookup map so we can get the full "source of truth" for any person by id
+  const peopleById = new Map(allPeople.map(p => [p.id, p]));
+
   const childMap = Object.create(null);
+
   allPeople.forEach(person => {
-    childMap[ person.id ] = person.children || [];
+    if (Array.isArray(person.children)) {
+      childMap[person.id] = person.children
+        // childRef may be a partial object; use its .id to get the full person
+        .map(childRef => peopleById.get(childRef.id))
+        // filter out any missing lookups
+        .filter(originalChild => originalChild != null)
+        // now clone fully from the authoritative record
+        .map(orig => ({
+          id: orig.id,
+          name: orig.name,
+          lastName: orig.lastName,
+          gender: orig.gender,
+          isAlive: orig.isAlive,
+          Nickname: orig.Nickname,
+          Notes: orig.Notes,
+          motherId: typeof orig.motherId === 'number' ? orig.motherId : -1,
+          spouseId: Array.isArray(orig.spouseId)
+            ? [...orig.spouseId]              // clone the real array
+            : (orig.spouseId == null || orig.spouseId === -1)
+              ? []                            // normalize null/-1 → empty
+              : [orig.spouseId]               // single ID → array
+        }));
+    } else {
+      childMap[person.id] = [];
+    }
   });
+
   return childMap;
 };
 
@@ -461,10 +363,11 @@ const FamilyTree = () => {
   const [lookoutMode, setLookoutMode] = useState("");
   const [branchingMode, setBranchingMode] = useState("Branch");
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [treeMode, setTreeMode] = useState("lazy");
+  const [treeMode, setTreeMode] = useState("full");
   const [title, setTitle] = useState("شجرة عائلة: ");
   const [showSpouse, setShowSpouse] = useState(false);
   const [smallFamilyTree, setSmallFamilyTree] = useState(null);
+  const [motherQuery, setMotherQuery] = useState(false);
 
   const handleSearch = async (type) => {
     let inputValue = '';
@@ -489,6 +392,128 @@ const FamilyTree = () => {
     } 
     else {
       await searchPerson(inputValue);
+    }
+  };
+
+  const fetchFamilyTree = async (rootID) => {
+    const session = driver.session();
+    const MOTHER_OF = motherQuery ? "|MOTHER_OF" : "";
+    try {
+      const queryParamsObject = { rootID: Number(rootID) };
+
+      const query = `
+        MATCH (root:Person)
+        WHERE id(root) = $rootID
+
+        CALL {
+          WITH root
+          MATCH (root)-[:FATHER_OF*]->(descendant)
+          RETURN collect(DISTINCT descendant) AS allDescendants
+        }
+
+        WITH [root] + allDescendants AS allPeople
+        UNWIND allPeople AS person
+
+        // Get each person’s mother and spouses
+        OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(person)
+        OPTIONAL MATCH (person)-[:MARRIED_TO]-(sp:Person)
+        WITH person, mother, collect(DISTINCT sp) AS allSpouses, count(DISTINCT sp) AS marriageCount
+
+        // Get each child and their mother
+        OPTIONAL MATCH (person)-[:FATHER_OF${MOTHER_OF}]->(child:Person)
+        OPTIONAL MATCH (childMother:Person)-[:MOTHER_OF]->(child)
+
+        // Collect child basic data
+        WITH person, mother, allSpouses, marriageCount,
+            collect(DISTINCT {
+              id: id(child),
+              name: child.name,
+              lastName: child.lastName,
+              gender: child.gender,
+              isAlive: child.isAlive,
+              Nickname: child.Nickname,
+              Notes: child.Notes,
+              motherId: CASE WHEN childMother IS NULL THEN -1 ELSE id(childMother) END
+            }) AS rawChildren
+
+        // Now get child spouses separately
+        OPTIONAL MATCH (person)-[:FATHER_OF]->(c:Person)
+        OPTIONAL MATCH (c)-[:MARRIED_TO]-(s:Person)
+        WITH person, mother, allSpouses, marriageCount, rawChildren,
+            collect(DISTINCT {cid: id(c), sid: id(s)}) AS childSpousePairs
+
+        // Merge children with their spouses
+        WITH person, mother, allSpouses, marriageCount,
+            [rc IN rawChildren |
+          {
+            id: rc.id,
+            name: rc.name,
+            lastName: rc.lastName,
+            gender: rc.gender,
+            isAlive: rc.isAlive,
+            Nickname: rc.Nickname,
+            Notes: rc.Notes,
+            motherId: rc.motherId,
+            spouseId: [pair IN childSpousePairs WHERE pair.cid = rc.id | pair.sid]
+          }
+        ] AS childrenData
+
+        RETURN {
+          id: id(person),
+          name: person.name,
+          lastName: person.lastName,
+          gender: person.gender,
+          isAlive: person.isAlive,
+          Nickname: person.Nickname,
+          Notes: person.Notes,
+          motherId: CASE WHEN mother IS NULL THEN -1 ELSE id(mother) END,
+          spouseId: [sp IN allSpouses | id(sp)],
+          marriageCount: marriageCount,
+          children: childrenData
+        } AS treeNode
+        ORDER BY person.name
+
+      `;
+
+      const result = await session.run(query, queryParamsObject);
+
+      const familyTree = result.records.map(record => {
+        const node = record.get('treeNode');
+        return {
+          id: Number(node.id),
+          name: node.name,
+          gender: node.gender,
+          lastName: node.lastName,
+          isAlive: node.isAlive,
+          Nickname: node.Nickname,
+          Notes: node.Notes,
+          motherId: node.motherId !== -1 ? Number(node.motherId) : null,
+          spouseId: Array.isArray(node.spouseId)
+          ? node.spouseId.filter(id => id !== null).map(Number)
+          : [],
+          children: node.children.map(child => ({
+            id: Number(child.id),
+            name: child.name,
+            gender: child.gender,
+            isAlive: child.isAlive,
+            lastName: child.lastName,
+            Nickname: child.Nickname,
+            Notes: child.Notes,
+            motherId: child.motherId !== -1 ? Number(child.motherId) : null,
+            spouseId: Array.isArray(node.spouseId)
+            ? node.spouseId.filter(id => id !== null).map(Number)
+            : [],
+
+          }))
+        };
+      });
+      console.log(familyTree);
+      return familyTree;
+    } catch (error) {
+      console.error('Error fetching family tree:', error);
+      return [];
+    } finally {
+      await session.close();
     }
   };
 
@@ -684,41 +709,43 @@ const FamilyTree = () => {
       setLoading(false);
     }
   }; 
+  
   const spouseFamilyTree = async (rootID) => {
-  const session = driver.session();
+    const session = driver.session();
 
-  try {
-    const query = `
-      MATCH (p:Person)
-      WHERE id(p) = $rootID
+    try {
+      const query = `
+        MATCH (p:Person)
+        WHERE id(p) = $rootID
 
-      OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(p)
-      OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
-      OPTIONAL MATCH (p)-[:FATHER_OF|MOTHER_OF]->(child:Person)
+        OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(p)
+        OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
+        OPTIONAL MATCH (p)-[:FATHER_OF|MOTHER_OF]->(child:Person)
 
-      RETURN father, collect(DISTINCT sibling) AS fatherChildren, collect(DISTINCT child) AS personChildren, id(p) AS personId
-    `;
+        RETURN father, collect(DISTINCT sibling) AS fatherChildren, collect(DISTINCT child) AS personChildren, id(p) AS personId
+      `;
 
-    const result = await session.run(query, { rootID });
+      const result = await session.run(query, { rootID });
 
-    if (result.records.length === 0) {
-      console.warn("No data returned from spouseFamilyTree query.");
+      if (result.records.length === 0) {
+        console.warn("No data returned from spouseFamilyTree query.");
+        return null;
+      }
+      else {
+        console.log("Spouse found");
+      }
+      console.log(result.records[0]);
+      const tree = buildSmallFamilyTree(result.records[0]);
+      setSmallFamilyTree(tree);
+
+    } catch (error) {
+      console.error('❌ Error fetching spouse family tree:', error);
       return null;
+    } finally {
+      await session.close();
     }
-    else {
-      console.log("Spouse found");
-    }
-    console.log(result.records[0]);
-    const tree = buildSmallFamilyTree(result.records[0]);
-    setSmallFamilyTree(tree);
+  };
 
-  } catch (error) {
-    console.error('❌ Error fetching spouse family tree:', error);
-    return null;
-  } finally {
-    await session.close();
-  }
-};
   useEffect(() => {
     if (!loading) return;
 
@@ -801,24 +828,8 @@ const FamilyTree = () => {
     const session = driver.session();
     setWifeId(null);
     setHusbandId(null);
+    setSpouseId(person.spouseId) 
     try {
-      const query = `
-        MATCH (p:Person)-[:MARRIED_TO]-(spouse:Person)
-        WHERE id(p) = $id
-        RETURN id(spouse) AS SpouseID
-        LIMIT 1
-      `;
-
-      const result = await session.run(query, { id: person.id });
-      
-      if (result.records.length > 0) {
-        const spouseId = result.records[0].get("SpouseID").toNumber();
-
-        setSpouseId(spouseId);
-      } else {
-        setSpouseId(null);
-      }
-
       setSelectedPerson(person);
       setPopupMode('info');
       setShowPopup(true);
@@ -872,18 +883,9 @@ const FamilyTree = () => {
     goToPersonById(personID);
   };
 
-  const handleRootTreeClick = async () => {
-    await loadFamilyTree(ROOT, 'fullLineage', treeMode === 'lazy', true);
-    goToPersonById(ROOT);
-  };
-
   useEffect(() => {
     console.log(familyTree);
   }, [familyTree])
-
-  const handleRootWomenTreeClick = async () =>{
-    await loadFamilyTree(ROOT, false, treeMode === 'lazy')
-  };
 
   useEffect(() => {
     const treeCount = countTreeNodes(familyTree);
@@ -893,7 +895,7 @@ const FamilyTree = () => {
     setMaxGeneration(maxDepth);
   }, [familyTree]);
 
-  const loadFamilyTree = async (rootID, mode, isLazy = false, type = true) => {
+  const loadFamilyTree = async (rootID, mode, isLazy = false) => {
     try {
       setLoading(true);
 
@@ -901,8 +903,9 @@ const FamilyTree = () => {
 
       if (mode === 'fullLineage') {
         people = await fetchSpecifiedFamilyTree(rootID);
-      } else {
-        people = await fetchFamilyTree(rootID, type);
+      } 
+      else {
+        people = await fetchFamilyTree(rootID);
       }
 
       if (!Array.isArray(people) || people.length === 0) {
@@ -919,11 +922,10 @@ const FamilyTree = () => {
           name: utils.translateName(node.name),
           lastName: utils.translateFamilyName(node.lastName),
           children: [],  
-          _realChildren: realChildren.map(child => buildLazyNode(child, childrenMap)),
+          _realChildren: realChildren.map(child => ({ ...buildLazyNode(child, childrenMap) })),
           _lazyLoaded: false,
         };
       };
-      // ✅ 2. LAZY OPTION HANDLING
       if (isLazy) {
         const rootPerson = people.find(p => p.id === rootID);
         if (!rootPerson) {
@@ -937,8 +939,6 @@ const FamilyTree = () => {
         return;
       }
 
-
-      // ✅ 3. NORMAL (FULL LOAD) HANDLING
       if (mode === 'fullLineage') {
         const rootCandidates = people.filter(p => !people.some(other => other.children.some(c => c.id === p.id)));
         const lineageRoot = rootCandidates.length ? rootCandidates[0] : people[0];
@@ -955,7 +955,8 @@ const FamilyTree = () => {
         setTreeCount(treeStats);
         setTreeDepth(maxDepth);
         setMaxGeneration(maxDepth);
-      } else {
+      } 
+      else {
         const rootPersonFlat = people.find(p => p.id === rootID);
         if (!rootPersonFlat) {
           console.warn(`Root ID ${rootID} not found in fetched people.`);
@@ -963,12 +964,9 @@ const FamilyTree = () => {
         }
 
         const rootWrapped = {
-          id: rootPersonFlat.id,
-          name: rootPersonFlat.name,
-          lastName: rootPersonFlat.lastName,
-          gender: rootPersonFlat.gender,
+          ...rootPersonFlat,
         };
-
+        
         const fullTree = buildTreeSafe(rootWrapped, childrenMap, new Set());
         setFamilyTree(fullTree);
         const treeCount = countTreeNodes(fullTree);
@@ -998,12 +996,6 @@ const FamilyTree = () => {
     clearTimeout(holdTimer);
   };
 
-  const handleSetTreeMode = () =>{
-    const mode = document.getElementById("mode").value;
-    console.log(mode);
-    setTreeMode(mode);
-  };
-
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -1019,7 +1011,6 @@ const FamilyTree = () => {
   useEffect(() => {
     document.title = "شجرة عرش قصر أولاد بوبكر";
   }, []);
-
 
   useEffect(() => {
     if (personDetails && personDetails.personID) {
@@ -1041,11 +1032,9 @@ const FamilyTree = () => {
           </p>
         </div>
         <div className='treefetchtype'>
-          <select id="mode" onChange={handleSetTreeMode}>
-            
-            <option value="lazy">تحميل الشجرة عند النقر على الشخص</option>
-            <option value="full">تحميل الشجرة كاملة</option>
-
+          <select id="mode">
+            <option value="lazy" onClick={() => setTreeMode("lazy")}>تحميل الشجرة عند النقر على الشخص</option>
+            <option value="full" onClick={() => setTreeMode("full")}>تحميل الشجرة كاملة</option>
           </select>
         </div>
       </header>
@@ -1054,29 +1043,6 @@ const FamilyTree = () => {
     <aside className="panel panel--controls">
       
       <div className="filterChoice">
-        
-        <div className="card">
-          <h3>تصفح الشجرة العائلية الكبرى</h3>
-
-          <p className="info-text">
-            يمكنك تصفح الشجرة العائلية الكاملة ابتداءً من الجدّ الأعلى وصولاً إلى الأجيال الحديثة. يتوفّر نمطان للعرض:
-          </p>
-
-          <p className="info-text">
-              <strong style={{ color: 'blue' }}>شجرة العائلة التقليدية:</strong> تظهر الأنساب ابتداءً من الجدّ الأول دون احتساب أبناء الأمهات.
-          </p>
-
-          <p className="info-text">
-            <strong style={{ color: '#b52155' }}>شجرة العائلة مع أبناء الأمهات:</strong> تُظهر أيضًا أبناء الأمهات، لجعل الشجرة أكثر شمولًا
-            <strong id="warning"> — ولكن قد تحتوي على تكرارات وتكون ضخمة!</strong>
-          </p>
-              
-          <div className="rootButton">
-            <button id="men" onClick={handleRootTreeClick}>شجرة العائلة التقليدية</button>
-            <button id="women" onClick={handleRootWomenTreeClick}>شجرة مع أبناء الأمهات</button>
-          </div>
-
-        </div>
         <div className="card">
           <h3>تصفح أحد الفروع الرئيسية</h3>
           <p className="info-text">
@@ -1233,7 +1199,8 @@ const FamilyTree = () => {
                   <option value="847">فرع العزابي</option>
                 </select>
           )}
-          
+          <label>عرض أبناء الأمهات </label>
+          <input type="checkbox" checked={motherQuery} onChange={() => setMotherQuery(!motherQuery)}></input>
           <button className='searchButton' onClick={() => {
             handleBranchSelect(selectedSubtree || selectedBranch);
             setSelectedBranch('-1');
@@ -1248,8 +1215,7 @@ const FamilyTree = () => {
           <p className="info-text">
             اكتب اسم الشخص كاملاً أو جزئياً، أو أدخل الرقم التسلسلي (ID)، لعرض شجرته مع أجداده وذريته.
           </p>
-          <label>عرض أبناء الأمهات</label>
-          <input type="checkbox"></input>
+          
           <input className="SearchInput" id="TreeRoot" type="text" placeholder="أَدخِل الرقم التسلسلي أو اسم الشخص"/>
           <button className='searchButton' onClick={async () =>{
             setPersonDetails(null); 
@@ -1392,12 +1358,6 @@ const FamilyTree = () => {
           }} />
         </div>
       )}
-
-      {!loading && !showTree && (
-        <div style={{ textAlign: 'center', padding: 30, alignItems: 'center' }}>
-          <p>لا توجد بيانات شجرة لعرضها.</p>
-        </div>
-      )}
       
       {showTree && familyTree && !loading ? (
         
@@ -1435,11 +1395,35 @@ const FamilyTree = () => {
           setSelectedGeneration={setSelectedGeneration}
         />
       ) : 
-      <p style={{ textAlign: 'center', marginTop: '2rem', color: '#777' }}>
+      <p id="noTreeText">
         لا توجد شجرة لعرضها حالياً
       </p>
       }
+      {showTree && familyTree && !loading && 
+        <div id="keys">
+          <div class="key-box">
+            <span class="key-color special-border male" id="k1"></span>
+            <span class="key-label">ذكر</span>
+          </div>
+          <div class="key-box">
+            <span class="key-color special-border female" id="k2"></span>
+            <span class="key-label">أنثى</span>
+          </div>
+          <div class="key-box">∅
+            <span class="key-label">ليس لديه عقب</span>
+          </div>
+          <div class="key-box">
+            <span class="key-color" id="k4"></span>
+            <span class="key-label">شخص مطلوب</span>
+          </div>
+          <div class="key-box">
+            <span class="key-color" id="k5"></span>
+            <span class="key-label">شخص متوفى</span>
+          </div>
+        </div>
+      }
     </main>
+    
     </div>
     
     {loading && !showTree && !familyTree && (

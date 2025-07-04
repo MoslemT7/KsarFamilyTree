@@ -114,6 +114,10 @@ const ComingSoonOfficial = () => {
             <a href="tel:+21627200162" className="contribute-button">
               اتصل بنا مباشرة
             </a>
+
+            <a href="mailto:contact@ouledboubaker.tn" className="contribute-button">
+              أرسل لنا بريداً إلكترونياً
+            </a>
           </div>
         </div>
 

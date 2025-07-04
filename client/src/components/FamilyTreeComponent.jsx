@@ -98,7 +98,7 @@ function FamilyTreeComponent(props) {
           )}
 
           <div className="popup-buttons">
-            {spouseId && (
+            {spouseId !== -1 && (
               <button
                 onClick={async () => {
                   if (!nodePositions.current[spouseId]) {

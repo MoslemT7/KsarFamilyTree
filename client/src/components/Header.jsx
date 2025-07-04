@@ -3,6 +3,7 @@ import { FaUserCircle, FaMoon, FaSun } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { FiBell } from "react-icons/fi"; // Feather
 import '../styles/Header.css';
+import logo from '../media/logo2.png'
 
 const Header = ({ toggleMenu }) => {
   const [darkMode, setDarkMode] = useState(false);
@@ -24,6 +25,7 @@ const Header = ({ toggleMenu }) => {
   return (
     <header className="official-header">
       <div className="header-left">
+        <img src={logo} alt="Logo" style={{ width: '20%', height: '95%', marginRight: '8px' }} />
         <h1>موقع قصر أولاد بوبكر</h1>
       </div>
       

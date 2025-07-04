@@ -16,7 +16,8 @@ const TreeView = ({
   cancelHoldTimer,
   husbandId,
   wifeId,
-  personID
+  personID,
+  spouseId
 }) => (
   <Tree
     data={data}
@@ -88,7 +89,7 @@ const TreeView = ({
 
           {(() => {
           const words = nodeDatum.name.split(" ");
-          const lines = [];
+          const lines = [nodeDatum.id];
           let curr = "";
           words.forEach((w) => {
             const test = curr ? `${curr} ${w}` : w;
@@ -99,11 +100,20 @@ const TreeView = ({
           });
           if (curr) lines.push(curr);
 
-
-          // Lines to render for name + nickname + no children mark
+          let marriageStatus = "";
+          if (Array.isArray(nodeDatum.spouseId)) {
+            const validSpouses = nodeDatum.spouseId;
+            
+            if (validSpouses.length === 1) {
+              marriageStatus = "M";    // Married once
+            } else if (validSpouses.length > 1) {
+              marriageStatus = "MM";   // Married multiple times
+            }
+          }
           const all = [...lines];
           if (peopleWithNoChildren.includes(nodeDatum.id)) all.push("∅");
           if (nodeDatum.Nickname) all.push(`(${nodeDatum.Nickname})`);
+          if (marriageStatus) all.push(marriageStatus);
 
           return (
             <>

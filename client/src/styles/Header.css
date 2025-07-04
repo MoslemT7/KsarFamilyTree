@@ -45,18 +45,19 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 5px 20px;
-  background: url('../media/bg2-low.jpg');
+  padding: 5px 10px;
+  background: var(--color-bg-primary);
   font-family: 'Cairo', sans-serif;
   margin: 0;
+  max-height: 100px;
 }
 
 /* Left */
 .header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
-  width: 60%;
+  gap: 2px;
+  width: 70%;
 }
 
 .header-left h1 {
@@ -70,7 +71,7 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  width: 100%;
+  width: 30%;
 
 }
 

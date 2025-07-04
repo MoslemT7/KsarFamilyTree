@@ -80,7 +80,10 @@
   direction: rtl;
   text-align: justify;
 }
-
+#launch{
+  color: var(--color-bg-primary);
+  background-color: var(--color-accent-primary);
+}
 .statistics-dashboard p{
   font-family: 'Cairo', sans-serif;
   text-align: center;

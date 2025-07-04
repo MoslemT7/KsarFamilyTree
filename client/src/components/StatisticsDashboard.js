@@ -48,7 +48,7 @@ function buildPyramidData(maleAges, femaleAges, rangeSize = 5) {
 
 const StatisticsDashboard = () => {
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [ageDistribution, setAgeDistribution] = useState([]);
   const [cumulativePopulationGrowth, setpopulationGrowth] = useState([]);
   const [weddingData, setWeddingData] = useState([]);
@@ -69,42 +69,42 @@ const StatisticsDashboard = () => {
   useEffect(() => {
       document.title = "إحصائيات قصر أولاد بوبكر";
     }, []);
+
   const ageBins = async () => {
-  const session = driver.session();
-  try {
-    const result = await session.run(`
-      WITH date().year AS currentYear
-      MATCH (p:Person)
-      WHERE p.YoB IS NOT NULL AND p.isAlive = true
-      WITH currentYear - toInteger(p.YoB) AS age
-      WITH CASE
-        WHEN age < 3 THEN '0-2'
-        WHEN age < 13 THEN '3-12'
-        WHEN age < 19 THEN '13-18'
-        WHEN age < 30 THEN '19-29'
-        WHEN age < 45 THEN '30-44'
-        WHEN age < 60 THEN '45-59'
-        WHEN age < 70 THEN '60-69'
-        WHEN age < 80 THEN '70-79'
-        ELSE '80+'
-      END AS ageBin
-      RETURN ageBin, count(*) AS count
-      ORDER BY ageBin
-    `);
+    const session = driver.session();
+    try {
+      const result = await session.run(`
+        WITH date().year AS currentYear
+        MATCH (p:Person)
+        WHERE p.YoB IS NOT NULL AND p.isAlive = true
+        WITH currentYear - toInteger(p.YoB) AS age
+        WITH CASE
+          WHEN age < 3 THEN '0-2'
+          WHEN age < 13 THEN '3-12'
+          WHEN age < 19 THEN '13-18'
+          WHEN age < 30 THEN '19-29'
+          WHEN age < 45 THEN '30-44'
+          WHEN age < 60 THEN '45-59'
+          WHEN age < 70 THEN '60-69'
+          WHEN age < 80 THEN '70-79'
+          ELSE '80+'
+        END AS ageBin
+        RETURN ageBin, count(*) AS count
+        ORDER BY ageBin
+      `);
 
-    const ageDistribution = result.records.map(record => ({
-      ageBin: record.get('ageBin'),
-      count: record.get('count').toNumber(),
-    }));
-    return ageDistribution;
-  } catch (error) {
-    console.error('Error running the query:', error);
-    return [];
-  } finally {
-    await session.close();
-  }
-};
-
+      const ageDistribution = result.records.map(record => ({
+        ageBin: record.get('ageBin'),
+        count: record.get('count').toNumber(),
+      }));
+      return ageDistribution;
+    } catch (error) {
+      console.error('Error running the query:', error);
+      return [];
+    } finally {
+      await session.close();
+    }
+  };
 
   const populationGrowth = async () => {
     const session = driver.session();
@@ -137,7 +137,8 @@ const StatisticsDashboard = () => {
     }
   };
 
-  useEffect(() => {
+  const lanchStatistics = async () => {
+    setLoading(true);
     const fetchStats = async () => {
       try {
         const Population = await statistics.getPopulationStats();
@@ -207,7 +208,7 @@ const StatisticsDashboard = () => {
     };
     
     fetchStats();
-  }, []);
+  };
 
   useEffect(() => {
   if (!ageDistributionChartRef.current || ageDistribution.length === 0) return;
@@ -550,22 +551,19 @@ const StatisticsDashboard = () => {
 
   }, [topFamiliesData]);
 
-  if (loading) return (
-    <div className="loading-container">
-      <div className="spinner"></div>
-      <p className="loading-message">جاري تحميل الإحصائيات... الرجاء الانتظار</p>
-    </div>
-  );
-  if (!stats) return <p>تعذر تحميل البيانات.</p>;
-
   return (
-    <div className="stats-dashboard">
-      <section className="statistics-dashboard">
-        <header>
+  <div className="stats-dashboard">
+    <header>
           <h1 class="dashboard-title">لوحة الإحصائيات العامة</h1>
           <p id='description'>صفحة الإحصائيات هي مصدر شامل يقدم مجموعة متنوعة من البيانات والرسوم البيانية التي تسلط الضوء على مختلف جوانب المجتمع. تشمل الصفحة نظرة عامة عن التعداد السكاني، الهيكل العائلي، التوزيع الجغرافي، والتوجهات الديموغرافية. كما توفر تفاصيل حول نسبة الجنس، متوسط الأعمار، وأنماط الزواج، بالإضافة إلى تحليل مفصل حول الظروف الاقتصادية والاجتماعية. من خلال الرسوم البيانية التفاعلية والمخططات المبتكرة، يتمكن المستخدمون من استكشاف الإحصائيات بسهولة ومعرفة التوجهات التاريخية والمقارنات مع المتوسطات المحلية والعالمية. تُعتبر هذه الصفحة أداة قيمة لفهم التغيرات الاجتماعية والاقتصادية في المجتمع وتتبع التطورات المستقبلية.
           </p>
-        </header>
+          <button id="launch" onClick={lanchStatistics}>تحميل الإحصائيات</button>
+    </header>
+    {stats && 
+    <div>
+      
+      <section className="statistics-dashboard">
+        
         
         <div class="category-block population-overview">
           <h3 class="category-title" id="overview">نظرة عامة على السكان</h3>
@@ -722,13 +720,13 @@ const StatisticsDashboard = () => {
             <h2>نسبة الأفراد الأحياء في قاعدة البيانات</h2>
             <div class="content-wrapper">
               <div class="percentage">
-                <span className="percentageText">{(stats.totalAlivePopulation * 100 / 2100).toFixed(1)}%</span>
+                <span className="percentageText">{(stats.totalAlivePopulation * 100 / 2050).toFixed(1)}%</span>
                 <div class="progress-bar">
-                <div className="progress" style={{ width: `${(stats.totalAlivePopulation * 100 / 2100).toFixed(1)}%` }}></div>
+                <div className="progress" style={{ width: `${(stats.totalAlivePopulation * 100 / 2050).toFixed(1)}%` }}></div>
                 </div>
               </div>
               <div class="data-completeness-content">
-                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>{(stats.totalAlivePopulation * 100 / 2100).toFixed(1)}%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
+                <p>نحن حاليًا قمنا بتوثيق حوالي <strong>{(stats.totalAlivePopulation * 100 / 2050).toFixed(1)}%</strong> من الأفراد الأحياء في قاعدة البيانات، مما يعكس جهودنا المستمرة لتحديث وتوسيع الشجرة العائلية.</p>
               </div>
             </div>
           </div>
@@ -736,7 +734,7 @@ const StatisticsDashboard = () => {
 
         <div class="important-info">
           <h2>دقة توثيق التاريخ القديم</h2>
-          <p>تم تسجيل <strong><span class="highlight">{(stats.deadPopulation*100/900).toFixed(1)}%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
+          <p>تم تسجيل <strong><span class="highlight">{(stats.deadPopulation*100/750).toFixed(1)}%</span></strong> من الأفراد العائلة القدامى في قاعدة البيانات، ما يعكس جهدًا دقيقًا لتوثيق التاريخ العائلي الكامل.</p>
         </div>
         </div>
         <div className="data-accuracy-note">
@@ -764,8 +762,21 @@ const StatisticsDashboard = () => {
             <p className="minor-tip">📥 يمكنك اقتراح تحسينات أو ملاحظات على طريقة عرض الإحصائيات عبر التواصل معنا.</p>
             <p className="minor-tip">🔎 قريبًا: ستتمكن من استكشاف الإحصائيات حسب الفروع العائلية والمناطق.</p>
         </div>
+    </div>
+    }
+    {loading && 
+      <div>
+        <div className="loading-container">
+        <div className="spinner">
+
+        </div>
+        <p className="loading-message">جاري تحميل الإحصائيات... الرجاء الانتظار</p>
+        </div>
       </div>
-  );
+    }
+    
+  </div>
+  )
 };
 
 export default StatisticsDashboard;

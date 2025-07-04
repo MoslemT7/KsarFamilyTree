@@ -41,6 +41,10 @@ const PersonCINCard = ({ person }) => {
           <div className="cin-info">
             <div className="cin-names">
               <p>
+                <strong>الفرع </strong>
+                <span>{person.Branch}</span>
+                </p>
+              <p>
                 <strong>اللقب</strong>{' '}
                 <span id="familyName">
                   {utils.translateFamilyName(person.familyName)}
@@ -49,14 +53,10 @@ const PersonCINCard = ({ person }) => {
               <p>
                 <strong>الإسم</strong>{' '}
                 {utils.translateName(person.personName)}
+                {person.Nickname ? " (" +  utils.translateName(person.Nickname) + ")": ""}
               </p>
               <p>
-                {person.fatherName
-                  ? (person.gender === 'Male' ? ' بن ': ' بنت ') + utils.translateName(person.fatherName)
-                  : ''}
-                {person.grandfatherName
-                  ? ' بن ' + utils.translateName(person.grandfatherName)
-                  : ''}
+                {utils.formatFullName(person.fullLineage, person.gender, 1, 5)}
               </p>
               <p>
                 <strong>
