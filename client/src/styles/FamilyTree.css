@@ -57,14 +57,10 @@
   --main-font: "Cairo";
 
 }
-/*----------------------------------------
-  Tree Page Layout
-----------------------------------------*/
 
 .treePage {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
   font-family: var(--main-font);
   margin: 4px 0px;
 }
@@ -80,62 +76,13 @@
   flex-direction: row;
 }
 
-.buttonsZone button {
-  width: 100%;
-  text-align: left;
-  font-family: var(--main-font);
-}
-
-button {
-  align-items: center;
-  direction: ltr;
-  font-family: var(--main-font);
-}
-
-.treePage > header {
-  padding: 16px;
-}
-
-.treePage > header .d #pd {
-  font-size: 20px;
-  line-height: 1.6;
-  text-align: center;
-  margin: 0 auto;
-  width: 100%;
-  padding: 8px 4px;
-}
-
-.card h3 {
-  background-color: var(--dark-color);
-  color: var(--accent-color);
-  text-align: center;
-  border-radius: var(--medium-radius);
-}
-
-.card h4 {
-  text-align: center;
-  background-color: var(--accent-color);
-  color: var(--light-bg);
-  border-radius: var(--large-radius);
-}
-
-.d {
-  width: 100%;
-  padding: 0;
-}
-
 select{
   font-family: "Cairo";
 }
 
-/*----------------------------------------
-  Panels Container
-----------------------------------------*/
-
 .screen {
   display: flex;
   flex: 1;
-  
   overflow: hidden;
 }
 
@@ -159,13 +106,11 @@ select{
   direction: rtl;
 }
 
-/* Controls Panel */
 .panel--controls {
   flex: 0 0 320px;
   background: var(--card-bg);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
   border: 4px ridge var(--border-accent);
   border-radius: 8px;
 }
@@ -173,9 +118,9 @@ select{
 .panel--controls .filterChoice {
   display: flex;
   flex-direction: column;
-  
   padding: 2px;
 }
+
 #mode{
   border-radius: 8px;
   border: 2px dashed var(--color-border);
@@ -183,14 +128,47 @@ select{
   font-size: 16px;
   font-weight: 800;
 }
+
 .panel--controls .filterChoice .card {
   background: url('../media/bg2-low.jpg');
-  border: 3px solid var(--color-border);
+  display: block;
   border-radius: 8px;
   text-align: center;
-  padding: 2px;
-  width: 100%;
+  padding: 0.5px;
+  margin: 1px 1.5px;
+  width: 98%;
   box-shadow: 2px 4px 12px var(--shadow-inset);
+}
+
+.card h3 {
+  background-color: var(--dark-color);
+  color: var(--accent-color);
+  text-align: center;
+  border-radius: var(--medium-radius);
+}
+
+.card h4 {
+  text-align: center;
+  background-color: var(--accent-color);
+  color: var(--light-bg);
+  border-radius: var(--large-radius);
+}
+
+#titleDiv textarea{
+  width: 75%;
+  height: 30%;
+  font-size: 24px;
+  font-family: "Cairo";
+  text-align: center;
+  padding: 2px 12px;
+  border-radius: 22px;
+}
+
+#titleDiv button{
+  width: 25px;
+  height: 25px;
+  background-color: transparent;
+  color: var(--border-success);
 }
 
 .panel--controls .info-text {
@@ -206,25 +184,6 @@ select{
   font-size: 26px;
 }
 
-#men, #women {
-  flex: 1;
-  padding: 8px 0;
-  font-size: 14px;
-  border: 2px solid var(--color-border);
-  border-radius: 8px;
-}
-
-#men {
-  background-color: var(--color-accent-muted);
-  color: var(--color-bg-primary);
-}
-
-#women {
-  background-color: var(--color-bg-primary);
-  color: var(--color-accent-muted);
-}
-
-/* Person & Search Inputs */
 .SearchInput {
   width: 100%;
   height: 50px;
@@ -250,7 +209,6 @@ select{
   cursor: pointer;
   border-radius: 4px;
 }
-
 
 #warning {
   color: var(--warning-color);
@@ -287,17 +245,19 @@ select{
   color: var(--color-bg-primary);
   background-color: var(--color-text-main);
 }
-/* Popup */
+
 .popup {
   position: absolute;
+  display: flex;
+  flex-direction: row;
   left: 20%;
   bottom: 45%;
   text-align: center;
   background-color: var(--color-bg-secondary);
+  border: 3px outset var(--border-base);
   padding: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  border-radius: var(--small-radius);
-  height: 50%;
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
   width: 60%;
   pointer-events: auto;
 }
@@ -313,19 +273,42 @@ select{
   width: 40%;
 }
 
-.toggle-group {
-  text-align: center;
-  direction: rtl;
-  font-family: 'Cairo', sans-serif;
+.popup aside h2{
+  font-size: 16px;
+}
+.popup aside h4, .popup aside p{
+  font-size: 14px;
+  
 }
 
-.group-label {
-  font-weight: bold;
-  font-size: 1.1rem;
-  margin-bottom: 10px;
-  display: block;
+.popup aside h4{
+  background-color: var(--border-success);
+  color: whitesmoke;
+  width: 50%;
+  margin: 1px auto;
+  border-radius: 2px;
+  border: 2px outset var(--border-success);
 }
 
+#smallTreeDisplay{
+  height: 90%;
+  background: url("../media/bg2-low.jpg");
+  border: 4px ridge var(--border-success);
+  overflow: visible;
+}
+
+#CloseButtonPopup{
+  position: absolute;
+  background-color: transparent;
+  right: 10px;
+  top: 10px;
+  transform: scale(1.5);
+  color: #333;
+}
+
+.HeaderButtons{
+  background-color: transparent !important;
+}
 .toggle-options {
   display: flex;
   gap: 1rem;
@@ -334,6 +317,11 @@ select{
 
 .toggle-options input[type="radio"] {
   display: none;
+}
+
+.motherQ{
+  display: flex;
+  flex-direction: row;
 }
 
 .toggle-options label {
@@ -373,49 +361,92 @@ select{
   border-radius: 8px;
 }
 
-/* Tree Wrapper */
 #treeWrapper {
   width: 100%;
-  height: 75%;
+  height: 95%;
   background: url('../media/bg2-low.jpg');
-
+  background-size: cover;
   box-shadow: var(--shadow);
   position: relative;
   overflow: hidden;
   margin: 0;
   padding: 0;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+#treeMenuToggle {
+  position: absolute;
+  top: 5px;
+  right: 1px;
+  z-index: 1000;
+  display: flex;
+  width: 25%;
+  text-align: right;
 }
 
-
+#treeMenuToggle button {
+  background-color: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  font-family: "Cairo";
+  width: 25%;
+  font-weight: bold;
+  padding: 1px;
+  margin: 1;
+}
 
 #treedisplayer1 {
   display: 'flex';
-  border: 2px dashed var(--border-accent);
   height: 100%;
 }
 
 #treedisplayer2{
   flex: 1;
-}
-#TreeTitle {
-  content: "شجرة العائلة";
-  background: var(--color-bg-primary);
-  padding: 2px 6px;
-  border-radius: 8px;
-  color: var(--c);
-  font-size: 20px;
-  text-align: center;
-  font-weight: bold;
-  z-index: 1;
+  height: 100%;
+  
 }
 
+#treedisplayer3{
+  flex-grow: 1;
+  width: 100%;
+}
+
+#buttonsZone button {
+  width: 100%;
+  text-align: left;
+  font-family: var(--main-font);
+  background: transparent;
+  padding: 1px;
+  margin: 1px;
+  font-size: 16px;
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 6px;
+}
+
+
+#buttonsZone {
+  height: 100%;
+  width: 25%;
+  margin-left: 5px;
+}
+
+.searchButton{
+  margin: 1px;
+}
 #titleDiv{
   width: 50%;
+  align-items: center;
 }
 
 #titleDiv h2{
-  width: 75%;
-  margin: 2vh auto;
+  width: 100%;
+  text-align: center;
+}
+
+#titleDiv textarea {
+  font-size: 18px;
+  resize: none;
 }
 
 .infoStats {
@@ -424,35 +455,16 @@ select{
   width: 25%;
 }
 
-.infoStats p {
+.infoStats td {
   font-weight: bold;
-  font-size: 18px;
-}
-
-/* Generation Sidebar */
-.genBar {
-  position: sticky;
-  top: 20px;
-  height: 80vh;
-  width: 60px;
-  background: var(--color-accent-primary);
-  border-radius: 8px;
-  padding: 8px 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  font-family: var(--main-font);
   font-size: 14px;
-  user-select: none;
-  text-align: center;
-  direction: rtl;
 }
 
-.genNum {
-  font-family: var(--main-font);
+.infoStats table td{
+  padding: 2px;
+  border: 1px ridge var(--border-dark);
 }
 
-/* Loading Indicator */
 .loading-indicator {
   display: flex;
   flex-direction: column;
@@ -468,22 +480,6 @@ select{
 .loading-indicator p {
   font-size: 32px;
   color: var(--text-color);
-}
-
-#buttonsZone{
-  width: 25%;
-  text-align: left;
-  align-items: center;
-}
-
-#buttonsZone button{
-  font-size: 18px;
-  width: 75%;
-  background: transparent;
-  text-align: left;
-  margin: 2vh;
-  color: var(--color-text-main);
-  padding: 4px;
 }
 
 .spinner {
@@ -515,11 +511,11 @@ select{
 #keys {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  padding: 12px 24px;
+  gap: 14px;
+  padding: 2px 12px;
   justify-content: center;
   font-family: 'Cairo', sans-serif;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .key-box {
@@ -558,41 +554,231 @@ select{
 #k4{
   background-color: #cf14d9;
 }
-
 #k3{
   padding-bottom: 3px;
 }
-
 #k2{
   background-color: #b52155;
 }
-
 #k1{
   background-color: #1bbc7b;
 }
-/*----------------------------------------
-  Responsive
-----------------------------------------*/
+
+
+@media (max-width: 1024px ) and (max-height: 512px){
+  #treedisplayer1 {
+    display: 'flex';
+    height: 75%;
+  }
+  .infoStats table tr td{
+    font-size: 10px;
+    padding: 0px;
+  }
+  #buttonsZone button, #buttonsZone button label{
+    font-size: 10px;
+  }
+  #titleDiv h2{
+    font-size: 14px;
+  }
+  #titleDiv textarea{
+    font-size: 10px;
+    height: 70%;
+  }
+  #buttonsZone{
+    display: flex;
+    flex-direction: column;
+  }
+  #buttonsZone button {
+    display: flex;
+    padding: 4px;
+    flex-direction: row-reverse;
+  }
+  #keys{
+    font-size: 10px;
+    background-color: var(--color-bg-primary);
+    height: 10%;
+    border: 2px solid var(--border-success);
+  }
+  
+}
+
+@media (max-width: 1024px) and (min-height: 250px) {
+  .screen {
+    display: flex;
+    flex-direction: column-reverse;
+    text-align: center;
+  }
+
+  .panel--controls {
+    flex: none;
+    width: 100%;
+    border-right: none;
+    display: flex;
+    flex-direction: row;    
+    overflow-x: auto;
+    gap: 8px;
+  }
+  .panel--controls .card {
+    width: 50%;
+  }
+
+  .panel--tree {
+    width: 80%;
+    margin: 2px auto;
+    max-height: 250px;
+  }
+  #treeWrapper {
+    height: 85vh;
+    
+  }
+  #treedisplayer1{
+    height: 100%;
+  }
+  .card .info-text{
+    font-size: 12px;
+  }
+
+  .card{
+    text-align: center;
+  }
+
+  .card button{
+    font-size: 12px;
+    width: 50%;
+    margin: 2px auto;
+  }
+  #stats{
+    font-size: 12px;
+  }
+  .infoStats{
+    width: 25%;
+    padding: 1px;
+  }
+  .treeHeader {
+    max-height: 30%;
+  }
+  #icon{
+    font-size: 12px;
+  }
+  .treeHeader button{
+    padding: 2px;
+  }
+
+  .popup{
+    width: 95%;
+    height: 95%;
+    left: 2.5%;
+    bottom: 2.5%;
+    z-index: 1000;
+  }
+
+  .popup aside{
+    width: 40%;
+  }
+  .popup aside button{
+    width: 75%;
+    font-size: 14px;
+  }
+  .popup main{
+    width: 60%;
+    border: 1px ridge var(--border-accent);
+    background: url("../media/bg2-low.jpg");
+    background-position: center;
+  }
+
+  .popup h4{
+    font-size: 15px;
+  }
+  .popup button{
+    font-size: 16px;
+  }
+  #smallTreeDisplay{
+    height: 100%;
+    border: 2px outset var(--border-success);
+  }
+  .popup main{
+    border: none;
+  }
+  #titleDiv{
+    width: 50%;
+    text-align: center;
+  }
+  #titleDiv h1{
+    font-size: 16px;
+  }
+  #titleDiv textarea{
+    font-size: 16px;
+  }
+
+  .treeHeader table td p{
+    font-size: 14px;
+  }
+  #buttonsZone{
+    width: 25%;
+  }
+  
+  .buttonLabel{
+    font-size: 14px;
+  }
+  #treeWrapper{
+    height: 99%;
+  }
+  #R3{
+    display: none;
+  }
+  #keys {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    font-size: 10px;
+    background-color: var(--color-bg-primary);
+    border: 2px solid var(--border-success);
+    border-radius: 4px 4px 0 0;
+    z-index: 1000; /* optional, to stay above other elements */
+  }
+}
 
 @media (max-width: 480px) {
   .screen {
-    flex-direction: column;
+    flex-direction: column-reverse;
     padding: 0;
   }
+  #treeMenuToggle{
+    top: 1px;
+    right: 2px;
+  }
+  #R3{
+    display: none;
+  }
   .panel--tree {
+    width: 80%;
+    min-height: 250px;
+    padding: 0;
+    margin: 0;
+    margin: 2px auto
+  }
+  #treeMenuToggle{
+    display: block;
+  }
+  .filterChoice{
+    margin: 0;
+    padding: 0;
     width: 100%;
-    padding: 0
+    
   }
-  .panel--controls {
-    flex: none;
-    width: 95%;
-    display: flex;
-    flex-direction: column;     /* cards in a row */
-    overflow-x: auto;        /* allow horizontal scroll if needed */
-    margin: 2px 0px;
-    gap: 2px;
+  .panel .panel--controls {
+    display: block;
+    padding: 0;
+    margin: 0;
+    overflow-y: visible;
   }
-
+  #titleDiv textarea{
+    font-size: 16px;
+    padding: 2px;
+    overflow-wrap: break-word;
+    resize: vertical;
+  }
   #title{
     font-size: 24px;
   }
@@ -600,9 +786,8 @@ select{
     font-size: 14px;
   }
   .filterChoice .card {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
+    border: none;
+    display: block;
     text-align: center;
   }
 
@@ -623,15 +808,22 @@ select{
   }
 
   #titleDiv h2{
-    font-size: 16px;
+    font-size: 17px;
   }
-
-  #buttonsZone button{
-    font-size: 14px;
-  }
-
-  #infoStats p{
+  #titleDiv textarea {
     font-size: 12px;
+    min-height: 50%;
+    align-items: center;
+  }
+  #buttonsZone button{
+    font-size: 12px;
+  }
+  .buttonLabel{
+    font-size: 12px;
+  }
+
+  .infoStats td{
+    font-size: 10px;
   }
   .popup{
     width: 85%;
@@ -645,96 +837,16 @@ select{
   .popup button{
     font-size: 14px;
   }
-}
-
-@media (max-width: 1024px) {
-  .screen {
-    display: flex;
-    flex-direction: column-reverse;
-    text-align: center;
-  }
-
-  .panel--controls {
-    flex: none;
-    width: 100%;
-    border-right: none;
-    display: flex;
-    flex-direction: row;    
-    overflow-x: auto;
-    gap: 8px;
-  }
-
-  .panel--controls .filterChoice {
-    display: flex;
-    flex-direction: row;
-    gap: 8px;
-  }
-  .panel--controls .card {
-    flex: 0 0 auto;
-    min-width: 30vh; 
-    max-width: 40vh;
-  }
-
-  .panel--tree {
-    flex: 1;
-    width: 95%;
-    
-    margin: 1px auto;
-    height: auto;
-  }
-  #treeWrapper {
-    height: 85vh;
-    
-  }
-  .card .info-text{
+  #keys{
     font-size: 12px;
-  }
-
-  .card{
-    text-align: center;
-  }
-
-  .card button{
-    font-size: 12px;
-    width: 50%;
-    margin: 2px auto;
-  }
-  #stats{
-    font-size: 12px;
-  }
-  .infoStats{
-    width: 25%;
-  }
-  .treeHeader span, #icon{
-    font-size: 12px;
-  }
-  .treeHeader button{
     padding: 2px;
   }
-  .genBar{
+  #keys{
     font-size: 12px;
+    max-height: 200px;
+    background-color: var(--color-bg-primary);
+    border: 2px solid var(--border-success);
   }
-  .popup{
-    width: 75%;
-    height: 50%;
-    left: 10%;
-    bottom: 15%;
-  }
-  .popup h4{
-    font-size: 15px;
-  }
-  .popup button{
-    font-size: 16px;
-  }
-
-  #titleDiv{
-    width: 50%;
-    text-align: center;
-  }
-
-  #buttonsZone{
-    width: 25%;
-  }
-  
-
 }
+
+

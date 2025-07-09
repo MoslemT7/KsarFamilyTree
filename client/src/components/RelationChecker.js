@@ -13,6 +13,34 @@ const driver = require('neo4j-driver').driver(
     require('neo4j-driver').auth.basic(neo4jUser, neo4jPassword)
 );
 const session = driver.session();
+function splitTextLines(text, maxCharsPerLine = 15) {
+  if (!text) return [];
+
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    // If adding this word exceeds maxCharsPerLine, push current line and start new one
+    if ((currentLine + word).length > maxCharsPerLine) {
+      if (currentLine) {
+        lines.push(currentLine.trim());
+        currentLine = word + ' ';
+      } else {
+        // Word itself is longer than maxCharsPerLine, just push it as a line
+        lines.push(word);
+        currentLine = '';
+      }
+    } else {
+      currentLine += word + ' ';
+    }
+  }
+
+  // Push the last line if exists
+  if (currentLine) lines.push(currentLine.trim());
+
+  return lines;
+}
 
 function formatPerson(person) {
   if (!person) return '';
@@ -42,6 +70,7 @@ const RelationPage = () => {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [focusAfterLoadId, setFocusAfterLoadId] = useState(null);
   const treeContainerRef = useRef(null);
+  const RelationRef = useRef(null);
   const [lookoutMode, setLookoutMode] = useState('Blood');
   const [inLawsRelation, setInLawsRelation] = useState(null);
   const [history, setHistory] = useState([]);
@@ -1992,56 +2021,70 @@ RETURN
     return {translatedPersonName, translatedPersonFatherName, translatedPersonGrandfatherName, translatedPersonLastName}
   };
 
+   useEffect(() => {
+  const el = RelationRef.current;
+  if (!el) return;
+
+  const rect = el.getBoundingClientRect();
+  const scrollTop = window.pageYOffset + rect.top;          // top of element relative to page
+  const scrollBottom = scrollTop + rect.height - 12;             // bottom of element relative to page
+
+  window.scrollTo({
+    top: scrollBottom,   // scroll so the bottom of element aligns to top of viewport
+    behavior: 'smooth'
+  });
+}, [relationship]);
+
   useEffect(() => {
-  const updateConfig = () => {
-    const screenWidth = window.innerWidth;
-    const containerWidth = treeContainerRef.current?.offsetWidth || screenWidth;
+    const updateConfig = () => {
+      const screenWidth = window.innerWidth;
+      const containerWidth = treeContainerRef.current?.offsetWidth || screenWidth;
 
-    let nodeSize = { x: 50, y: 90 };
-    let separation = { siblings: 2, nonSiblings: 2 };
-    let yTranslate = 40;
-    let fontSize = 12;
+      let nodeSize = { x: 40, y: 90 };
+      let separation = { siblings: 5, nonSiblings: 4 };
+      let yTranslate = 40;
+      let fontSize = 12;
 
-    if (screenWidth < 400) {
-      nodeSize = { x: 50, y: 90 };
-      separation = { siblings: 3, nonSiblings: 3 };
-      fontSize = 14;
-    } else if (screenWidth < 500) {
-      nodeSize = { x: 55, y: 100 };
-      separation = { siblings: 3, nonSiblings: 3 };
-      fontSize = 18;
-    } else if (screenWidth < 768) {
-      nodeSize = { x: 60, y: 110 };
-      separation = { siblings: 2.5, nonSiblings: 2.5 };
-      fontSize = 18;
-    } else if (screenWidth < 1024) {
-      nodeSize = { x: 65, y: 115 };
-      separation = { siblings: 2.5, nonSiblings: 2.5 };
-      fontSize = 18;
-    } else if (screenWidth < 1440) {
-      nodeSize = { x: 70, y: 120 };
-      separation = { siblings: 3, nonSiblings: 3 };
-      fontSize = 20;
-    } else {
-      nodeSize = { x: 80, y: 130 };
-      separation = { siblings: 3, nonSiblings: 3 };
-      fontSize = 22;
-    }
+      if (screenWidth < 400) {
+        nodeSize = { x: 40, y: 90 };
+        separation = { siblings: 3, nonSiblings: 3 };
+        fontSize = 14;
+      } else if (screenWidth < 500) {
+        nodeSize = { x: 45, y: 100 };
+        separation = { siblings: 5, nonSiblings: 4.5 };
+        fontSize = 16;
+      } else if (screenWidth < 768) {
+        nodeSize = { x: 55, y: 110 };
+        separation = { siblings: 4.5, nonSiblings: 3.5 };
+        fontSize = 18;
+      } else if (screenWidth < 1024) {
+        nodeSize = { x: 60, y: 115 };
+        separation = { siblings: 3, nonSiblings:3 };
+        fontSize = 18;
+      } else if (screenWidth < 1440) {
+        nodeSize = { x: 65, y: 120 };
+        separation = { siblings: 3, nonSiblings: 3 };
+        fontSize = 20;
+      } else {
+        nodeSize = { x: 75, y: 130 };
+        separation = { siblings: 3, nonSiblings: 3 };
+        fontSize = 22;
+      }
 
-    const translateX = screenWidth > 1024 ? containerWidth / 2 - 200 : containerWidth / 2 - 20;
+      const translateX = screenWidth > 1024 ? containerWidth / 2 - 200 : containerWidth / 2 - 20;
 
-    setConfig({
-      translate: { x: translateX, y: yTranslate },
-      nodeSize,
-      separation,
-      fontSize,
-    });
-  };
+      setConfig({
+        translate: { x: translateX, y: yTranslate },
+        nodeSize,
+        separation,
+        fontSize,
+      });
+    };
 
-  updateConfig();
-  window.addEventListener('resize', updateConfig);
-  return () => window.removeEventListener('resize', updateConfig);
-}, []);
+    updateConfig();
+    window.addEventListener('resize', updateConfig);
+    return () => window.removeEventListener('resize', updateConfig);
+  }, []);
 
 
   return (
@@ -2240,7 +2283,7 @@ RETURN
         <section className="relationship-result">
           <div className="foundPersons">
             <h2 id="resultTitle" className="resultsTitles">الأشخاص الذين تم البحث عنهم:</h2>
-            <div className='personsCards'>
+            <div className='personsCards' ref={RelationRef}>
               <div className="person-card">
                 <h4>{relationship.person1ID} - {formatPerson(relationship.relationshipPerson1Details)}</h4>
               </div>
@@ -2249,13 +2292,13 @@ RETURN
               </div>
             </div>
           </div>
-          <h2 id="resultTitle" className="resultsTitles">نتيجة العلاقة</h2>
+          <h2 id="resultTitle" className="resultsTitles" >نتيجة العلاقة</h2>
           <p className="relationText">{relationship.relationshipDescription}</p>
           <div className="result-details">
           {relationship.ancestorstreeData && (
               <>
-              <h2 id="resultTitle" className="resultsTitles">شجرة العائلة التي تجمع الشخصين :</h2>
-              <div className="tree-wrapper" style={{
+              <h2 id="resultTitle" className="resultsTitles" >شجرة العائلة التي تجمع الشخصين :</h2>
+              <div className="tree-wrapper"  style={{
                 height: `${Math.max(
                   ((Math.max(relationship.relationshipLevels?.levelFromP1 ?? 0, relationship.relationshipLevels?.levelFromP2 ?? 0)) + 1) * 100,
                   100
@@ -2264,67 +2307,88 @@ RETURN
               <>
               
               <div className="tree-container">
-              <Tree
-                data={relationship.ancestorstreeData}
-                orientation="vertical"
-                ref={treeContainerRef}
-                pathFunc="diagonal"
-                translate={config.translate}
-                nodeSize={config.nodeSize}
-                separation={config.separation}
-                zoomable={false}
-                draggable={false}  
-                renderCustomNodeElement={({ nodeDatum }) => (
-                <g className="tree-node">
-                    <title>{nodeDatum.id}</title>
-                    <rect
-                      className="tree-node-rect"
-                      x="-100"
-                      y="-20"
-                      width="200"
-                      height="40"
-                      style={{
-                        fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
-                          ? '#d3f9d8'
-                          : nodeDatum.id === relationship.commonAncestor.ancestorID
-                          ? '#ffe4b5' 
-                          : '#ffffff',
-                        stroke: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
-                          ? '#4caf50' 
-                          : nodeDatum.id === relationship.commonAncestor.ancestorID
-                          ? '#ffa500'
-                          : '#4a90e2',
-                        strokeWidth: '2.5px',
-                        rx: '10',
-                        ry: '10',
-                      }}
-                    />
-                    <text
-                      className="tree-node-text"
-                      x="0"
-                      y="0"
-                      style={{
-                        fontSize: config.fontSize + 'px',
-                        fontFamily: 'Cairo',
-                        fill: nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
-                          ? '#388e3c'
-                          : nodeDatum.id === relationship.commonAncestor.ancestorID
-                          ? '#ff9800'
-                          : '#333',
-                        textAnchor: 'middle',
-                        dominantBaseline: 'middle',
-                        fontWeight: 800,
-                        letterSpacing: '1.5px',
-                        strokeWidth: '1px',
-                        pointerEvents: 'none',
-                      }}
-                    >
-                      {utils.translateNodeName(nodeDatum.name)}
-                    </text>
-                  </g>
-                )}
-              />
-            </div>
+  <Tree
+    data={relationship.ancestorstreeData}
+    orientation="vertical"
+    ref={treeContainerRef}
+    pathFunc="diagonal"
+    translate={config.translate}
+    nodeSize={config.nodeSize}
+    separation={config.separation}
+    zoomable={false}
+    draggable={false}
+    renderCustomNodeElement={({ nodeDatum }) => {
+      const lines = splitTextLines(utils.translateNodeName(nodeDatum.name), 15);
+      const lineHeight = 18; // px
+      const paddingY = 10;
+
+      const rectHeight = lines.length === 1 ? 40 : lines.length * lineHeight + paddingY * 2;
+      const rectY = -(rectHeight / 2);
+
+      return (
+        <g className="tree-node">
+          <title>{nodeDatum.id}</title>
+          <rect
+            className="tree-node-rect"
+            x="-70"
+            y={rectY}
+            width="140"
+            height={rectHeight}
+            style={{
+              fill:
+                nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                  ? '#74825e'
+                  : nodeDatum.id === relationship.commonAncestor.ancestorID
+                  ? '#ffe4b5'
+                  : '#ffffff',
+              stroke:
+                nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                  ? '#74825e'
+                  : nodeDatum.id === relationship.commonAncestor.ancestorID
+                  ? '#c47e45'
+                  : '#a86943',
+              strokeWidth: '2.5px',
+              rx: '10',
+              ry: '10',
+            }}
+          />
+          <text
+            className="tree-node-text"
+            x="0"
+            y={rectY + paddingY + lineHeight / 1.5}
+            style={{
+              fontSize: config.fontSize + 'px',
+              fontFamily: 'Cairo',
+              fill:
+                nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                  ? '#f5f0e6'
+                  : nodeDatum.id === relationship.commonAncestor.ancestorID
+                  ? '#ff9800'
+                  : '#333',
+              textAnchor: 'middle',
+              dominantBaseline: 'middle',
+              fontWeight: 800,
+              letterSpacing: '1.6px',
+              strokeWidth:
+                nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
+                  ? '0px'
+                  : '0.9px',
+              pointerEvents: 'none',
+            }}
+          >
+            {lines.map((line, i) => (
+              <tspan key={i} x="0" dy={i === 0 ? 0 : lineHeight}>
+                {line}
+              </tspan>
+            ))}
+          </text>
+        </g>
+      );
+    }}
+  />
+</div>
+
+
               </>
             </div>
             </>

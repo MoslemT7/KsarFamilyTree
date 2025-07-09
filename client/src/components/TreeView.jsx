@@ -1,12 +1,15 @@
-// --- TreeView.jsx ---
-import React from 'react';
 import Tree from 'react-d3-tree';
 import peopleWithNoChildren from '../data/peopleWithNoChildren.json';
+import * as utils from '../utils/utils';
+import "../styles/ZoomBar.css";
+import { useEffect } from 'react';
 
 const TreeView = ({
   data,
   translate,
   zoom,
+  setZoomLevel,
+  treeRef,
   draggable,
   zoomable,
   nodePositions,
@@ -14,22 +17,24 @@ const TreeView = ({
   onNodeContextMenu,
   startHoldTimer,
   cancelHoldTimer,
-  husbandId,
-  wifeId,
   personID,
-  spouseId
-}) => (
+  showID
+  }) => {
+
+  return (
   <Tree
     data={data}
+    ref={treeRef}
     orientation="vertical"
     pathFunc="step"
     translate={translate}
+    initialZoom={0.01}
     zoom={zoom}
     draggable={draggable}
     zoomable={zoomable}
-    collapsible
-    separation={{ siblings: 1.2, nonSiblings: 1.2 }}
-    nodeSize={{ x: 110, y: 150 }}
+    debug={true}
+    separation={{ siblings: 1.2, nonSiblings: 1.75 }}
+    nodeSize={{ x: 120, y: 100 }}
     renderCustomNodeElement={({ nodeDatum, hierarchyPointNode }) => {
       nodePositions.current[nodeDatum.id] = {
         x: hierarchyPointNode.x,
@@ -37,8 +42,6 @@ const TreeView = ({
       };
 
       const specialColors = {
-        [husbandId?.toString() || 'default-husband']: '#66bb6a',
-        [wifeId?.toString() || 'default-wife']: '#ff8a65',
         [personID?.toString() || 'default-person']: '#cf14d9',
         };
 
@@ -47,30 +50,51 @@ const TreeView = ({
 
       return (
         <g
-          onMouseDown={() => startHoldTimer(nodeDatum)}
-          onMouseUp={cancelHoldTimer}
-          onMouseLeave={cancelHoldTimer}
-          onClick={(e) => onNodeClick(nodeDatum, e)}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            startHoldTimer(nodeDatum);
+          }}
+          onMouseUp={(e) => {
+            e.preventDefault();
+            cancelHoldTimer();
+          }}
+          onMouseLeave={(e) => {
+            e.preventDefault();
+            cancelHoldTimer();
+          }}
+          onTouchStart={(e) => {
+            startHoldTimer(nodeDatum);
+          }}
+          onTouchEnd={(e) => {
+            cancelHoldTimer();
+          }}
+          onTouchCancel={(e) => {
+            cancelHoldTimer();
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            onNodeClick(nodeDatum, e);
+          }}
           onContextMenu={(e) => {
             e.preventDefault();
             onNodeContextMenu(nodeDatum, e);
           }}
-          style={{ cursor: 'pointer' }}
+          style={{ cursor: 'pointer', touchAction: 'manipulation' }}
         >
           <defs>
             <linearGradient id={`grad-${nodeDatum.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#fdf6e3" stopOpacity="0.95" />
+              <stop offset="30%" stopColor="#fdf6e3" stopOpacity="0.75" />
               <stop
                 offset="100%"
                 stopColor={
                   specialColors[nodeDatum.id?.toString()] ||
-                  (nodeDatum.isAlive ? "#d4b483" : "#8b6f47")
+                  (nodeDatum.isAlive ? "#d4b483" : "#1c1818")
                 }
-                stopOpacity="1"
+                stopOpacity="1.25"
               />
             </linearGradient>
             <filter id={`soft-shadow-${nodeDatum.id}`} x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#a58e6f" floodOpacity="0.25" />
+              <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#a58e6f" floodOpacity="0.8" />
             </filter>
           </defs>
 
@@ -82,14 +106,14 @@ const TreeView = ({
             rx="16"
             ry="14"
             fill={`url(#grad-${nodeDatum.id})`}
-            stroke={nodeDatum.gender === "Female" ? "#b52155" : "#1bbc7b"}
-            strokeWidth="2"
+            stroke={nodeDatum.gender === "Female" ? "#b52155" : "#4b8fe3"}
+            strokeWidth="3"
             filter={`url(#soft-shadow-${nodeDatum.id})`}
           />
 
           {(() => {
           const words = nodeDatum.name.split(" ");
-          const lines = [nodeDatum.id];
+          const lines = (showID) ? [nodeDatum.id] : [];
           let curr = "";
           words.forEach((w) => {
             const test = curr ? `${curr} ${w}` : w;
@@ -105,19 +129,17 @@ const TreeView = ({
             const validSpouses = nodeDatum.spouseId;
             
             if (validSpouses.length === 1) {
-              marriageStatus = "M";    // Married once
+              marriageStatus = "M"; 
             } else if (validSpouses.length > 1) {
-              marriageStatus = "MM";   // Married multiple times
+              marriageStatus = "MM";
             }
           }
           const all = [...lines];
           if (peopleWithNoChildren.includes(nodeDatum.id)) all.push("∅");
-          if (nodeDatum.Nickname) all.push(`(${nodeDatum.Nickname})`);
+          if (nodeDatum.Nickname) all.push(`(${utils.translateNickname(nodeDatum.Nickname)})`);
           if (marriageStatus) all.push(marriageStatus);
-
           return (
             <>
-              {/* Render the person's name lines */}
               {all.map((line, i) => (
                 <text
                   key={`name-line-${i}`}
@@ -128,11 +150,11 @@ const TreeView = ({
                   style={{
                     fontSize: "22px",
                     fontFamily: "Cairo",
-                    fill: nodeDatum.isAlive ? "#0d1f2d" : "#ffffff",
+                    fill: nodeDatum.isAlive ? "#0d1f2d" : "#1c1818",
                     fontWeight: 900,
                     pointerEvents: "none",
                     letterSpacing: 1.5,
-                    strokeWidth: nodeDatum.isAlive ? 1 : 0,
+                    strokeWidth: nodeDatum.isAlive ? 1 : 1,
                   }}
                 >
                   {line}
@@ -149,6 +171,7 @@ const TreeView = ({
       );
     }}
   />
-);
+  );
+};
 
 export default TreeView;

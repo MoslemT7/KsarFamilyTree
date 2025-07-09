@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import {useState } from 'react';
 import '../styles/PersonCINCard.css';
-import logo from '../media/logo.png'; // replace with your logo
-import barcode from '../media/barcode.jpg'; // placeholder barcode
+import logo from '../media/logo1.png'; // replace with your logo
 import portrait from '../media/portrait.png';
 import * as utils from '../utils/utils';
 
@@ -104,19 +103,19 @@ const PersonCINCard = ({ person }) => {
               ? `${utils.translateName(person.motherName || '')} ${utils.translateFamilyName(person.motherFamilyName || '')}`.trim()
               : 'غير معروف'}
             </p>
-            <p>
-              <strong>الحالة:</strong>{' '}
-              {person.lifeStatus === true ? (
-                  'على قيد الحياة'
-              ) : (
+            
+              {!person.lifeStatus && (
+                <p>
+                <strong>الحالة:</strong>{' '}
                 <>
                   <label>متوفى</label>
                   <br />
-                  <strong>تاريخ الوفاة:</strong>{' '}
-                  {person.deathYear || 'غير معروف'}
+                  <strong>سنة الوفاة:</strong>{' '}
+                  {person.YoD || 'غير معروف'}
                 </>
+                </p>
               )}
-            </p>
+            
             <p>
               <strong>عدد الأطفال: </strong>
               {person.childrenCount === 0

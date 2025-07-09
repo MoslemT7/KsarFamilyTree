@@ -73,7 +73,6 @@ const createParentChildRelationship = async (
   }
 };
 
-
 const createPerson = async ({
   name,
   lastName,
@@ -373,6 +372,138 @@ const promptUserForSelection = (people) => {
   });
 };
 
+const questionAsync = (q) => new Promise(res => rl.question(q, a => res(a.trim())));
+
+// Generic updater by end-node IDs
+async function setStatusByNodeIds(session, startId, endId, relType, status) {
+  // validate status
+  const s = Number(status);
+  if (![1,2,3,4].includes(s)) {
+    throw new Error(`Status must be 1–4, got "${status}".`);
+  }
+  const cypher = `
+    MATCH (a)-[r:${relType}]-(b)
+    WHERE id(a) = $startId AND id(b) = $endId
+    SET r.verificationStatus = $status
+    RETURN count(r) AS updated
+  `;
+  const res = await session.run(cypher, {
+    startId: neo4j.int(startId),
+    endId:   neo4j.int(endId),
+    status:  neo4j.int(s)
+  });
+  return res.records[0].get('updated').toNumber() > 0;
+}
+
+// 1) Verify MOTHER_OF by mother/child IDs
+async function verifyMotherOf(driver) {
+  const session = driver.session();
+  try {
+    const q = `
+      MATCH (m:Person)-[r:MOTHER_OF]->(c:Person)
+      WHERE r.verificationStatus IS NULL OR r.verificationStatus <> 1
+      OPTIONAL MATCH (mf:Person)-[:FATHER_OF]->(m)
+      OPTIONAL MATCH (mgf:Person)-[:FATHER_OF]->(mf)
+      OPTIONAL MATCH (cf:Person)-[:FATHER_OF]->(c)
+      OPTIONAL MATCH (cgf:Person)-[:FATHER_OF]->(cf)
+      RETURN
+        id(m) AS mId, m.name AS mName, m.lastName AS mLN,
+        mf.name AS mFa, mgf.name AS mGfa,
+        id(c) AS cId, c.name AS cName, c.lastName AS cLN,
+        cf.name AS cFa, cgf.name AS cGfa
+      ORDER BY id(m)
+    `;
+    const result = await session.run(q);
+    console.log(`\nFound ${result.records.length} MOTHER_OF rels.\n`);
+
+    for (let i=0; i<result.records.length; i++) {
+      const r = result.records[i];
+      const mId = r.get('mId').toNumber(),
+            mName = r.get('mName')   || 'غير معروف',
+            mLN   = r.get('mLN')     || '',
+            mFa   = r.get('mFa')     || 'غير معروف',
+            mGfa  = r.get('mGfa')    || 'غير معروف',
+            cId   = r.get('cId').toNumber(),
+            cName = r.get('cName')   || 'غير معروف',
+            cLN   = r.get('cLN')     || '',
+            cFa   = r.get('cFa')     || 'غير معروف',
+            cGfa  = r.get('cGfa')    || 'غير معروف';
+
+      console.log(`\n[${i+1}/${result.records.length}]`);
+      console.log(` Mother: ${mName} ben ${mFa} ben ${mGfa} ${mLN} (ID:${mId})`);
+      console.log(` Child : ${cName} ben ${cFa} ben ${cGfa} ${cLN} (ID:${cId})`);
+
+      const status = await questionAsync(
+        '  Status [1 = OK, 2 = Verify, 3 = Error, 4 = No Info]: '
+      );
+
+      let ok = false;
+      try {
+        ok = await setStatusByNodeIds(session, mId, cId, 'MOTHER_OF', status);
+      } catch (e) {
+        console.error('  ✖', e.message);
+      }
+      console.log(ok ? `  ✔ Updated` : `  ⚠️  No rel found or update failed`);
+    }
+  } finally {
+    await session.close();
+  }
+}
+
+// 2) Verify MARRIED_TO by person A/B IDs
+async function verifyMarriedTo(driver) {
+  const session = driver.session();
+  try {
+    const q = `
+      MATCH (a:Person)-[r:MARRIED_TO]-(b:Person)
+      WHERE (r.verificationStatus IS NULL OR r.verificationStatus <> 1)
+      AND id(a) < id(b)
+      OPTIONAL MATCH (af:Person)-[:FATHER_OF]->(a)
+      OPTIONAL MATCH (agf:Person)-[:FATHER_OF]->(af)
+      OPTIONAL MATCH (bf:Person)-[:FATHER_OF]->(b)
+      OPTIONAL MATCH (bgf:Person)-[:FATHER_OF]->(bf)
+      RETURN
+        id(a) AS aId, a.name AS aName, a.lastName AS aLN, af.name AS aFa, agf.name AS aGfa,
+        id(b) AS bId, b.name AS bName, b.lastName AS bLN, bf.name AS bFa, bgf.name AS bGfa
+      ORDER BY id(a)
+    `;
+    const result = await session.run(q);
+    console.log(`\nFound ${result.records.length} MARRIED_TO relationships.\n`);
+
+    for (let i=0; i<result.records.length; i++) {
+      const r = result.records[i];
+      const aId = r.get('aId').toNumber(),
+            aName = r.get('aName')   || 'غير معروف',
+            aLN   = r.get('aLN')     || '',
+            aFa   = r.get('aFa')     || 'غير معروف',
+            aGfa  = r.get('aGfa')    || 'غير معروف',
+            bId   = r.get('bId').toNumber(),
+            bName = r.get('bName')   || 'غير معروف',
+            bLN   = r.get('bLN')     || '',
+            bFa   = r.get('bFa')     || 'غير معروف',
+            bGfa  = r.get('bGfa')    || 'غير معروف';
+
+      console.log(`\n[${i+1}/${result.records.length}]`);
+      console.log(` Person A: ${aName} ben ${aFa} ben ${aGfa} ${aLN} (ID:${aId})`);
+      console.log(` Person B: ${bName} ben ${bFa} ben ${bGfa} ${bLN} (ID:${bId})`);
+
+      const status = await questionAsync(
+        '  Status [1 = OK, 2 = Verify, 3 = Error, 4 = No Info]: '
+      );
+
+      let ok = false;
+      try {
+        ok = await setStatusByNodeIds(session, aId, bId, 'MARRIED_TO', status);
+      } catch (e) {
+        console.error('  ✖', e.message);
+      }
+      console.log(ok ? `  ✔ Updated` : `  ⚠️  No rel found or update failed`);
+    }
+  } finally {
+    await session.close();
+  }
+}
+
 async function askValidatedQuestion(prompt, validAnswers) {
   while (true) {
     const answer = (await question(prompt)).trim().toLowerCase();
@@ -418,6 +549,8 @@ async function terminalConversation() {
     console.log('6. Change Life Status.');
     console.log('7. Select Person.')
     console.log('8. Mass Add Children (via Full Names).');
+    console.log('9. Checking MOTHER_OF Relationships.');
+    console.log('10. Verify MARRIED_TO relationships');
     console.log('-1. Exit.');
 
     const choice = (await question('Enter option number: ')).trim();
@@ -742,7 +875,15 @@ async function terminalConversation() {
 
         break;
       }
+      case '9':
+        console.log('🔍 Starting MOTHER_OF relationships verification...');
+        await verifyMotherOf(driver);
+        break;
 
+      case '10':
+        console.log('🔍 Starting MARRIED_TO relationships verification...');
+        await verifyMarriedTo(driver);
+        break;
 
       case '-1':
         console.log('👋 Exiting...');

@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
 import usePageTracking from '../utils/trackers';
 import logo from '../media/logo1.png'
 
+
+
 const MainPage = () => {
   const navigate = useNavigate();
   usePageTracking();
@@ -77,11 +79,11 @@ const MainPage = () => {
         <h2></h2>
         <div className="cardsDiv">
         <div className="card">
-          <h4>2750+ شخص</h4>
+          <h4>اكثر من 2500 شخص</h4>
           <p>تم تسجيل بيانات أكثر من 2750 شخص في هذا المشروع</p>
         </div>
         <div className="card">
-          <h4>200+ عائلة</h4>
+          <h4>اكثر من 250 عائلة</h4>
           <p>تنتمي هذه الشخصيات إلى عشرات العائلات المترابطة</p>
         </div>
         <div className="card">

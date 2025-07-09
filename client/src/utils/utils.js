@@ -3,7 +3,7 @@ const nameTranslation = require('../translations/names.json');
 const compoundNameTranslation = require('../translations/compundNames.json');
 const familyNameTranslation = require('../translations/familyNames.json');
 const countriesTranslation = require('../translations/countries.json');
-const Nickname = require('../translations/nicknames.json');
+const NicknameTranslation  = require('../translations/nicknames.json');
 
 export function translateCountry(country){
     return countriesTranslation[country] || country;
@@ -21,7 +21,7 @@ export function isCompoundName(name) {
 };
 
 export function isNickname(name) {
-  return Object.values(Nickname).includes(name) || Object.keys(Nickname).includes(name);
+  return Object.values(NicknameTranslation).includes(name) || Object.keys(NicknameTranslation).includes(name);
 };
 
 export function splitName(fullName) {
@@ -269,18 +269,16 @@ export function mergePaths(pathToP1, pathToP2) {
 
 function normalizeArabicName(name) {
   return name
-    .replace(/[أإآ]/g, 'ا');
+    .replace(/[أإآ]/g, 'ا')
+    .trim()
+    .replace(/[\u064B-\u065F]/g, '')
+    .replace(/\s+/g, ' ') // Collapse spaces;
 };
 
-function _translate(
-  raw,
-  toEnglish,
-  simpleDict,
-  compoundDict
-) {
+function _translate(raw, toEnglish, simpleDict, compoundDict) {
   if (!raw || typeof raw !== 'string') return '';
 
-  const normalized = normalizeArabicName(raw);
+  const normalized = normalizeArabicName(raw.trim());
   const dict = toEnglish
     ? simpleDict
     : Object.fromEntries(Object.entries(simpleDict).map(([k, v]) => [v, k]));
@@ -288,31 +286,46 @@ function _translate(
     ? compoundDict
     : Object.fromEntries(Object.entries(compoundDict).map(([k, v]) => [v, k]));
 
-  // Try exact match in compound dict
+  // 1. Try exact match
   if (compDict[normalized]) return compDict[normalized];
 
-  // Try normalized version without spaces
+  // 2. Try exact match with removed spaces
   const noSpace = normalized.replace(/\s+/g, '');
   const foundEntry = Object.entries(compDict).find(([key, val]) => {
     const keyNorm = normalizeArabicName(key).replace(/\s+/g, '');
     const valNorm = normalizeArabicName(val).replace(/\s+/g, '');
-    return toEnglish
-      ? valNorm === noSpace
-      : keyNorm === noSpace;
+    return toEnglish ? valNorm === noSpace : keyNorm === noSpace;
   });
   if (foundEntry) {
     return toEnglish ? foundEntry[0] : foundEntry[1];
   }
 
-  // Fall back to word-by-word translation
-  return normalized
+  // 3. Match compound words inside the sentence
+  let temp = normalized;
+  Object.entries(compDict).forEach(([key, val]) => {
+    const normKey = normalizeArabicName(key);
+    const normVal = normalizeArabicName(val);
+    const search = toEnglish ? normKey : normVal;
+    const replace = toEnglish ? val : key;
+
+    // Replace only if whole words match
+    const regex = new RegExp(`\\b${search}\\b`, 'g');
+    temp = temp.replace(regex, replace);
+  });
+
+  // 4. Translate individual words not covered by compound
+  return temp
     .split(' ')
     .map((tok) => dict[tok] || tok)
     .join(' ');
-};
+}
+
 
 export const translateName = (fullName, toEnglish = true) =>
   _translate(fullName, toEnglish, nameTranslation, compoundNameTranslation);
+
+export const translateNickname = (fullName, toEnglish = false) =>
+  _translate(fullName, toEnglish, {}, NicknameTranslation);
 
 export const translateFamilyName = (fullFamilyName, toEnglish = true) =>
   _translate(fullFamilyName, toEnglish, familyNameTranslation, compoundNameTranslation);

@@ -860,15 +860,11 @@ const SearchPage = () => {
           setLoading(false);
           setLoadingMessage("تم إيجاد الشخص ...");
           const record = result.records[0];
-          let age;
           let YoB = record.get('childYoB');
+          YoB = YoB !== null ? Number(YoB) : null;
           let YoD = record.get('YoD');
-          if (YoB == null){
-            age = -1;
-          }
-          else{
-            age = new Date().getFullYear() - YoB;
-          }
+          YoD = YoD !== null ? Number(YoD) : null;
+          let age = YoB == null ? -1 : new Date().getFullYear() - Number(YoB);
           const childID = record.get("childID").toNumber();
           setLoadingMessage("جاري التحقق من المعلومات ...");
           const personDetails = {
@@ -909,16 +905,11 @@ const SearchPage = () => {
           setLoadingMessage("تم العثور على أكثر من شخص ...");
           const multipleMatches = [];
           for (const record of result.records) {
-            let age;
             let YoB = record.get('childYoB');
+            YoB = YoB !== null ? Number(YoB) : null;
             let YoD = record.get('YoD');
-        
-            if (YoB == null) {
-              age = -1;
-            } 
-            else {
-              age = new Date().getFullYear() - YoB;
-            }
+            YoD = YoD !== null ? Number(YoD) : null;
+            let age = YoB == null ? -1 : new Date().getFullYear() - Number(YoB);
         
             const childID = record.get("childID").toNumber();
             const personDetails = {

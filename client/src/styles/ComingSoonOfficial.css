@@ -41,6 +41,10 @@
   --color-selection: #e8dcc4;
 }
 
+body{
+  width: 100%;
+  height: 100%;
+}
 
 .official-container {
   min-height: 100vh;
@@ -59,33 +63,12 @@
   background-position: center;
 }
 
-/* Header */
-.official-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 40px;
-}
-.official-logo {
-  width: 50px;
-  height: 50px;
-  object-fit: contain;
-}
-.official-header h1 {
-  font-size: 1.8em;
-  margin: 0;
-  color: var(--color-accent-primary);
-}
-
-/* Subtitle */
 .official-subtitle {
   font-size: 1.2em;
   margin-bottom: 25px;
-  color: var(--color-heading); /* muted warm brown */
+  color: var(--color-heading);
 }
 
-/* Countdown */
 .countdown {
   display: flex;
   gap: 20px;
@@ -93,7 +76,7 @@
   margin: 40px 0px;
 }
 .countdown div {
-  background: var(--color-accent-hover); /* warm translucent background */
+  background: var(--color-accent-hover);
   padding: 15px;
   border-radius: 8px;
   min-width: 60px;
@@ -102,37 +85,13 @@
   display: block;
   font-size: 1.5em;
   font-weight: bold;
-  color: var(--color-bg-primary); /* heading brown */
+  color: var(--color-bg-primary);
 }
 .countdown small {
   font-size: 0.8em;
-  color: var(--color-bg-secondary); /* faded sand tone */
+  color: var(--color-bg-secondary);
 }
 
-/* Newsletter */
-.newsletter-form {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.newsletter-form input {
-  padding: 10px;
-  width: 250px;
-  border: none;
-  border-radius: 4px;
-  background: #fff5e6; /* paper beige */
-  color: #3b2c1a;
-}
-
-/* Thanks Message */
-.thanks {
-  font-size: 1em;
-  color: #89b067; /* olive green (for success) */
-  margin-bottom: 20px;
-}
-
-/* Secret Access */
 .secret-access {
   position: absolute;
   bottom: 60px;
@@ -157,7 +116,7 @@
 }
 .secret-access button {
   padding: 6px 12px;
-  background: #d9822b; /* clay orange */
+  background: #d9822b;
   border: none;
   color: #fff;
   border-radius: 4px;
@@ -175,22 +134,13 @@
   margin-top: auto;
   padding-top: 20px;
   font-size: 0.8em;
-  color: #a78c69; /* sandstone grey */
+  color: #a78c69;
 }
 
-/* Click-zone full screen for hidden clicks */
 .official-container {
   cursor: default;
 }
 
-#email {
-  text-align: center;
-  font-family: "Cairo";
-  font-size: 16px;
-  width: 250px;
-  background: #fff5e6;
-  color: #3b2c1a;
-}
 
 /* Contact & Contribute */
 .contact-options {
@@ -203,7 +153,7 @@
 }
 
 .contribute-button {
-  background-color: #8c3b1e; /* deep terracotta */
+  background-color: #8c3b1e;
   color: white;
   padding: 0.6rem 1.2rem;
   border: none;
@@ -221,6 +171,7 @@
 .contribute-button:hover {
   background-color: #692d16; /* darker clay */
 }
+
 
 @media (max-width: 480px) {
   .contact-options{

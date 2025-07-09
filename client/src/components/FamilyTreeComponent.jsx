@@ -1,28 +1,46 @@
-// --- FamilyTreeComponent.jsx ---
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState , forwardRef, useImperativeHandle, use  } from 'react';
 import TreeView from './TreeView';
-import { FiMaximize, FiMinimize, FiRotateCcw  } from 'react-icons/fi';
+import { FiMaximize, FiMinimize, FiRotateCcw, FiSearch, FiArrowLeft, FiX, FiMenu  } from 'react-icons/fi';
 import '../styles/FamilyTree.css';
+import * as utils from '../utils/utils';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import neo4j from 'neo4j-driver';
+import ZoomBar from './ZoomBar';
 
-function FamilyTreeComponent(props) {
-  const [husbandID, setHusbandID] = useState(-1);
-  const [wifeID, setWifeID] = useState(-1);
+const neo4jURI = process.env.REACT_APP_NEO4J_URI;
+const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
+const neo4jPassword = process.env.REACT_APP_NEO4J_PASSWORD;
+const driver = neo4j.driver(
+  neo4jURI, 
+  neo4j.auth.basic(neo4jUser, neo4jPassword)
+);
+
+const FamilyTreeComponent = forwardRef((props, ref) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showID, setShowID] = useState(false);
+  const [showTreeHeader, setShowTreeHeader] = useState(false);
+  const [showSpouseDetails, setShowSpouseDetails] = useState(false)
+  const [smallFamilyTree, setSmallFamilyTree] = useState(null);
+
   let {
     familyTree,
-    smallFamilyTree,
+    setFamilyTree,
     translate,
     zoomLevel,
+    setZoomLevel,
+    setTranslate,
     selectedGeneration,
     treeCount,
     treeDepth,
-    maxGeneration,
     title,
+    setTitle,
     showPopup,
     selectedPerson,
     showSpouse,
     spouseId,
     personID,
+    setPersonID,
     setShowPopup,
     setShowSpouse,
     setSpouseId,
@@ -34,16 +52,41 @@ function FamilyTreeComponent(props) {
     nodePositions,
     treeContainerRef,
     smalltreeContainerRef,
-    peopleWithNoChildren
+    peopleWithNoChildren,
+    setLookoutMode,
+    handleSearch,
+    setTreeSearchQuery,
+    treeSearchQuery,
+    loading,
+    setLoading,
   } = props;
+
+  useImperativeHandle(ref, () => ({
+    enterFullscreen: async () => {
+      if (treeContainerRef.current && !document.fullscreenElement) {
+        await treeContainerRef.current.requestFullscreen();
+        setIsFullscreen(true);
+      }
+    },
+    exitFullscreen: async () => {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+      }
+    }
+  }));
   function resetSettings(){
-    title = "";
-  }
+    setTitle("");
+    setPersonID(null);
+    setFamilyTree(null);
+  };
+
   const toggleFullscreen = async () => {
-    const elem = treeContainerRef.current;
+    if (!treeContainerRef.current) return;
+
     if (!document.fullscreenElement) {
       try {
-        await elem.requestFullscreen();
+        await treeContainerRef.current.requestFullscreen();
         setIsFullscreen(true);
       } catch (err) {
         console.error('Failed to enter fullscreen:', err);
@@ -57,143 +100,373 @@ function FamilyTreeComponent(props) {
       }
     }
   };
-  
+  const buildSmallFamilyTree = (record) => {
+    const fatherNode = record.get("father");
+    const fatherChildrenRaw = record.get("fatherChildren") || [];
+    const personChildrenRaw = record.get("personChildren") || [];
+    const personId = record.get("personId")?.toNumber();
+    if (!fatherNode || !fatherNode.properties) {
+    console.warn("No father found in the record.");
+    return null;
+    }
+    const father = {
+    ...fatherNode.properties,
+    id: fatherNode.identity?.toNumber?.() ?? fatherNode.properties.id,
+    };
+    const formattedPersonChildren = personChildrenRaw.map((child) => ({
+    ...child.properties,
+    id: child.identity?.toNumber?.() ?? child.properties.id,
+    children: [],
+    }));
+    const formattedFatherChildren = fatherChildrenRaw.map((childNode) => {
+    const child = childNode.properties;
+    const id = childNode.identity?.toNumber?.() ?? child.id;
+
+    const node = {
+      ...child,
+      id,
+      children: [],
+    };
+
+    if (id === personId) {
+      node.children = formattedPersonChildren;
+    }
+
+    return node;
+    });
+    const rawTree = {
+    ...father,
+    children: formattedFatherChildren,
+    };
+  return translateNodeRecursive(rawTree);
+  };
+  const translateNodeRecursive = (node) => {
+    const translatedNode = {
+      ...node,
+      name: utils.translateName(node.name),
+      lastName: utils.translateFamilyName(node.lastName),
+    };
+
+    if (translatedNode.children && translatedNode.children.length > 0) {
+      translatedNode.children = translatedNode.children.map(translateNodeRecursive);
+    }
+
+    return translatedNode;
+  };
+  const spouseFamilyTree = async (rootID) => {
+      const session = driver.session();
+      console.log("TESTE FDSJFKDSJFL;");
+      try {
+        const query = `
+          MATCH (p:Person)
+          WHERE id(p) = $rootID
+
+          OPTIONAL MATCH (father:Person)-[:FATHER_OF]->(p)
+          OPTIONAL MATCH (father)-[:FATHER_OF]->(sibling:Person)
+          OPTIONAL MATCH (p)-[:FATHER_OF|MOTHER_OF]->(child:Person)
+
+          RETURN father, collect(DISTINCT sibling) AS fatherChildren, collect(DISTINCT child) AS personChildren, id(p) AS personId
+        `;
+
+        const result = await session.run(query, { rootID });
+
+        if (result.records.length === 0) {
+          console.warn("No data returned from spouseFamilyTree query.");
+          return null;
+        }
+        else {
+          console.log("Spouse found");
+        }
+        
+        const tree = buildSmallFamilyTree(result.records[0]);
+        console.log(tree);
+        setSmallFamilyTree(tree);
+
+      } catch (error) {
+        console.error('❌ Error fetching spouse family tree:', error);
+        return null;
+      } finally {
+        await session.close();
+      }
+  };
+
+  const goToPersonById2 = async (ID) => {
+    const container = smalltreeContainerRef.current;
+
+    if (!container) {
+      return;
+    }
+
+    const coords = nodePositions.current[ID];
+    if (!coords) {
+      alert("تعذر العثور على إحداثيات الشخص.");
+      return;
+    }
+
+    const { width, height } = container.getBoundingClientRect();
+
+    setTranslate({
+      x: width / 2 - coords.x,
+      y: height / 2 - coords.y,
+    });
+  };
+
+  useEffect(() => {
+    console.log(smallFamilyTree);
+  }, [smallFamilyTree])
+  useEffect (() => {
+    setShowSpouseDetails(false);
+  }, [selectedPerson])
   return (
-    <div id="treeWrapper" ref={treeContainerRef}>
-      {/* Inline Popup */}
+    <div id="treeWrapper" ref={treeContainerRef} >
+      <div id="treeMenuToggle">
+          <button  onClick={() => {setShowTreeHeader(!showTreeHeader)}}>
+           <FiMenu size={24}/>
+          </button>
+          <button  onClick={toggleFullscreen} className="back-button">
+            <FiArrowLeft size={24} />
+          </button>
+        </div>
+      <ToastContainer 
+        position="top-center" autoClose={3000} 
+        newestOnTop={true}
+        rtl={true}
+        theme='dark'
+        style={{ fontSize: '18px', fontWeight: "bolder" , fontFamily:"Cairo", textAlign:"center"}}
+      />
       {showPopup && selectedPerson && (
+        
         <div className="popup">
-          <h4>الرقم التسلسلي: {selectedPerson.id}</h4>
-          <h4>
-            الاسم: {selectedPerson.name}{" "}
-            {selectedPerson.Nickname && `(${selectedPerson.Nickname})`}
-          </h4>
-          <h4>اللقب: {selectedPerson.lastName}</h4>
-          {selectedPerson.Notes && <h4>ملاحظات: {selectedPerson.Notes}</h4>}
-
-          {/* Mini-spouse tree */}
-          {smallFamilyTree && showSpouse && (
-            <div
-              id="treedisplayerP"
-              ref={smalltreeContainerRef}
-              style={{ width: '100%', height: '300px', overflow: 'auto' }}
-            >
-              <TreeView
-                data={smallFamilyTree}
-                translate={translate}
-                zoom={0.35}
-                draggable={true}
-                zoomable={false}
-                nodePositions={nodePositions}
-                onNodeClick={handlePersonClick}
-                onNodeContextMenu={handlePersonClickPopup}
-                startHoldTimer={startHoldTimer}
-                cancelHoldTimer={cancelHoldTimer}
-                selectedGeneration={selectedGeneration}
-                husbandId={husbandID}
-                wifeId={wifeID}
-                personID={spouseId}
-              />
-            </div>
-          )}
-
-          <div className="popup-buttons">
-            {spouseId !== -1 && (
-              <button
-                onClick={async () => {
-                  if (!nodePositions.current[spouseId]) {
-                    await props.spouseFamilyTree(spouseId);
-                    setShowSpouse(true);
-                  } else {
-                    setShowPopup(false);
-                    goToPersonById(spouseId);
-                  }
+          <aside>
+            <button className="HeaderButtons">
+              <FiX id="CloseButtonPopup"
+                onClick={() => {
+                  setShowPopup(false);
+                  setShowSpouse(false);
+                  setSpouseId(null);
+                  setSmallFamilyTree(false);
+                  setPersonID(selectedPerson.id);
                 }}
-              >
-                {selectedPerson.gender === "Male" ? "اذهب إلى الزوجة" : "اذهب إلى الزوج"}
-              </button>
+              ></FiX>
+            </button>
+            <h2>تفاصيل الشخص:</h2>
+            <h4>
+              {selectedPerson.id} - {selectedPerson.name + " "} 
+              {selectedPerson.lastName}
+              {selectedPerson.Nickname !== selectedPerson.Nickname
+              ? `(${utils.translateNickname(selectedPerson.Nickname)}) `
+              : ""}
+            </h4>
+          <p>
+            {selectedPerson.Notes}
+          </p>
+          {showSpouseDetails && 
+              <>
+              <p>
+                
+                {selectedPerson.name}{" "}
+                {selectedPerson.gender === "Male" ? "متزوج" : "متزوجة"}{" "}
+                {selectedPerson.spouseId?.length > 0 && (
+                  <>
+                    
+                    {selectedPerson.spouseId[0].name !== "Unknown"
+                      ? utils.translateName(selectedPerson.spouseId[0].name)
+                      : ""}{" "}
+                    {selectedPerson.spouseId[0].lastName !== "Unknown"
+                      ? utils.translateFamilyName(selectedPerson.spouseId[0].lastName)
+                      : ""}{" "}
+                    {" ( "} {selectedPerson.spouseId[0].id} {" ) "}
+                    {selectedPerson.spouseId[0].origin !== "Ksar Ouled Boubaker"
+                      ? "من " + selectedPerson.spouseId[0].Origin
+                      : ""}
+                    {" ( "} {selectedPerson.spouseId[0].branch} {" ) "}
+                  </>
+                )}
+              </p>
+              </>
+          }
+              <div className="popup-buttons">
+            {Array.isArray(spouseId) && spouseId.length === 1 && (
+              <button
+              onClick={async () => {
+                
+
+                const spouse = selectedPerson.spouseId[0];
+
+                setPersonID(spouse.id); // reset first
+                setSpouseId(spouse.id);
+                console.log(spouse, !nodePositions.current[spouse.id]);
+
+                if (spouse.origin !== "Ksar Ouled Boubaker") {
+                  setShowSpouseDetails(true);
+                } else {
+                  if (!nodePositions.current[spouse.id]) {
+                    console.log("fdsfdsf");
+                    setPersonID(spouse.id);
+                    await spouseFamilyTree(spouse.id);
+                    setShowSpouse(true);
+                    setShowSpouseDetails(true);
+                  } 
+                  else {
+                    console.log("22222");
+                    setShowPopup(false);
+                    setPersonID(spouse.id);
+                    if (typeof props.goToPersonById === "function") {
+                      await props.goToPersonById();
+                    }
+                  }
+                }
+              }}
+            >
+              {selectedPerson.gender === "Male" ? "إذهب الى الزوجة" : "اذهب إلى الزوج"}
+            </button>
+
+
             )}
             <button
               onClick={() => {
                 setShowPopup(false);
                 setShowSpouse(false);
                 setSpouseId(null);
+                setSmallFamilyTree(false);
+                setPersonID(selectedPerson.id);
               }}
             >
               إغلاق
             </button>
           </div>
+          </aside>
+          <main>
+              {smallFamilyTree && (
+            <div
+              id="smallTreeDisplay"
+              ref={smalltreeContainerRef}
+            >
+              <TreeView
+                data={smallFamilyTree}
+                ref={smalltreeContainerRef}
+                translate={{x: 200, y:50}}
+                zoom={0.3}
+                draggable={true}
+                zoomable={true}
+                nodePositions={nodePositions}
+                onNodeClick={handlePersonClick}
+                onNodeContextMenu={handlePersonClickPopup}
+                startHoldTimer={startHoldTimer}
+                cancelHoldTimer={cancelHoldTimer}
+                goToPersonById={props.goToPersonById}
+                selectedGeneration={selectedGeneration}
+                personID={spouseId}
+                showID={showID}
+              />
+            </div>
+          )}
+          </main>
         </div>
       )}
+      {showTreeHeader && 
+        <div className="treeHeader">
+          <div className="infoStats">
+            <table>
+              <tbody>
+              <tr>
+                <td className="st">مجموع الأشخاص:</td>
+                <td className="st">{treeCount.totalCount}</td>
+              </tr>
+              <tr>
+                <td className="st">مجموع الأحياء</td>
+                <td className="st">{treeCount.aliveCount}</td>
+              </tr>
+              <tr>
+                <td className="st">عدد الأجيال</td>
+                <td className="st">{treeDepth}</td>
+              </tr>
+              <tr>
+                <td className="st">عدد العائلات</td>
+                <td className="st">{treeCount.familiesCount}</td>
+              </tr>
+              </tbody>
+            </table>
+          </div>
 
-      {/* Header */}
-      <div className="treeHeader">
-        <div className="infoStats">
-          <p>مجموع الأشخاص: {treeCount.totalCount}</p>
-          <p>على قيد الحياة: {treeCount.aliveCount}</p>
-          <p>عدد الأجيال: {treeDepth}</p>
-        </div>
-        <div id="titleDiv">
-          <h2>{title}</h2>
-        </div>
-        <div id="buttonsZone">
-        <button id="buttonsZone" onClick={toggleFullscreen} aria-label="Toggle fullscreen">
-          {isFullscreen ? (
-            <>
-              <FiMinimize />
-              <span>تصغير الشاشة</span>
-            </>
-          ) : (
-            <>
-              <FiMaximize />
-              <span>تكبير الشاشة</span>
-            </>
-          )}
-        </button>
+          <div id="titleDiv">
+            <h2>{title}</h2>
+            
+            <button
+              className='searchButton'
+              onClick={ async () => {
+                setLookoutMode('Node');
+                await handleSearch();
+              }}
+            >
+              <FiSearch></FiSearch>
+            </button>
+              <textarea placeholder='ابحث عن أي شخص في هذه الشجرة' value={treeSearchQuery} onChange={(e) => setTreeSearchQuery(e.target.value)}/>
+          </div>
 
-        <button onClick={() => resetSettings()} id="resetViewBtn">
-          <>
-            <FiRotateCcw />
-            <span>إعادة ضبط العرض</span>
-          </>
-        </button>
+          <div id="buttonsZone">
+            <button onClick={toggleFullscreen} aria-label="Toggle fullscreen">
+              {isFullscreen ? (
+                <>
+                  <FiMinimize />
+                  <span>تصغير الشاشة</span>
+                </>
+              ) : (
+                <>
+                  <FiMaximize />
+                  <span>تكبير الشاشة</span>
+                </>
+              )}
+            </button>
 
+            <button onClick={() => resetSettings(title)} id="resetViewBtn">
+              <>
+                <FiRotateCcw />
+                <span>إعادة ضبط العرض</span>
+              </>
+            </button>
+
+            <button>
+              <input type="checkbox" value={showID} onChange={() => {setShowID(!showID)}}></input><label class="buttonLabel">عرض الرقم التسلسلي </label>
+            </button>
+          </div>
         </div>
+      }
+      
+      <div id="treedisplayer1" style={{display: 'flex'}}>
         
-      </div>
+        
+        <div id="treedisplayer2" style={{ pointerEvents: showPopup ? 'none' : 'auto', display: 'flex', flex: 1 }}>
+      
+          <div id="treedisplayer3">
+            <TreeView
+              data={familyTree}
+              ref={treeContainerRef}
+              translate={translate}
+              zoom={zoomLevel}
+              draggable={!showPopup}
+              zoomable={!showPopup}
+              nodePositions={nodePositions}
+              onNodeClick={handlePersonClick}
+              onNodeContextMenu={handlePersonClickPopup}
+              startHoldTimer={startHoldTimer}
+              cancelHoldTimer={cancelHoldTimer}
+              selectedGeneration={selectedGeneration}
+              husbandId={props.husbandId}
+              spouseId={props.spouseId}
+              personID={props.personID}
+              peopleWithNoChildren={peopleWithNoChildren}
+              showID={showID}
+            />
+          </div>
 
-      {/* Main Tree */}
-      <div id="treedisplayer1" ref={treeContainerRef} style={{ display: 'flex' }}>
-        <div
-          id="treedisplayer2"
-          style={{ pointerEvents: showPopup ? 'none' : 'auto' }}
-        >
-          <TreeView
-            data={familyTree}
-            translate={translate}
-            zoom={zoomLevel}
-            draggable={!showPopup}
-            zoomable={!showPopup}
-            nodePositions={nodePositions}
-            onNodeClick={handlePersonClick}
-            onNodeContextMenu={handlePersonClickPopup}
-            startHoldTimer={startHoldTimer}
-            cancelHoldTimer={cancelHoldTimer}
-            selectedGeneration={selectedGeneration}
-            husbandId={props.husbandId}
-            spouseId={props.spouseId}
-            personID={props.personID}
-            peopleWithNoChildren={peopleWithNoChildren}
-          />
+            <div style={{display: isFullscreen ? 'flex' : 'none', alignItems: 'center', justifyContent: 'center' }}>
+              <ZoomBar zoomLevel={zoomLevel} setZoomLevel={setZoomLevel} />
+            </div>
         </div>
-      </div>
-
-      {/* Legend */}
-      <div id="keys">
-        {/* ... your key-boxes ... */}
       </div>
     </div>
   );
-}
+});
 
 export default FamilyTreeComponent;

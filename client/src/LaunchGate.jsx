@@ -43,7 +43,12 @@ const LaunchGate = () => {
 
   useEffect(() => {
     if (isLaunchReached) {
-      const hasSeenIntro = localStorage.getItem('hasSeenIntro');
+      let hasSeenIntro = null;
+      try {
+        hasSeenIntro = localStorage.getItem('hasSeenIntro');
+      } catch (e) {
+        console.warn('localStorage access blocked:', e);
+      }
       if (!hasSeenIntro) {
         setShowIntro(true);
       }
@@ -51,9 +56,14 @@ const LaunchGate = () => {
   }, [isLaunchReached]);
 
   const finishIntro = () => {
-    localStorage.setItem('hasSeenIntro', 'true');
+    try {
+      localStorage.setItem('hasSeenIntro', 'true');
+    } catch (e) {
+      console.warn('localStorage write blocked:', e);
+    }
     setShowIntro(false);
   };
+
 
   // 💡 Render logic clearly separated
   if (!isLaunchReached) {
