@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;   /* center slider vertically */
   padding: 4px 2px;
-  z-index: 1000;
+  z-index: 10;
 }
 
 

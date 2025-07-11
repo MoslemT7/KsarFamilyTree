@@ -1,5 +1,4 @@
 :root {
-  /* === Base Colors === */
   --color-bg-primary: #f5f0e6;      /* Desert Sand - main background */
   --color-bg-secondary: #e8dcc4;    /* Parchment Beige - sections/cards */
   --color-surface: #fffdf8;         /* Very light neutral, e.g. modals */
@@ -64,8 +63,8 @@
   font-family: 'Cairo', sans-serif;
 }
 .stats-dashboard header {
-  background: url('../media/bg5-low.jpg');
   min-height: 250px;
+  padding: 8px;
   border: 2px solid var(--border-accent);
 }
 #description{
@@ -73,6 +72,7 @@
   font-size: 18px;
   font-weight: 800;
 }
+
 .statistics-dashboard p{
   padding: 5px 20px;
   margin-bottom: 20px;
@@ -80,9 +80,11 @@
   direction: rtl;
   text-align: justify;
 }
+
 #launch{
   color: var(--color-bg-primary);
   background-color: var(--color-accent-primary);
+  font-family: "Cairo";
 }
 .statistics-dashboard p{
   font-family: 'Cairo', sans-serif;
@@ -375,13 +377,13 @@
 .chart-container canvas {
   width: 100% !important;
   height: auto !important;
-  max-height: 300px;
+  max-height: 350px;
 }
 
 /* Specific override if needed */
 #cumulativeGrowth {
   width: 100% !important;
-  max-height: none;
+  min-height: 300px;
 }
 
 
@@ -805,7 +807,10 @@ body.dark-mode .category-title{
   .dashboard-title {
     font-size: 26px;
   }
-
+  #launch{
+    font-size: 20px;
+    width: 75%;
+  }
   .category-title {
     font-size: 20px;
   }
@@ -845,6 +850,8 @@ body.dark-mode .category-title{
 
   .marriage-averages {
     gap: 10px;
+    display: flex;
+    flex-direction: row;
   }
 
   .average-item {
@@ -952,7 +959,10 @@ body.dark-mode .category-title{
   .stats-dashboard {
     padding: 10px;
   }
-
+  #launch{
+    font-size: 14px;
+    width: 75%;
+  }
   .stats-dashboard p {
     font-size: 16px;
   }

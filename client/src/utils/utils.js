@@ -366,16 +366,18 @@ export const formatArabicYears = (num) => {
 };
 
 
-export function formatFullName(nameArray, gender, begin, max) {
-  if (max === -1) max = nameArray.length;
+export function formatFullName(nameArray, gender, begin = 0, max = -1) {
   if (!Array.isArray(nameArray) || nameArray.length < 2) return "";
 
-  let fullname = (gender === "Male" ? " بن " : " بنت ") +  translateName(nameArray[begin]) ;
+  const end = max === -1 ? nameArray.length : Math.min(max, nameArray.length);
 
-  for (let i = begin+1; i < max; i++) {
-    fullname += " بن " + translateName(nameArray[i]);
+  let fullName = translateName(nameArray[begin]) 
+               + (gender === "Male" ? " بن " : " بنت ");
 
+  for (let i = begin + 1; i < end; i++) {
+    fullName += translateName(nameArray[i]);
+    if (i < end - 1) fullName += " بن ";
   }
 
-  return fullname;
+  return fullName;
 }

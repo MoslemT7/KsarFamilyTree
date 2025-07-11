@@ -228,9 +228,9 @@ const SearchPage = () => {
                 MATCH (grandfather:Person)-[:FATHER_OF]->(father:Person)-[:FATHER_OF]->(child:Person)
                 WHERE (child.name = $personName OR child.Nickname = $personName) AND 
                       (father.name = $fatherName OR father.Nickname = $fatherName) AND 
-                      (grandfather.name = $grandfatherName OR grandfather.Nickname = $grandfatherName AND 
+                      (grandfather.name = $grandfatherName OR grandfather.Nickname = $grandfatherName) AND 
                       child.lastName = $familyName
-
+                WITH child, father, grandfather
                 OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(child)
                 OPTIONAL MATCH (motherFather:Person)-[:FATHER_OF]->(mother)
                 OPTIONAL MATCH (motherGrandfather:Person)-[:FATHER_OF]->(motherFather)
@@ -980,7 +980,7 @@ const SearchPage = () => {
         <input
           type="text"
           className="search-bar"
-          placeholder="ادخل الاسم الثلاثي أو الرباعي..."
+          placeholder="ادخل الاسم الثلاثي أو الرقم التسلسلي..."
           value={searchQuery}
           onChange={handleSearchChange}
         />
@@ -1021,6 +1021,7 @@ const SearchPage = () => {
 
       {personDetails && personDetails.multipleMatches ? (
         <div className="multiple-matches">
+          <h2>تم العثور على {personDetails.multipleMatches.length} نتيجة</h2>
             <table className='duplicated-table'>
               <thead>
                 <tr>
@@ -1090,32 +1091,15 @@ const SearchPage = () => {
                     <span>{personDetails.personID}</span>
                   </td>
                 </tr>
-
-                  <tr>
-                    <th>الإسم الثلاثي</th>
-                    <td>
-                      {utils.translateName(personDetails?.personName)} {personDetails.Nickname ? "(" +  personDetails.Nickname + ")": ""}
-                      {personDetails?.fatherName
-                        ? ` ${personDetails.gender === 'Female' ? 'بنت' : 'بن'} ${utils.translateName(personDetails.fatherName)}`
-                        : ''}
-                      {personDetails?.grandfatherName
-                        ? ` بن ${utils.translateName(personDetails.grandfatherName)}`
-                        : ''}
-                      {personDetails?.familyName ? 
-                        ` ${utils.translateFamilyName(personDetails.familyName)}` 
-                        : ''}
-                    </td>
-                  </tr>
                   <tr>
                     <th>
                       الاسم الكامل
-                      <button id="showFullName" onClick={() => setShowFullName(!showFullName)}>{!showFullName ? "اظهار": "اخفاء"}</button>
-                      </th>
+                    </th>
                     <td>
                       {showFullName ?
-                      utils.formatFullName(personDetails.fullLineage, personDetails.gender, 2, 10) :
+                      utils.formatFullName(personDetails.fullLineage, personDetails.gender, 0, 11) :
                       "-"
-                      }
+                      } {utils.translateFamilyName(personDetails.familyName)}
                     </td>
                   </tr>
                   <tr>
@@ -1161,7 +1145,7 @@ const SearchPage = () => {
                     <td>{personDetails?.gender === 'Male' ? 'ذكر' : 'أنثى'}</td>
                   </tr>
                   <tr>
-                  <th>الحالة الإجتماعية :</th>
+                  <th>الحالة الإجتماعية</th>
                   <td>
                     {personDetails?.lifeStatus === true
                       ? personDetails.maritalStatus === 'widowed'

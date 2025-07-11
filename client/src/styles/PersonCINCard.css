@@ -173,8 +173,16 @@
     object-fit: contain;
 }
 
+#flipButton{
+  width: 50%;
+  font-family: "Cairo";
+  font-size: 16px;
+  color: beige;
+  background-color: #a86943;
+}
+
 /* Desktop: still flip on hover */
-@media (hover: hover) {
+@media (hover: hover){
   .cin-card:hover .cin-inner {
     transform: rotateY(180deg);
   }
@@ -189,11 +197,45 @@
 @media (max-width: 480px){
   .cin-card{
     width: 95%;
+    height: 250px;
   }
-  .search-header h1{
-    font-size: 26px;
+  .cin-card h1{
+    font-size: 18px;
   }
-  .search-header p{
+  .cin-card p{
+    font-size: 12px;
+  }
+  .cin-card strong, #familyName{
+    font-size: 15px;
+  }
+  .cin-photo {
+    width: 35%;
+    height: 35%;
+  }
+  .cin-title {
+    font-size: 14px;
+  }
+
+}
+@media (max-width: 360px){
+  .cin-card{
+    width: 95%;
+    height: 250px;
+  }
+  .cin-card h1{
+    font-size: 18px;
+  }
+  .cin-card p{
+    font-size: 12px;
+  }
+  .cin-card strong, #familyName{
+    font-size: 15px;
+  }
+  .cin-photo {
+    width: 35%;
+    height: 35%;
+  }
+  .cin-title {
     font-size: 14px;
   }
 }

@@ -17,13 +17,8 @@ const PersonCINCard = ({ person }) => {
       role="button"
       aria-pressed={flipped}
       tabIndex={0}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          setFlipped(f => !f);
-        }
-      }}
     >
+      <button id="flipButton" onClick={handleClick}>اضغط لقلب البطاقة</button>
       <div className="cin-inner">
         {/* Front Side */}
         <div className="cin-front">
@@ -55,7 +50,7 @@ const PersonCINCard = ({ person }) => {
                 {person.Nickname ? " (" +  utils.translateName(person.Nickname) + ")": ""}
               </p>
               <p>
-                {utils.formatFullName(person.fullLineage, person.gender, 1, 5)}
+                {utils.formatFullName(person.fullLineage, person.gender, 1, 6)}
               </p>
               <p>
                 <strong>

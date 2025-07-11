@@ -141,11 +141,10 @@ body {
   display: none;
   z-index: 1050;
 }
-
 @media screen and (max-width: 1024px) {
 
   .official-header {
-    flex-direction: column;
+    flex-direction: row;
     height: auto;
     padding: 2px 2px;
   }
@@ -158,7 +157,7 @@ body {
     height: 50px;
   }
   .header-left h1 {
-    font-size: 12px;
+    font-size: 18px;
     text-align: center;
   }
 
@@ -214,7 +213,7 @@ body {
 @media (max-width: 768px) and (min-width: 481px) {
 
   .official-header {
-    flex-direction: row;
+    flex-direction: column;
     height: auto;
     padding: 4px 4px;
   }
@@ -227,7 +226,7 @@ body {
     height: 50px;
   }
   .header-left h1 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     text-align: center;
   }
 

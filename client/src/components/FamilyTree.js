@@ -1,4 +1,4 @@
-import { useEffect, useState , useRef, use } from 'react';
+import { useEffect, useState , useRef, use, lazy } from 'react';
 import FamilyTreeComponent from './FamilyTreeComponent';
 import usePageTracking from '../utils/trackers';
 import neo4j from 'neo4j-driver';
@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../styles/FamilyTree.css';
 import "../styles/ZoomBar.css";
+import { FiX } from 'react-icons/fi';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
@@ -58,46 +59,7 @@ function buildLazyNode(node, childrenMap) {
     };
 };
 
-const buildSmallFamilyTree = (record) => {
-  const fatherNode = record.get("father");
-  const fatherChildrenRaw = record.get("fatherChildren") || [];
-  const personChildrenRaw = record.get("personChildren") || [];
-  const personId = record.get("personId")?.toNumber();
-  if (!fatherNode || !fatherNode.properties) {
-  console.warn("No father found in the record.");
-  return null;
-  }
-  const father = {
-  ...fatherNode.properties,
-  id: fatherNode.identity?.toNumber?.() ?? fatherNode.properties.id,
-  };
-  const formattedPersonChildren = personChildrenRaw.map((child) => ({
-  ...child.properties,
-  id: child.identity?.toNumber?.() ?? child.properties.id,
-  children: [],
-  }));
-  const formattedFatherChildren = fatherChildrenRaw.map((childNode) => {
-  const child = childNode.properties;
-  const id = childNode.identity?.toNumber?.() ?? child.id;
 
-  const node = {
-    ...child,
-    id,
-    children: [],
-  };
-
-  if (id === personId) {
-    node.children = formattedPersonChildren;
-  }
-
-  return node;
-  });
-  const rawTree = {
-  ...father,
-  children: formattedFatherChildren,
-  };
-  return translateNodeRecursive(rawTree);
-};
 
 const renderFamilyTree = (person, parentId = null, level = 0) => {
   const uniqueKey = `${person.name}-${person.lastName}-${parentId}-${level}-${uniqueKeyCounter++}`;
@@ -188,7 +150,7 @@ const buildChildrenMap = (allPeople) => {
       childMap[person.id] = [];
     }
   });
-
+  console.log(childMap);
   return childMap;
 };
 
@@ -244,7 +206,6 @@ const countTreeNodes = (node) => {
   const totalCount = 1 + childCounts.reduce((sum, c) => sum + c.totalCount, 0);
   const aliveCount = (node.isAlive ? 1 : 0) + childCounts.reduce((sum, c) => sum + c.aliveCount, 0);
 
-  // Count this node as a "family" if they have children
   const familiesCount = (children.length > 0 ? 1 : 0) + childCounts.reduce((sum, c) => sum + c.familiesCount, 0);
 
   return { totalCount, aliveCount, familiesCount };
@@ -254,6 +215,7 @@ const countTreeNodes = (node) => {
 const FamilyTree = () => {
   const treeContainerRef = useRef(null);
   const nodePositions = useRef({});
+  const spouseNodePositions = useRef({});
   const treeRef = useRef(null);
   const smalltreeContainerRef = useRef(null);
   const [familyTree, setFamilyTree] = useState(null);
@@ -281,16 +243,25 @@ const FamilyTree = () => {
   const [treeMode, setTreeMode] = useState("lazy");
   const [title, setTitle] = useState("");
   const [showSpouse, setShowSpouse] = useState(false);
-  
-  const [motherQuery, setMotherQuery] = useState(false);
+  const [treeFetchMode, setTreeFetchMode] = useState('Normal');
   const [treeSearchQuery, setTreeSearchQuery] = useState("");
+  const [focusTrigger, setFocusTrigger] = useState(0);
+  const [childrenMap, setChildrenMap] = useState(null);
+
   let holdTimer = null;
   usePageTracking();
 
   useEffect(() => {
-    if (personDetails && personDetails.personID) {
-      goToPersonById();
-      setPersonDetails(null);
+    if (personDetails?.personID) {
+      const timeout = setTimeout(() => {
+        if (treeContainerRef.current) {
+          goToPersonById();
+        } else {
+          console.warn("Tree container not ready yet.");
+        }
+      }, 1000);
+
+      return () => clearTimeout(timeout);
     }
   }, [personDetails]);
 
@@ -299,7 +270,7 @@ const FamilyTree = () => {
   }, [familyTree]);
 
   useEffect(() => {
-    document.title = "شجرة عرش قصر أولاد بوبكر";
+    document.title = 'شجرة عرش أولاد بوبكر';
   }, []);
 
   useEffect(() => {
@@ -318,30 +289,6 @@ const FamilyTree = () => {
     return () => clearInterval(interval);
   }, [loading]);
 
-  useEffect(() => {
-    console.log("PERSON ID ", personID);
-    if (!personID || !showTree || !treeContainerRef.current) return;
-    
-    const container = (showSpouse) ? smalltreeContainerRef.current : treeContainerRef.current;
-    const coords = nodePositions.current[personID];
-
-    if (!coords) {
-      console.warn(`Person with ID ${personID} not found.`);
-      setPersonDetails(null);
-      return;
-    }
-
-    const bounds = container.getBoundingClientRect();
-
-    setZoomLevel(1);
-
-    setTimeout(() => {
-      setTranslate({
-        x: bounds.width / 2 - coords.x,
-        y: bounds.height / 3 - coords.y,
-      });
-    }, 100);
-  }, [personID, familyTree]);
 
   useEffect(() => {
     const treeCount = countTreeNodes(familyTree);
@@ -369,7 +316,7 @@ const FamilyTree = () => {
     if (!isNaN(inputValue)) {
       const id = parseInt(inputValue, 10);
       setPersonID(id);
-      lookoutMode === 'Node' ? await goToPersonById() : await handlePersonTreeDisplay();
+      lookoutMode === 'Node' ? await goToPersonById(personID) : await handlePersonTreeDisplay();
     } 
     else {
       await searchPerson(inputValue);
@@ -378,7 +325,6 @@ const FamilyTree = () => {
   
   const fetchFamilyTree = async (rootID) => {
     const session = driver.session();
-    const MOTHER_OF = motherQuery ? "|MOTHER_OF" : "";
     try {
       const queryParamsObject = { rootID: Number(rootID) };
       const query = `
@@ -388,7 +334,7 @@ const FamilyTree = () => {
         CALL {
           WITH root
           // Get all descendants via FATHER_OF
-          MATCH (root)-[:FATHER_OF${MOTHER_OF}*]->(fDescendant)
+          MATCH (root)-[:FATHER_OF*]->(fDescendant)
           RETURN collect(DISTINCT fDescendant) AS allDescendants
         }
 
@@ -399,7 +345,7 @@ const FamilyTree = () => {
         OPTIONAL MATCH (person)-[:MARRIED_TO]-(sp:Person)
         WITH person, mother, collect(DISTINCT sp) AS allSpouses, count(DISTINCT sp) AS marriageCount
 
-        OPTIONAL MATCH (person)-[:FATHER_OF${MOTHER_OF}]->(child:Person)
+        OPTIONAL MATCH (person)-[:FATHER_OF]->(child:Person)
         OPTIONAL MATCH (childMother:Person)-[:MOTHER_OF]->(child)
 
         WITH person, mother, allSpouses, marriageCount,
@@ -530,6 +476,163 @@ const familyTree = result.records.map(record => {
       await session.close();
     }
   };
+
+  const fetchLineageTree = async (rootID) => {
+  const session = driver.session();
+
+  try {
+    const queryParamsObject = { rootID: Number(rootID) };
+    const query = `
+     MATCH (target:Person)
+WHERE id(target) = $rootID
+
+// Step 1: Find the full ancestry path from oldest to the person
+OPTIONAL MATCH path = (ancestor:Person)-[:FATHER_OF*]->(target)
+WITH (CASE WHEN path IS NULL THEN [target] ELSE nodes(path) END) AS lineageNodes, target
+
+// Step 2: Get all descendants of the target person (D)
+CALL {
+  WITH target
+  MATCH (target)-[:FATHER_OF*]->(descendant)
+  RETURN collect(DISTINCT descendant) AS descendants
+}
+
+// Step 3: Merge lineage path and descendants
+WITH lineageNodes + descendants AS allPeople
+UNWIND allPeople AS person
+
+// Get mother, spouse, and children of the person
+OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(person)
+OPTIONAL MATCH (person)-[:MARRIED_TO]-(sp:Person)
+WITH person, mother, collect(DISTINCT sp) AS allSpouses, count(DISTINCT sp) AS marriageCount
+
+// Get direct children of person (both father and mother)
+OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(child:Person)
+OPTIONAL MATCH (childMother:Person)-[:MOTHER_OF]->(child)
+
+WITH person, mother, allSpouses, marriageCount,
+  collect(DISTINCT {
+    id: id(child),
+    name: child.name,
+    lastName: child.lastName,
+    gender: child.gender,
+    isAlive: child.isAlive,
+    Nickname: child.Nickname,
+    Notes: child.Notes,
+    motherId: CASE WHEN childMother IS NULL THEN -1 ELSE id(childMother) END
+  }) AS rawChildren
+
+// Get spouses of each child
+OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(c:Person)
+OPTIONAL MATCH (c)-[:MARRIED_TO]-(s:Person)
+WITH person, mother, allSpouses, marriageCount, rawChildren,
+  collect(DISTINCT {cid: id(c), sid: id(s)}) AS childSpousePairs
+
+WITH person, mother, allSpouses, marriageCount,
+  [rc IN rawChildren |
+    {
+      id: rc.id,
+      name: rc.name,
+      lastName: rc.lastName,
+      gender: rc.gender,
+      isAlive: rc.isAlive,
+      Nickname: rc.Nickname,
+      Notes: rc.Notes,
+      motherId: rc.motherId,
+      spouseId: [pair IN childSpousePairs WHERE pair.cid = rc.id | pair.sid]
+    }
+  ] AS childrenData
+
+RETURN {
+  id: id(person),
+  name: person.name,
+  lastName: person.lastName,
+  gender: person.gender,
+  isAlive: person.isAlive,
+  Nickname: person.Nickname,
+  Notes: person.Notes,
+  motherId: CASE WHEN mother IS NULL THEN -1 ELSE id(mother) END,
+  spouseId: [
+    sp IN allSpouses |
+      {
+        id: id(sp),
+        name: sp.name,
+        nickname: sp.Nickname,
+        lastName: sp.lastName,
+        branch: sp.Branch,
+        origin: CASE WHEN sp.Origin <> '' THEN sp.Origin ELSE 'Ksar Ouled Boubaker' END
+      }
+  ],
+  marriageCount: marriageCount,
+  children: childrenData
+} AS treeNode
+ORDER BY person.gender DESC
+
+
+    `;
+
+    const result = await session.run(query, queryParamsObject);
+
+    const familyTree = result.records.map(record => {
+  const node = record.get('treeNode');
+  const validChildren = Array.isArray(node.children)
+    ? node.children.filter(child => child && child.id !== null)
+    : [];
+
+  return {
+    id: Number(node.id),
+    name: node.name,
+    gender: node.gender,
+    lastName: node.lastName,
+    isAlive: node.isAlive,
+    Nickname: node.Nickname,
+    Notes: node.Notes,
+    motherId: node.motherId !== -1 ? Number(node.motherId) : null,
+    spouseId: Array.isArray(node.spouseId)
+      ? node.spouseId
+          .filter(sp => sp && sp.id !== null)
+          .map(sp => ({
+            id: Number(sp.id),
+            name: sp.name,
+            nickname: sp.nickname,
+            lastName: sp.lastName,
+            branch: sp.branch,
+            origin: sp.origin
+          }))
+      : [],
+    children: validChildren.map(child => ({
+      id: Number(child.id),
+      name: child.name,
+      gender: child.gender,
+      isAlive: child.isAlive,
+      lastName: child.lastName,
+      Nickname: child.Nickname,
+      Notes: child.Notes,
+      motherId: child.motherId !== -1 ? Number(child.motherId) : null,
+      spouseId: Array.isArray(child.spouseId)
+        ? child.spouseId
+            .filter(sp => sp && sp.id !== null)
+            .map(sp => ({
+              id: Number(sp.id),
+              name: sp.name,
+              nickname: sp.nickname,
+              lastName: sp.lastName,
+              branch: sp.branch,
+              origin: sp.origin
+            }))
+        : []
+    }))
+  };
+});
+    console.log(familyTree);
+    return familyTree;
+  } catch (error) {
+    console.error('Error fetching lineage tree:', error);
+    return [];
+  } finally {
+    await session.close();
+  }
+};
 
   const searchPerson = async (searchText) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
@@ -724,26 +827,73 @@ const familyTree = result.records.map(record => {
     }
   };
 
-  const goToPersonById = async () => {
+  function rebuildTreeForPerson(root, childrenMap, targetId) {
+    let found = false;
+
+    function containsTarget(person) {
+      if (person.id === targetId) {
+        found = true;
+        return true;
+      }
+      const children = childrenMap[person.id] || [];
+      return children.some(containsTarget);
+    }
+
+    function build(node) {
+
+      const realChildren = childrenMap[node.id] || [];
+
+      const shouldExpand = realChildren.some(child => containsTarget(child));
+
+      const lazyNode = {
+        ...node,
+        name: utils.translateName(node.name),
+        lastName: utils.translateFamilyName(node.lastName),
+        _realChildren: realChildren.map(child => build(child)),
+        _lazyLoaded: shouldExpand,
+        children: shouldExpand ? realChildren.map(child => build(child)) : [],
+      };
+
+      return lazyNode;
+    }
+    const tree = build(root);
+    setFamilyTree(tree);
+    return { tree, found };
+  };
+
+  
+  const goToPersonById = async (ID) => {
     const container = treeContainerRef.current;
 
     if (!container) {
-      alert("الرجاء إظهار الشجرة أولاً.");
+      toast.warning("الرجاء إظهار الشجرة أولاً.");
       return;
     }
 
-    const coords = nodePositions.current[personID];
+    const coords = nodePositions.current[ID];
     if (!coords) {
-      alert("تعذر العثور على إحداثيات الشخص.");
+      const { tree: updatedTree, found } = rebuildTreeForPerson(familyTree, childrenMap, personID);
+      if (!found) {
+        toast.warning("الشخص غير موجود في هذه الشجرة.");
+      } 
+      else {
+        setFamilyTree(updatedTree);
+      }
       return;
     }
 
     const { width, height } = container.getBoundingClientRect();
+    const zoom = 0.8;
 
-    setZoomLevel(0.8);
+    // ✅ Calculate the new translate to center the node after applying zoom
+    const translateX = width / 2 - coords.x * zoom;
+    const translateY = height / 2 - coords.y * zoom;
+
+    // ✅ Apply zoom and translate
+    setZoomLevel(zoom);
     setTranslate({
-      x: width / 2 - coords.x,
-      y: height / 2 - coords.y,
+      x: translateX,
+      y: translateY,
     });
   };
 
@@ -753,7 +903,7 @@ const familyTree = result.records.map(record => {
     setSelectedBranch(personID);
     setSelectedSubtree('');
     if (!isNaN(id)) {
-      await loadFamilyTree(id, 'tree', treeMode === 'lazy');
+      await loadFamilyTree(id, treeMode === 'lazy');
       setPersonID(personID);
     }
   };
@@ -793,71 +943,88 @@ const familyTree = result.records.map(record => {
   };
 
   const handlePersonClick = (nodeDatum) => {
-    console.log(nodeDatum);
-    
-    if (treeMode === "lazy") {
-      if (!Array.isArray(nodeDatum._realChildren) || nodeDatum._realChildren.length === 0) {
-        const gender = nodeDatum.gender === "Male" ? "لديه": "لديها";
-        toast.info(`${nodeDatum.name} ${nodeDatum.lastName} ليس ${gender} أطفال.`);
-      };
-      const updateLazyTree = (node) => {
-        if (node.id === nodeDatum.id) {
-          const expanded = !node._lazyLoaded;
+  if (treeMode === "lazy") {
+    if (!Array.isArray(nodeDatum._realChildren) || nodeDatum._realChildren.length === 0) {
+      if (nodeDatum.gender === "Male") {
+        toast.info(`${nodeDatum.name} ${nodeDatum.lastName} ليس لديه أطفال.`);
+      }
+      else{
+        if (!Array.isArray(nodeDatum.spouseId) || nodeDatum.spouseId.length === 0){
+          toast.warning(`${nodeDatum.name} ${nodeDatum.lastName} ليس لديها أطفال.`);
+        }
+        else{
+          toast.warning(`الرجاء الذهاب الى زوج ${nodeDatum.name} ${nodeDatum.lastName} من أجل رؤية أطفالها.`);
+        }
+      }
+    }
+
+    // Recursive function to collapse all descendants
+    const recursivelyCollapse = (node) => ({
+      ...node,
+      _lazyLoaded: false,
+      children: [],
+      _realChildren: (node._realChildren || []).map(recursivelyCollapse),
+    });
+
+    const updateLazyTree = (node) => {
+      if (node.id === nodeDatum.id) {
+        const expanded = !node._lazyLoaded;
+        console.log(`Toggle node ${node.id} to ${expanded ? 'expanded' : 'collapsed'}`);
+        if (expanded) {
           setTreeCount(treeCount + node._realChildren.length);
           return {
             ...node,
-            children: expanded ? node._realChildren : [],
-            _lazyLoaded: expanded,
-          };
-        } else if (node.children) {
-          return {
-            ...node,
-            children: node.children.map(updateLazyTree),
+            children: node._realChildren,
+            _lazyLoaded: true,
           };
         } else {
-          
-          return node;
+          // Collapse the node and all its descendants
+          return recursivelyCollapse(node);
         }
-      };
+      } else if (node.children) {
+        return {
+          ...node,
+          children: node.children.map(updateLazyTree),
+        };
+      } else {
+        return node;
+      }
+    };
 
-      const updatedTree = updateLazyTree(familyTree);
-      setFamilyTree(updatedTree); // triggers re-render
-    } else {
-      handlePersonClickPopup(nodeDatum);
-    }
-  };
+    const updatedTree = updateLazyTree(familyTree);
+    setFamilyTree(updatedTree); // triggers re-render
+  } else {
+    handlePersonClickPopup(nodeDatum);
+  }
+};
+
 
   const handlePersonTreeDisplay = async () => {
     setFamilyTree(null);
-    console.log("Displaying tree for :", personID);
-    await loadFamilyTree(personID, treeMode === 'lazy');
+    console.log("Displaying tree mode for :", personID);
+    await loadFamilyTree(personID, treeMode === "lazy");
     setTimeout(() => {
       goToPersonById();
-    }, 1000); // wait for treeContainerRef to be available
+    }, 1000);
   };
 
-  const loadFamilyTree = async (rootID, mode, isLazy = false) => {
+  const loadFamilyTree = async (rootID, isLazy) => {
     try {
       setLoading(true);
-      
+      console.log(rootID, isLazy);
       let people = [];
 
       people = await fetchFamilyTree(rootID);
-
+      console.log(nodePositions);
       if (!Array.isArray(people) || people.length === 0) {
         console.warn("Empty or invalid people data");
         return;
       }
 
       const childrenMap = buildChildrenMap(people);
-      
+      setChildrenMap(childrenMap);
       if (isLazy) {
         const rootPerson = people.find(p => p.id === rootID);
-        if (!rootPerson) {
-          console.warn(`Root ID ${rootID} not found in fetched people.`);
-          return;
-        }
-
         const rootLazyNode = buildLazyNode(rootPerson, childrenMap);
         setFamilyTree(rootLazyNode);
         setShowTree(true);
@@ -912,15 +1079,14 @@ const familyTree = result.records.map(record => {
   return (
     <div className="treePage">
       <header>
-        <h1 id="title">شجرة عرش قصر أولاد بوبكر</h1>
-        <div className="d">
-          <p id="paragraph">
-            يمكنك من خلال هذه الصفحة، تصفح شجرة عرش قصر أولاد بوبكر كاملة، من الجد الأول بوبكر، حتى الأجيال الحالية.
-            حيث تسطيع تصفح هذه الشجرة عبر الفروع الأساسية (فرحات ، امحمد، عمر، سالم)، أو حتى عبر العائلات.
-            يمكنك اختيار مشاهدة الشجرة كاملة  أو بالجيل عبر النقر على الشخص لمعرفة أبناءه.
-          </p>
-        </div>
-        
+          <h1 id="title">شجرة عرش قصر أولاد بوبكر</h1>
+          <div className="d">
+            <p id="paragraph">
+              يمكنك من خلال هذه الصفحة، تصفح شجرة عرش قصر أولاد بوبكر كاملة، من الجد الأول بوبكر، حتى الأجيال الحالية.
+              حيث تسطيع تصفح هذه الشجرة عبر الفروع الأساسية (فرحات ، امحمد، عمر، سالم)، أو حتى عبر العائلات.
+              يمكنك اختيار مشاهدة الشجرة كاملة  أو بالجيل عبر النقر على الشخص لمعرفة أبناءه.
+            </p>
+          </div>
       </header>
       <div className="screen">
           
@@ -973,7 +1139,12 @@ const familyTree = result.records.map(record => {
                   <option value="202">فرع فرحات</option>
                   <option value="176">فرع إمحمّد</option>
                   <option value="224">فرع عمر</option>
-                  <option value="223">فرع سالم</option>
+                  <optgroup label='فرع سالم بن بوبكر'>
+                    <option value="223">فرع سالم الأول</option>
+                    <option value="390">فرع علي بن سالم</option>
+                    <option value="391">فرع احمد بن سالم</option>
+                  </optgroup>
+                  
                 </select>
 
                 {selectedBranch === '223' && (
@@ -1102,15 +1273,18 @@ const familyTree = result.records.map(record => {
             <option value="lazy">تحميل الشجرة عند النقر على الشخص</option>
             <option value="full">تحميل الشجرة كاملة</option>
           </select> <br/>
-          <div className='motherQ'>
-            <label htmlFor='mother-query'>عرض أبناء الأمهات </label>
-            <input name="mother" type="checkbox" id="mother-query" checked={motherQuery} onChange={() => setMotherQuery(!motherQuery)}></input>
-          </div>
           <button className='searchButton' onClick={() => {
-            handleBranchSelect(selectedSubtree || selectedBranch);
-            setSelectedBranch('-1');
-            scrollToTree();
-            toggleFullscreen();
+            setTreeFetchMode("Lineage");
+            if (!selectedBranch && !selectedSubtree){
+              toast.warning("الرجاء إختيار فرع");
+            }
+            else{
+              handleBranchSelect(selectedSubtree || selectedBranch);
+              setSelectedBranch('');
+              scrollToTree();
+              toggleFullscreen();
+            }
+            
           }}
           >عرض الشجرة
           </button>
@@ -1130,6 +1304,7 @@ const familyTree = result.records.map(record => {
               scrollToTree();
               setFamilyTree(null);
               setLookoutMode("Tree");
+              setTreeFetchMode("Lineage");
               toggleFullscreen();
               await handleSearch();
             }}
@@ -1139,107 +1314,7 @@ const familyTree = result.records.map(record => {
         </div>
       </div>
     </aside>
-    {(personDetails && lookoutMode === "Tree") ? (
-      personDetails.multipleMatches && personDetails.multipleMatches.length > 1 ? (
-        <div className="modal-overlay">
-          <div className="modal-content multiple-matches">
-            <h2>🔍 تم العثور على أكثر من شخص:</h2>
-            <table className="duplicated-table">
-              <thead>
-                <tr>
-                  <th>الرقم التسلسلي</th>
-                  <th>الاسم</th>
-                  <th>اسم الأب</th>
-                  <th>اسم الجدّ</th>
-                  <th>اللقب</th>
-                  <th>العمر</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {personDetails.multipleMatches.map((person, index) => (
-                  <tr key={index}>
-                    <td>{person.personID}</td>
-                    <td>{utils.translateName(person.personName)}</td>
-                    <td>{person.fatherName ? utils.translateName(person.fatherName) : ''}</td>
-                    <td>{person.grandfatherName ? utils.translateName(person.grandfatherName) : ''}</td>
-                    <td>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
-                    <td>{person.age !== -1 ? person.age : ' - '}</td>
-                    <td>
-                      <button
-                        className="choiceButton"
-                        onClick={async () => {
-                          handlePersonTreeDisplay(person.personID);
-                          setPersonDetails(null);
-                        }}
-                      >
-                        اختيار
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button onClick={() => setPersonDetails(null)}>إغلاق</button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {handlePersonTreeDisplay(personDetails.personID)}
-          {setPersonDetails(null)}
-        </>
-      )
-    ) : null}
-    {(personDetails && lookoutMode === 'Node') ? (
-              personDetails.multipleMatches && personDetails.multipleMatches.length > 1 ? (
-                <div className="modal-overlay">
-                  <div className="modal-content multiple-matches">
-                    <h2>🔍 تم العثور على أكثر من شخص:</h2>
-                    <table className="duplicated-table">
-                      <thead>
-                        <tr>
-                          <th>الرقم التسلسلي</th>
-                          <th>الاسم</th>
-                          <th>اسم الأب</th>
-                          <th>اسم الجدّ</th>
-                          <th>اللقب</th>
-                          <th>العمر</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {personDetails.multipleMatches.map((person, index) => (
-                          <tr key={index}>
-                            <td>{person.personID}</td>
-                            <td>{utils.translateName(person.personName)}</td>
-                            <td>{person.fatherName ? utils.translateName(person.fatherName) : ''}</td>
-                            <td>{person.grandfatherName ? utils.translateName(person.grandfatherName) : ''}</td>
-                            <td>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
-                            <td>{person.age !== -1 ? person.age : ' - '}</td>
-                            <td>
-                              <button
-                                className="choiceButton"
-                                onClick={async () => {
-                                  setPersonDetails(null);
-                                  setPersonID(person.personID);
-                                  await goToPersonById();
-                                }}
-                              >
-                                اختيار
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <button onClick={() => setPersonDetails(null)}>إغلاق</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                </>
-              )
-    ) : null}        
+         
     <main className="panel panel--tree" ref={treeRef}>
       {loading && (
         <div className="loading-indicator">
@@ -1251,6 +1326,72 @@ const familyTree = result.records.map(record => {
           }} />
         </div>
       )}
+      {personDetails && (
+        personDetails.multipleMatches && personDetails.multipleMatches.length > 1 ? (
+          <div className="modal-overlay">
+            <div className="modal-content multiple-matches">
+              {lookoutMode === "Node" && (
+                <button className="closeButton" onClick={() => setPersonDetails(null)}>
+                  <FiX />
+                </button>
+              )}
+              <h2>
+                   تم العثور على {personDetails.multipleMatches.length} شخصًا يحملون إسم {treeSearchQuery}
+              </h2>
+              <table className="duplicated-table">
+                <thead>
+                  <tr>
+                    <th>الرقم التسلسلي</th>
+                    <th>الاسم</th>
+                    <th>اسم الأب</th>
+                    <th>اسم الجدّ</th>
+                    <th>اللقب</th>
+                    <th>العمر</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {personDetails.multipleMatches.map((person, index) => (
+                    <tr key={index}>
+                      <td>{person.personID}</td>
+                      <td>{utils.translateName(person.personName)}</td>
+                      <td>{person.fatherName ? utils.translateName(person.fatherName) : ''}</td>
+                      <td>{person.grandfatherName ? utils.translateName(person.grandfatherName) : ''}</td>
+                      <td>{person.familyName ? utils.translateFamilyName(person.familyName) : ''}</td>
+                      <td>{person.age !== -1 ? person.age : ' - '}</td>
+                      <td>
+                        <button
+                          className="choiceButton"
+                          onClick={async () => {
+                            setPersonDetails(null);
+                            if (lookoutMode === "Tree") {
+                              handlePersonTreeDisplay(person.personID);
+                            } else {
+                              setPersonID(person.personID);
+                              await goToPersonById();
+                            }
+                          }}
+                        >
+                          اختيار
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button className="returnButton" onClick={() => setPersonDetails(null)}>إغلاق</button>
+            </div>
+          </div>
+        ) : (
+          lookoutMode === "Tree" && personDetails.personID && (
+            <>
+              {handlePersonTreeDisplay(personDetails.personID)}
+              {setPersonDetails(null)}
+            </>
+          )
+        )
+      )}
+ 
       {showTree && familyTree && !loading ? (
       
           <FamilyTreeComponent
@@ -1258,6 +1399,8 @@ const familyTree = result.records.map(record => {
           setFamilyTree={setFamilyTree}
           translate={translate}
           setTranslate={setTranslate}
+          setFocusTrigger={setFocusTrigger}
+          focusTrigger={focusTrigger}
           zoomLevel={zoomLevel}
           selectedGeneration={selectedGeneration}
           treeCount={treeCount}
@@ -1280,6 +1423,7 @@ const familyTree = result.records.map(record => {
           startHoldTimer={startHoldTimer}
           cancelHoldTimer={cancelHoldTimer}
           nodePositions={nodePositions}
+          spouseNodePositions={spouseNodePositions}
           treeContainerRef={treeContainerRef}
           smalltreeContainerRef={smalltreeContainerRef}
           isFullscreen={isFullscreen}
@@ -1293,6 +1437,9 @@ const familyTree = result.records.map(record => {
           setTreeSearchQuery={setTreeSearchQuery}
           setLoading={setLoading}
           loading={loading}
+          setPersonDetails={setPersonDetails}
+          personDetails={personDetails}
+          handlePersonTreeDisplay={handlePersonClick}
         />
       ) : 
       <p id="noTreeText">

@@ -217,7 +217,7 @@ body,
   padding: 0 20px;
 }
 
-.card {
+.mainPage .card {
   background: url("../media/bg2-low.jpg");
   border-radius: 10px;
   box-shadow: 0 4px 12px var(--color-shadow);

@@ -64,7 +64,7 @@ export const mostUsedName = async () => {
       try {
         const result = await session.run(`
           MATCH (p:Person)
-          WHERE p.name IS NOT NULL
+          WHERE p.name <> 'Unknown'
           RETURN p.name AS name, count(*) AS Count
           ORDER BY Count DESC
           LIMIT 1
@@ -130,7 +130,6 @@ export const getAgeStats = async () => {
   }
 };
 
-
 export const oldestPerson = async () => {
   const session = driver.session();
   try {
@@ -142,7 +141,8 @@ export const oldestPerson = async () => {
       LIMIT 1
       OPTIONAL MATCH (n)<-[:FATHER_OF]-(father:Person)
       OPTIONAL MATCH (father)<-[:FATHER_OF]-(grandfather:Person)
-      RETURN 
+      RETURN
+        id(n) AS id,
         n.name AS Name, 
         n.lastName AS lastName, 
         n.YoB AS YoB,
@@ -157,6 +157,7 @@ export const oldestPerson = async () => {
       const yob = parseFloat(yobRaw);
       const age = new Date().getFullYear() - yob;
       return {
+        id: record.get("id") || '',
         name: record.get("Name") || '',
         lastName: record.get("lastName") || '',
         fatherName: record.get("fatherName") || '',
@@ -164,48 +165,6 @@ export const oldestPerson = async () => {
         gender: record.get("gender") || '',
         age,
         
-      };
-    } else {
-      return { name: "غير معروف", lastName: "", fatherName: "", grandfatherName: "", age: "-" };
-    }
-  } catch (error) {
-    console.error("Error fetching oldest person:", error);
-    return { name: "خطأ", lastName: "", fatherName: "", grandfatherName: "", age: "-" };
-  } finally {
-    await session.close();
-  }
-};
-
-export const youngestPerson = async () => {
-  const session = driver.session();
-  try {
-    const result = await session.run(`
-      MATCH (n:Person)
-      WHERE n.YoB IS NOT NULL AND n.isAlive = TRUE
-      WITH n
-      ORDER BY n.YoB DESC
-      LIMIT 1
-      OPTIONAL MATCH (n)<-[:FATHER_OF]-(father:Person)
-      OPTIONAL MATCH (father)<-[:FATHER_OF]-(grandfather:Person)
-      RETURN 
-        n.name AS Name, 
-        n.lastName AS lastName, 
-        n.YoB AS YoB,
-        father.name AS fatherName,
-        grandfather.name AS grandfatherName
-    `);
-
-    if (result.records.length > 0) {
-      const record = result.records[0];
-      const yobRaw = record.get("YoB");
-      const yob = parseFloat(yobRaw);
-      const age = new Date().getFullYear() - yob;
-      return {
-        name: record.get("Name") || '',
-        lastName: record.get("lastName") || '',
-        fatherName: record.get("fatherName") || '',
-        grandfatherName: record.get("grandfatherName") || '',
-        age
       };
     } else {
       return { name: "غير معروف", lastName: "", fatherName: "", grandfatherName: "", age: "-" };
@@ -239,35 +198,6 @@ export const averageChildrenPerFamily = async () => {
   } finally {
     await session.close();
   }
-};
-
-export const biggestFamily = async () =>{
-  const session = driver.session();
-    try {
-      const result = await session.run(`
-        MATCH (father:Person)-[:FATHER_OF]->(child:Person)
-        WITH father, COUNT(child) AS childrenCount
-        ORDER BY childrenCount DESC
-        LIMIT 1
-        RETURN father.name AS FatherName, father.lastName AS FatherLastName, childrenCount
-
-      `);
-  
-      if (result.records.length > 0) {
-        const fatherName = result.records[0].get('FatherName');
-        const FatherLastName = result.records[0].get('FatherLastName');
-        const childrenCount = result.records[0].get('childrenCount').toNumber();
-
-        return { fatherName, FatherLastName, childrenCount};
-      } else {
-        return { fatherName:"-", FatherLastName:"-", childrenCount : -1 };
-      }
-    } catch (error) {
-      console.error("Error fetching average age:", error);
-      return { fatherName: "-", FatherLastName:"-", childrenCount : "-"};
-    } finally {
-      await session.close();
-    }
 };
 
 export const topAbroadCountry = async () =>{
@@ -378,62 +308,47 @@ export const getAgeGenderData = async () => {
   }
 };
 
-export const unmariedMales = async () => {
-  const session = driver.session();
-    try {
-      const result = await session.run(`
-      MATCH (p:Person)
-      WHERE p.gender = 'Male' 
-        AND p.YoB IS NOT NULL 
-        AND (2025 - p.YoB) > 35 
-        AND NOT EXISTS((p)-[:MARRIED_TO]->())
-      RETURN COUNT(p) AS unmarriedMenOver35
-      `);
-      return result.records[0].get('unmarriedMenOver35').toNumber();
-    } catch (error) {
-      console.error("Error counting population:", error);
-      return 0;
-    } finally {
-      await session.close();
-    }
-};
-
 export const avgMarringAgeMale = async () => {
   const session = driver.session();
-    try {
-      const result = await session.run(`
-        MATCH (p:Person)
-        WHERE p.gender = 'Male' 
-        AND p.YoB IS NOT NULL AND p.YoM IS NOT NULL
-        RETURN SUM(p.YoM - p.YoB)/COUNT(p) AS avgMarringAge
-      `);
-      return ((result.records[0].get('avgMarringAge')))
-      
-    } catch (error) {
-      console.error("Error counting population:", error);
-      return 0;
-    } finally {
-      await session.close();
-    }
+  try {
+    const result = await session.run(`
+      MATCH (person:Person)-[r:MARRIED_TO]-(spouse:Person)
+      WHERE person.gender = 'Male'
+        AND person.YoB IS NOT NULL
+        AND NOT r.marriageYear IS NULL
+      RETURN round(toFloat(SUM(r.marriageYear - person.YoB)) / COUNT(person)) AS avgMarriageAge
+    `);
+
+    return result.records[0].get('avgMarriageAge'); // ✅ fixed key name
+
+  } catch (error) {
+    console.error("Error calculating average male marriage age:", error);
+    return 0;
+  } finally {
+    await session.close();
+  }
 };
+
 
 export const avgMarringAgeFemale = async () => {
   const session = driver.session();
-    try {
-      const result = await session.run(`
-        MATCH (p:Person)
-        WHERE p.gender = 'Female' 
-        AND p.YoB IS NOT NULL AND p.YoM IS NOT NULL
-        RETURN SUM(p.YoM - p.YoB)/COUNT(p) AS avgMarringAge
-      `);
-      return result.records[0].get('avgMarringAge');
-    } catch (error) {
-      console.error("Error counting population:", error);
-      return 0;
-    } finally {
-      await session.close();
-    }
+  try {
+    const result = await session.run(`
+      MATCH (person:Person)-[r:MARRIED_TO]-(spouse:Person)
+      WHERE person.gender = 'Female'
+        AND person.YoB IS NOT NULL
+        AND NOT r.marriageYear IS NULL
+      RETURN round(toFloat(SUM(r.marriageYear - person.YoB)) / COUNT(person)) AS avgMarriageAge
+    `);
+    return result.records[0].get('avgMarriageAge'); // ✅ fixed key
+  } catch (error) {
+    console.error("Error calculating average female marriage age:", error);
+    return 0;
+  } finally {
+    await session.close();
+  }
 };
+
 
 export const families6pluschildren = async () => {
   const session = driver.session();

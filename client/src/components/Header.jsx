@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserCircle, FaMoon, FaSun } from 'react-icons/fa';
+import { FaUserCircle, FaMoon, FaSun, FiMenu } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { FiBell } from "react-icons/fi"; 
 import logo from '../media/logo2.png';

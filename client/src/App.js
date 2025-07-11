@@ -35,7 +35,13 @@ const App = () => {
       
 
       <div className="main-container">
-        <ToastContainer position="top-center" autoClose={2000} />
+        <ToastContainer 
+          position="top-center" autoClose={3000} 
+          newestOnTop={true}
+          rtl={true}
+          theme='dark'
+          style={{ fontSize: '18px', fontWeight: "bolder" , fontFamily:"Cairo", textAlign:"center"}}
+        />
         <div className="content">
           <Routes>
             <Route path="" element={<MainPage />} />

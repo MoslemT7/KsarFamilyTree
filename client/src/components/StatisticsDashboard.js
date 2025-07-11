@@ -80,9 +80,9 @@ const StatisticsDashboard = () => {
         WITH currentYear - toInteger(p.YoB) AS age
         WITH CASE
           WHEN age < 3 THEN '0-2'
-          WHEN age < 13 THEN '3-12'
           WHEN age < 19 THEN '13-18'
           WHEN age < 30 THEN '19-29'
+          WHEN age < 13 THEN '3-12'
           WHEN age < 45 THEN '30-44'
           WHEN age < 60 THEN '45-59'
           WHEN age < 70 THEN '60-69'
@@ -156,12 +156,11 @@ const StatisticsDashboard = () => {
 
         const avgChild = await statistics.averageChildrenPerFamily();
         const nbrOfAgedPeople = await statistics.agedPersonCount();
-        const biggestFamilyCount = await statistics.biggestFamily();
         const abroadPeoplePercentage = ((await statistics.livingAbroad()) * 100 / totalAlive).toFixed(2);
         const topAbroadCountryCount = await statistics.topAbroadCountry();
 
-        const avgMarAgeMale = (await statistics.avgMarringAgeMale()).toFixed(0);
-        const avgMarAgeFemale = (await statistics.avgMarringAgeFemale()).toFixed(0);
+        const avgMarAgeMale = (await statistics.avgMarringAgeMale());
+        const avgMarAgeFemale = (await statistics.avgMarringAgeFemale());
         const sixPlusFamilies = await statistics.families6pluschildren();
 
         const top5families = await statistics.mostUsedFamilyName();
@@ -183,7 +182,6 @@ const StatisticsDashboard = () => {
           medAge,
           agedPeopleCount: nbrOfAgedPeople.count,
           oldestPerson: oldest,
-          biggestFamily: biggestFamilyCount,
           mostUsedFamilyNameCount,
           mostUsedNameCount: mostUsedNameCount.occurences,
           mostUsedNameCountName: mostUsedNameCount.name,
@@ -607,8 +605,7 @@ const StatisticsDashboard = () => {
           <h3 class="category-title" id="family">بنية العائلة</h3>
           <div class="stats-grid">
             <div class="stat-card"> <h4>متوسط عدد الأطفال لكل عائلة</h4> <p class="stat-number">{stats.averageChildrenPerFamily}</p> </div>
-            <div class="stat-card"> <h4>أكبر عائلة من حيث الأبناء</h4> <p class="stat-number"> عائلة {utils.translateName(stats.biggestFamily.fatherName)} {utils.translateFamilyName(stats.biggestFamily.FatherLastName)}  </p>
-            <p className="stat-note"> {stats.biggestFamily.childrenCount} أبناء </p>  </div>
+
             <div class="stat-card"> <h4>عدد العائلات بـ 6 أطفال أو أكثر</h4> <p class="stat-number">{stats.sixPlusFamilies}</p> </div>
             <div class="stat-card average-marriage-card">
               <h4>متوسط عمر الزواج</h4>

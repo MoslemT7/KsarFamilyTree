@@ -9,10 +9,12 @@ const TreeView = ({
   translate,
   zoom,
   setZoomLevel,
+  showSpouse,
   treeRef,
   draggable,
   zoomable,
   nodePositions,
+  spouseNodePositions,
   onNodeClick,
   onNodeContextMenu,
   startHoldTimer,
@@ -20,7 +22,9 @@ const TreeView = ({
   personID,
   showID
   }) => {
-
+    useEffect(() => {
+    nodePositions.current = {};
+  }, [data]);
   return (
   <Tree
     data={data}

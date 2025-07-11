@@ -1,20 +1,10 @@
-import React from 'react';
-import '../styles/mainPage.css';  // تأكد من استيراد ملف الـ CSS
-import { useNavigate } from 'react-router-dom'; // Import the useNavigate hook
+import '../styles/mainPage.css'; 
 import usePageTracking from '../utils/trackers';
 import logo from '../media/logo1.png'
 
 
-
 const MainPage = () => {
-  const navigate = useNavigate();
   usePageTracking();
-  const handleWeddingClick = () => {
-    navigate('weddings'); 
-  };
-  const handleRelationClick = () => {
-    navigate('relationChecker');
-  };
 
   return (
     <div className="mainPage">
@@ -95,7 +85,7 @@ const MainPage = () => {
           <p>عدادات تُحدّث تلقائيًا مع كل إضافة أو تعديل جديد</p>
         </div>
       </div>
-      
+      {/* <ImageSlider></ImageSlider> */}
       </div>
       <div className="cta-section">
         <div className="cta-content">

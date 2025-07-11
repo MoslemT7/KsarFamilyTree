@@ -59,7 +59,7 @@ const ComingSoonOfficial = () => {
 
   return (
     <div className="official-container" onClick={handleHiddenClick}>
-      <header className="official-header">
+      <header className="title-header">
         <h1>مشروع عرش قصر أولاد بوبكر</h1>
       </header>
 
