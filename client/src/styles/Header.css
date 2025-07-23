@@ -95,6 +95,7 @@ body {
   background: none;
   border: none;
   cursor: pointer;
+  margin: 0 auto;
 }
 
 /* Inline horizontal nav */
@@ -141,6 +142,17 @@ body {
   display: none;
   z-index: 1050;
 }
+
+@media screen and (max-width: 1440px) {
+    .header-left h1 {
+      font-size: 16px;
+      text-align: center;
+    }
+    .sidebar ul li a {
+    font-size: 1rem;
+  }
+}
+
 @media screen and (max-width: 1024px) {
 
   .official-header {

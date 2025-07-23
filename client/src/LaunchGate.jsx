@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ComingSoonOfficial from './ComingSoonPhaseOne';
 import App from './App';
 
-const LAUNCH_DATE = new Date('2025-07-02T01:54:00');
+const LAUNCH_DATE = new Date('2026-01-01T18:00:00');
 
 const IntroOverlay = ({ onFinish }) => {
   return (

@@ -5,9 +5,11 @@ import neo4j from 'neo4j-driver';
 import * as utils from '../utils/utils';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import '../styles/FamilyTree.css';
-import "../styles/ZoomBar.css";
+import '../styles/familyTreeStyles/FamilyTree.css';
+
 import { FiX } from 'react-icons/fi';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const neo4jURI = process.env.REACT_APP_NEO4J_URI;
 const neo4jUser = process.env.REACT_APP_NEO4J_USER; 
@@ -59,8 +61,6 @@ function buildLazyNode(node, childrenMap) {
     };
 };
 
-
-
 const renderFamilyTree = (person, parentId = null, level = 0) => {
   const uniqueKey = `${person.name}-${person.lastName}-${parentId}-${level}-${uniqueKeyCounter++}`;
 
@@ -98,7 +98,8 @@ const buildTreeSafe = (person, childMap, seen = new Set(), generation = 0) => {
         isAlive: child.isAlive,
         Nickname: child.Nickname,
         Notes : child.Notes,
-        motherId: child.motherId,
+        Branch: person.Branch,
+        mother: child.mother,
         spouseId: child.spouseId
       };
       return buildTreeSafe(childObj, childMap, seen, generation + 1);
@@ -113,7 +114,8 @@ const buildTreeSafe = (person, childMap, seen = new Set(), generation = 0) => {
     isAlive: person.isAlive,
     Nickname: person.Nickname,
     Notes : person.Notes,
-    motherId: person.motherId,
+    Branch: person.Branch,
+    mother: person.mother,
     spouseId: person.spouseId,
     generation,
     ...(childrenNodes.length > 0 ? { children: childrenNodes } : {})
@@ -122,11 +124,10 @@ const buildTreeSafe = (person, childMap, seen = new Set(), generation = 0) => {
 
 const buildChildrenMap = (allPeople) => {
   const peopleById = new Map(allPeople.map(p => [p.id, p]));
-
   const childMap = Object.create(null);
 
   allPeople.forEach(person => {
-    if (Array.isArray(person.children)) {
+    if (person.gender === 'Male' && Array.isArray(person.children)) {
       childMap[person.id] = person.children
         .map(childRef => peopleById.get(childRef.id))
         .filter(originalChild => originalChild != null)
@@ -138,18 +139,33 @@ const buildChildrenMap = (allPeople) => {
           isAlive: orig.isAlive,
           Nickname: orig.Nickname,
           Notes: orig.Notes,
-          motherId: typeof orig.motherId === 'number' ? orig.motherId : -1,
+          Branch: orig.Branch,
+          mother: orig.mother && typeof orig.mother.id === 'number'
+            ? {
+                id: orig.mother.id,
+                name: orig.mother.name,
+                lastName: orig.mother.lastName
+              }
+            : null,
           spouseId: Array.isArray(orig.spouseId)
-            ? [...orig.spouseId]              // clone the real array
-            : (orig.spouseId == null || orig.spouseId === -1)
-              ? []                            // normalize null/-1 → empty
-              : [orig.spouseId]               // single ID → array
+            ? orig.spouseId.map(sp => ({
+                id: sp.id,
+                name: sp.name,
+                lastName: sp.lastName,
+                nickname: sp.nickname,
+                branch: sp.branch,
+                origin: sp.origin,
+                father: typeof sp.father === 'string' ? sp.father : "",
+                grandfather: typeof sp.grandfather === 'string' ? sp.grandfather : ""
+              }))
+            : []
         }))
         .sort((a, b) => a.gender === "Male" ? -1 : 1);
     } else {
       childMap[person.id] = [];
     }
   });
+
   console.log(childMap);
   return childMap;
 };
@@ -211,6 +227,54 @@ const countTreeNodes = (node) => {
   return { totalCount, aliveCount, familiesCount };
 };
 
+const DATA_VERSION = "2025-07-23-v1";
+const CACHE_PREFIX = "familyTree_";
+const VERSION_KEY = "familyTree_version";
+
+const clearFamilyTreeCache = () => {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith(CACHE_PREFIX) || key === VERSION_KEY) {
+      localStorage.removeItem(key);
+      console.log(`[Cache] Removed key: ${key}`);
+    }
+  });
+};
+
+const setCachedFamilyTree = (rootID, data, isLazy) => {
+  const key = `${CACHE_PREFIX}${rootID}_${isLazy ? "lazy" : "full"}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    localStorage.setItem(VERSION_KEY, DATA_VERSION);
+    console.log(`[Cache] Cached family tree data for key: ${key}`);
+  } catch (e) {
+    console.warn(`[Cache] Failed to cache family tree for key: ${key}`, e);
+  }
+};
+
+const getCachedFamilyTree = (rootID, isLazy) => {
+  const cachedVersion = localStorage.getItem(VERSION_KEY);
+
+  if (cachedVersion !== DATA_VERSION) {
+    console.log(`[Cache] Data version mismatch (was: ${cachedVersion}, now: ${DATA_VERSION}). Clearing cache.`);
+    clearFamilyTreeCache();
+    return null;
+  }
+
+  const key = `${CACHE_PREFIX}${rootID}_${isLazy ? "lazy" : "full"}`;
+  const cached = localStorage.getItem(key);
+
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch {
+      localStorage.removeItem(key);
+      console.warn(`[Cache] Corrupted cache removed for key: ${key}`);
+    }
+  }
+
+  return null;
+};
+
 
 const FamilyTree = () => {
   const treeContainerRef = useRef(null);
@@ -221,14 +285,14 @@ const FamilyTree = () => {
   const [familyTree, setFamilyTree] = useState(null);
   const [husbandId, setHusbandId] = useState(null);
   const [wifeId, setWifeId] = useState(null);
-  const [showTree, setShowTree] = useState(true);
+  const [showTree, setShowTree] = useState(false);
   const [loading, setLoading] = useState(false);  
   const [translate, setTranslate] = useState({x : 0, y : 0});
   const [personID, setPersonID] = useState(null);
   const [treeCount, setTreeCount] = useState(0);
   const [treeDepth, setTreeDepth] = useState(0);
   const [spouseId, setSpouseId] = useState(null);
-  const [popupMode, setPopupMode] = useState('info');
+  const [popupMode, setPopupMode] = useState("details");
   const [showPopup, setShowPopup] = useState(false);
   const [selectedPerson, setSelectedPerson] = useState(null);
   const [selectedBranch, setSelectedBranch] = useState("");
@@ -243,31 +307,12 @@ const FamilyTree = () => {
   const [treeMode, setTreeMode] = useState("lazy");
   const [title, setTitle] = useState("");
   const [showSpouse, setShowSpouse] = useState(false);
-  const [treeFetchMode, setTreeFetchMode] = useState('Normal');
   const [treeSearchQuery, setTreeSearchQuery] = useState("");
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [childrenMap, setChildrenMap] = useState(null);
 
   let holdTimer = null;
   usePageTracking();
-
-  useEffect(() => {
-    if (personDetails?.personID) {
-      const timeout = setTimeout(() => {
-        if (treeContainerRef.current) {
-          goToPersonById();
-        } else {
-          console.warn("Tree container not ready yet.");
-        }
-      }, 1000);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [personDetails]);
-
-  useEffect(() => {
-    console.log(familyTree);
-  }, [familyTree]);
 
   useEffect(() => {
     document.title = 'شجرة عرش أولاد بوبكر';
@@ -289,6 +334,15 @@ const FamilyTree = () => {
     return () => clearInterval(interval);
   }, [loading]);
 
+  useEffect(() => {
+  if (showTree && familyTree && personID && !showPopup) {
+      const timer = setTimeout(() => {
+        goToPersonById(personID);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+    console.log(familyTree);
+  }, [showTree, familyTree, personID, focusTrigger]);
 
   useEffect(() => {
     const treeCount = countTreeNodes(familyTree);
@@ -296,6 +350,7 @@ const FamilyTree = () => {
     setTreeCount(treeCount);
     setTreeDepth(maxDepth);
   }, [familyTree]);
+
 
   const handleSearch = async () => {
     let inputValue = '';
@@ -316,7 +371,7 @@ const FamilyTree = () => {
     if (!isNaN(inputValue)) {
       const id = parseInt(inputValue, 10);
       setPersonID(id);
-      lookoutMode === 'Node' ? await goToPersonById(personID) : await handlePersonTreeDisplay();
+      lookoutMode === 'Node' ? await goToPersonById(id) : await handlePersonTreeDisplay(id);
     } 
     else {
       await searchPerson(inputValue);
@@ -325,62 +380,86 @@ const FamilyTree = () => {
   
   const fetchFamilyTree = async (rootID) => {
     const session = driver.session();
+
     try {
       const queryParamsObject = { rootID: Number(rootID) };
+
       const query = `
-        MATCH (root:Person)
-        WHERE id(root) = $rootID
+        MATCH (target:Person) WHERE id(target) = $rootID
+
+        OPTIONAL MATCH path = (ancestor:Person)-[:FATHER_OF*]->(target)
+        WITH CASE WHEN path IS NULL THEN [target] ELSE nodes(path) END AS lineageNodes, target
 
         CALL {
-          WITH root
-          // Get all descendants via FATHER_OF
-          MATCH (root)-[:FATHER_OF*]->(fDescendant)
-          RETURN collect(DISTINCT fDescendant) AS allDescendants
+          WITH target
+          MATCH (target)-[:FATHER_OF*]->(descendant)
+          RETURN collect(DISTINCT descendant) AS descendants
         }
 
-        WITH [root] + allDescendants AS allPeople
+        WITH lineageNodes + descendants AS allPeople
         UNWIND allPeople AS person
-        
+
         OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(person)
         OPTIONAL MATCH (person)-[:MARRIED_TO]-(sp:Person)
-        WITH person, mother, collect(DISTINCT sp) AS allSpouses, count(DISTINCT sp) AS marriageCount
+        OPTIONAL MATCH (fatherSp:Person)-[:FATHER_OF]->(sp)
+        OPTIONAL MATCH (grandfatherSp:Person)-[:FATHER_OF]->(fatherSp)
 
-        OPTIONAL MATCH (person)-[:FATHER_OF]->(child:Person)
+        WITH person, mother, collect(DISTINCT {
+          id: id(sp),
+          name: sp.name,
+          nickname: sp.Nickname,
+          lastName: sp.lastName,
+          branch: sp.Branch,
+          origin: CASE WHEN sp.Origin <> '' THEN sp.Origin ELSE 'Ksar Ouled Boubaker' END,
+          father: CASE WHEN fatherSp IS NULL THEN null ELSE fatherSp.name END,
+          grandfather: CASE WHEN grandfatherSp IS NULL THEN null ELSE grandfatherSp.name END
+        }) AS enrichedSpouses, count(DISTINCT sp) AS marriageCount
+
+        OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(child:Person)
         OPTIONAL MATCH (childMother:Person)-[:MOTHER_OF]->(child)
 
-        WITH person, mother, allSpouses, marriageCount,
-            collect(DISTINCT {
-              id: id(child),
-              name: child.name,
-              lastName: child.lastName,
-              gender: child.gender,
-              isAlive: child.isAlive,
-              Nickname: child.Nickname,
-              Notes: child.Notes,
-              motherId: CASE WHEN childMother IS NULL THEN -1 ELSE id(childMother) END
-            }) AS rawChildren
+        WITH person, mother, enrichedSpouses, marriageCount, child, childMother
 
-        // Now get child spouses separately
-        OPTIONAL MATCH (person)-[:FATHER_OF]->(c:Person)
+        WITH person, mother, enrichedSpouses, marriageCount,
+          collect(DISTINCT {
+            id: id(child),
+            name: child.name,
+            lastName: child.lastName,
+            gender: child.gender,
+            isAlive: child.isAlive,
+            Nickname: child.Nickname,
+            Notes: child.Notes,
+            Branch: child.Branch,
+            mother: CASE 
+              WHEN childMother IS NULL THEN null 
+              ELSE {
+                id: id(childMother),
+                name: childMother.name,
+                lastName: childMother.lastName
+              }
+            END
+          }) AS rawChildren
+
+        OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(c:Person)
         OPTIONAL MATCH (c)-[:MARRIED_TO]-(s:Person)
-        WITH person, mother, allSpouses, marriageCount, rawChildren,
-            collect(DISTINCT {cid: id(c), sid: id(s)}) AS childSpousePairs
+        WITH person, mother, enrichedSpouses, marriageCount, rawChildren,
+          collect(DISTINCT { cid: id(c), sid: id(s) }) AS childSpousePairs
 
-        // Merge children with their spouses
-        WITH person, mother, allSpouses, marriageCount,
-            [rc IN rawChildren |
-          {
-            id: rc.id,
-            name: rc.name,
-            lastName: rc.lastName,
-            gender: rc.gender,
-            isAlive: rc.isAlive,
-            Nickname: rc.Nickname,
-            Notes: rc.Notes,
-            motherId: rc.motherId,
-            spouseId: [pair IN childSpousePairs WHERE pair.cid = rc.id | pair.sid]
-          }
-        ] AS childrenData
+        WITH person, mother, enrichedSpouses, marriageCount,
+          [rc IN rawChildren |
+            {
+              id: rc.id,
+              name: rc.name,
+              lastName: rc.lastName,
+              gender: rc.gender,
+              isAlive: rc.isAlive,
+              Nickname: rc.Nickname,
+              Notes: rc.Notes,
+              Branch: rc.Branch,
+              mother: rc.mother,
+              spouseId: [pair IN childSpousePairs WHERE pair.cid = rc.id | pair.sid]
+            }
+          ] AS childrenData
 
         RETURN {
           id: id(person),
@@ -390,37 +469,32 @@ const FamilyTree = () => {
           isAlive: person.isAlive,
           Nickname: person.Nickname,
           Notes: person.Notes,
-          motherId: CASE WHEN mother IS NULL THEN -1 ELSE id(mother) END,
-          spouseId: [
-            sp IN allSpouses |
-              {
-                id: id(sp),
-                name: sp.name,
-                nickname: sp.Nickname,
-                lastName: sp.lastName,
-                branch: sp.Branch,
-                origin: CASE WHEN sp.Origin <> '' THEN sp.Origin ELSE 'Ksar Ouled Boubaker' END
-              }
-          ],
+          Branch: person.Branch,
+          mother: CASE 
+            WHEN mother IS NULL THEN null 
+            ELSE {
+              id: id(mother),
+              name: mother.name,
+              lastName: mother.lastName
+            }
+          END,
+          spouseId: enrichedSpouses,
           marriageCount: marriageCount,
           children: childrenData
         } AS treeNode
         ORDER BY person.gender DESC
-
-
       `;
 
       const result = await session.run(query, queryParamsObject);
 
-const familyTree = result.records.map(record => {
-  const node = record.get('treeNode');
+      const familyTree = result.records.map(record => {
+        const node = record.get('treeNode');
 
-  // Filter out children with null IDs
-  const validChildren = Array.isArray(node.children)
-    ? node.children.filter(child => child && child.id !== null)
-    : [];
+        const validChildren = Array.isArray(node.children)
+          ? node.children.filter(child => child && child.id !== null)
+          : [];
 
-  return {
+        return {
     id: Number(node.id),
     name: node.name,
     gender: node.gender,
@@ -428,166 +502,15 @@ const familyTree = result.records.map(record => {
     isAlive: node.isAlive,
     Nickname: node.Nickname,
     Notes: node.Notes,
-    motherId: node.motherId !== -1 ? Number(node.motherId) : null,
-    spouseId: Array.isArray(node.spouseId)
-      ? node.spouseId
-          .filter(sp => sp && sp.id !== null)
-          .map(sp => ({
-            id: Number(sp.id),
-            name: sp.name,
-            nickname: sp.Nickname,
-            lastName: sp.lastName,
-            branch: sp.branch,
-            origin: sp.origin
-          }))
-      : [],
-    children: validChildren.map(child => ({
-      id: Number(child.id),
-      name: child.name,
-      gender: child.gender,
-      isAlive: child.isAlive,
-      lastName: child.lastName,
-      Nickname: child.Nickname,
-      Notes: child.Notes,
-      motherId: child.motherId !== -1 ? Number(child.motherId) : null,
-      spouseId: Array.isArray(child.spouseId)
-        ? child.spouseId
-            .filter(sp => sp && sp.id !== null)
-            .map(sp => ({
-              id: Number(sp.id),
-              name: sp.name,
-              nickname: sp.Nickname,
-              lastName: sp.lastName,
-              branch: sp.branch,
-              origin: sp.origin
-            }))
-        : []
-    }))
-  };
-});
+    Branch: node.Branch,
+    mother: node.mother
+      ? {
+          id: Number(node.mother.id),
+          name: node.mother.name,
+          lastName: node.mother.lastName
+        }
+      : null,
 
-
-
-      return familyTree;
-    } catch (error) {
-      console.error('Error fetching family tree:', error);
-      return [];
-    } finally {
-      await session.close();
-    }
-  };
-
-  const fetchLineageTree = async (rootID) => {
-  const session = driver.session();
-
-  try {
-    const queryParamsObject = { rootID: Number(rootID) };
-    const query = `
-     MATCH (target:Person)
-WHERE id(target) = $rootID
-
-// Step 1: Find the full ancestry path from oldest to the person
-OPTIONAL MATCH path = (ancestor:Person)-[:FATHER_OF*]->(target)
-WITH (CASE WHEN path IS NULL THEN [target] ELSE nodes(path) END) AS lineageNodes, target
-
-// Step 2: Get all descendants of the target person (D)
-CALL {
-  WITH target
-  MATCH (target)-[:FATHER_OF*]->(descendant)
-  RETURN collect(DISTINCT descendant) AS descendants
-}
-
-// Step 3: Merge lineage path and descendants
-WITH lineageNodes + descendants AS allPeople
-UNWIND allPeople AS person
-
-// Get mother, spouse, and children of the person
-OPTIONAL MATCH (mother:Person)-[:MOTHER_OF]->(person)
-OPTIONAL MATCH (person)-[:MARRIED_TO]-(sp:Person)
-WITH person, mother, collect(DISTINCT sp) AS allSpouses, count(DISTINCT sp) AS marriageCount
-
-// Get direct children of person (both father and mother)
-OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(child:Person)
-OPTIONAL MATCH (childMother:Person)-[:MOTHER_OF]->(child)
-
-WITH person, mother, allSpouses, marriageCount,
-  collect(DISTINCT {
-    id: id(child),
-    name: child.name,
-    lastName: child.lastName,
-    gender: child.gender,
-    isAlive: child.isAlive,
-    Nickname: child.Nickname,
-    Notes: child.Notes,
-    motherId: CASE WHEN childMother IS NULL THEN -1 ELSE id(childMother) END
-  }) AS rawChildren
-
-// Get spouses of each child
-OPTIONAL MATCH (person)-[:FATHER_OF|MOTHER_OF]->(c:Person)
-OPTIONAL MATCH (c)-[:MARRIED_TO]-(s:Person)
-WITH person, mother, allSpouses, marriageCount, rawChildren,
-  collect(DISTINCT {cid: id(c), sid: id(s)}) AS childSpousePairs
-
-WITH person, mother, allSpouses, marriageCount,
-  [rc IN rawChildren |
-    {
-      id: rc.id,
-      name: rc.name,
-      lastName: rc.lastName,
-      gender: rc.gender,
-      isAlive: rc.isAlive,
-      Nickname: rc.Nickname,
-      Notes: rc.Notes,
-      motherId: rc.motherId,
-      spouseId: [pair IN childSpousePairs WHERE pair.cid = rc.id | pair.sid]
-    }
-  ] AS childrenData
-
-RETURN {
-  id: id(person),
-  name: person.name,
-  lastName: person.lastName,
-  gender: person.gender,
-  isAlive: person.isAlive,
-  Nickname: person.Nickname,
-  Notes: person.Notes,
-  motherId: CASE WHEN mother IS NULL THEN -1 ELSE id(mother) END,
-  spouseId: [
-    sp IN allSpouses |
-      {
-        id: id(sp),
-        name: sp.name,
-        nickname: sp.Nickname,
-        lastName: sp.lastName,
-        branch: sp.Branch,
-        origin: CASE WHEN sp.Origin <> '' THEN sp.Origin ELSE 'Ksar Ouled Boubaker' END
-      }
-  ],
-  marriageCount: marriageCount,
-  children: childrenData
-} AS treeNode
-ORDER BY person.gender DESC
-
-
-    `;
-
-    const result = await session.run(query, queryParamsObject);
-
-    const familyTree = result.records.map(record => {
-  const node = record.get('treeNode');
-  const validChildren = Array.isArray(node.children)
-    ? node.children.filter(child => child && child.id !== null)
-    : [];
-
-  return {
-    id: Number(node.id),
-    name: node.name,
-    gender: node.gender,
-    lastName: node.lastName,
-    isAlive: node.isAlive,
-    Nickname: node.Nickname,
-    Notes: node.Notes,
-    motherId: node.motherId !== -1 ? Number(node.motherId) : null,
     spouseId: Array.isArray(node.spouseId)
       ? node.spouseId
           .filter(sp => sp && sp.id !== null)
@@ -597,9 +520,12 @@ ORDER BY person.gender DESC
             nickname: sp.nickname,
             lastName: sp.lastName,
             branch: sp.branch,
-            origin: sp.origin
+            origin: sp.origin,
+            father: sp.father || "",
+            grandfather: sp.grandfather || ""
           }))
       : [],
+
     children: validChildren.map(child => ({
       id: Number(child.id),
       name: child.name,
@@ -608,31 +534,33 @@ ORDER BY person.gender DESC
       lastName: child.lastName,
       Nickname: child.Nickname,
       Notes: child.Notes,
-      motherId: child.motherId !== -1 ? Number(child.motherId) : null,
+      Branch: child.Branch,
+      mother: child.mother
+        ? {
+            id: Number(child.mother.id),
+            name: child.mother.name,
+            lastName: child.mother.lastName
+          }
+        : null,
       spouseId: Array.isArray(child.spouseId)
         ? child.spouseId
-            .filter(sp => sp && sp.id !== null)
-            .map(sp => ({
-              id: Number(sp.id),
-              name: sp.name,
-              nickname: sp.nickname,
-              lastName: sp.lastName,
-              branch: sp.branch,
-              origin: sp.origin
-            }))
+            .filter(sp => sp && sp !== null)
+            .map(sid => ({ id: Number(sid) }))
         : []
     }))
   };
-});
-    console.log(familyTree);
-    return familyTree;
-  } catch (error) {
-    console.error('Error fetching lineage tree:', error);
-    return [];
-  } finally {
-    await session.close();
-  }
-};
+
+      });
+
+      console.log(familyTree);
+      return familyTree;
+    } catch (error) {
+      console.error('Error fetching family tree:', error);
+      return [];
+    } finally {
+      await session.close();
+    }
+  };
 
   const searchPerson = async (searchText) => {
     const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
@@ -837,13 +765,17 @@ ORDER BY person.gender DESC
       }
       const children = childrenMap[person.id] || [];
       return children.some(containsTarget);
-    }
+    };
 
     function build(node) {
+      if (!node || typeof node !== 'object') {
+        console.warn("Invalid node passed to build():", node);
+        return null;
+      }
 
-      const realChildren = childrenMap[node.id] || [];
+      const realChildren = childrenMap?.[node.id] || [];
 
-      const shouldExpand = realChildren.some(child => containsTarget(child));
+      const shouldExpand = realChildren?.some?.(child => containsTarget(child)) || false;
 
       const lazyNode = {
         ...node,
@@ -856,55 +788,61 @@ ORDER BY person.gender DESC
 
       return lazyNode;
     }
+
     const tree = build(root);
     setFamilyTree(tree);
     return { tree, found };
   };
 
-  
   const goToPersonById = async (ID) => {
+    console.log(ID);
     const container = treeContainerRef.current;
-
-    if (!container) {
+    if (!container || !nodePositions.current) {
       toast.warning("الرجاء إظهار الشجرة أولاً.");
       return;
     }
-
+    console.log("nodePositions:", nodePositions.current);
+    console.log("Trying to access ID:", ID);
     const coords = nodePositions.current[ID];
     if (!coords) {
-      const { tree: updatedTree, found } = rebuildTreeForPerson(familyTree, childrenMap, personID);
-      if (!found) {
+      if (treeMode === "lazy") {
+        const { tree: updatedTree, found } = rebuildTreeForPerson(familyTree, childrenMap, ID);
+        if (!found) {
+          toast.warning("الشخص غير موجود في هذه الشجرة.");
+        } else {
+          setFamilyTree(updatedTree);
+        }
+        return;
+      } else {
         toast.warning("الشخص غير موجود في هذه الشجرة.");
-      } 
-      else {
-        setFamilyTree(updatedTree);
+        return;
       }
-      return;
     }
+
+
 
     const { width, height } = container.getBoundingClientRect();
     const zoom = 0.8;
 
-    // ✅ Calculate the new translate to center the node after applying zoom
     const translateX = width / 2 - coords.x * zoom;
     const translateY = height / 2 - coords.y * zoom;
 
-    // ✅ Apply zoom and translate
     setZoomLevel(zoom);
-    setTranslate({
-      x: translateX,
-      y: translateY,
-    });
+    setTranslate({ x: translateX, y: translateY });
   };
 
   const handleBranchSelect = async (personID) => {
+    setShowTree(false);
     setFamilyTree(null);
     const id = parseInt(personID);
     setSelectedBranch(personID);
     setSelectedSubtree('');
     if (!isNaN(id)) {
-      await loadFamilyTree(id, treeMode === 'lazy');
+      const treeData = await fetchFamilyTreeWithCache(id, treeMode === "lazy");
+      console.log(treeData);
+      setFamilyTree(treeData);
       setPersonID(personID);
+      setShowTree(true);
     }
   };
 
@@ -926,6 +864,7 @@ ORDER BY person.gender DESC
   };
   
   const handlePersonClickPopup = async (person) => {
+    if (showPopup) return;
     const session = driver.session();
     setWifeId(null);
     setHusbandId(null);
@@ -934,6 +873,7 @@ ORDER BY person.gender DESC
       setSelectedPerson(person);
       setPopupMode('info');
       setShowPopup(true);
+      setPopupMode("details");
 
     } catch (error) {
       console.error("Error fetching spouse:", error);
@@ -943,69 +883,88 @@ ORDER BY person.gender DESC
   };
 
   const handlePersonClick = (nodeDatum) => {
-  if (treeMode === "lazy") {
-    if (!Array.isArray(nodeDatum._realChildren) || nodeDatum._realChildren.length === 0) {
-      if (nodeDatum.gender === "Male") {
-        toast.info(`${nodeDatum.name} ${nodeDatum.lastName} ليس لديه أطفال.`);
-      }
-      else{
-        if (!Array.isArray(nodeDatum.spouseId) || nodeDatum.spouseId.length === 0){
-          toast.warning(`${nodeDatum.name} ${nodeDatum.lastName} ليس لديها أطفال.`);
+    setPersonID(null);
+    console.log(nodeDatum);
+    if (popupMode === "tree"){
+      toast.info("الرجاء الذهاب الى شجرة هذا الشخص لرؤية تفاصيله.");
+      return;
+    }
+    if (treeMode === "lazy") {
+      if (!Array.isArray(nodeDatum._realChildren) || nodeDatum._realChildren.length === 0) {
+        if (nodeDatum.gender === "Male") {
+          toast.info(`${nodeDatum.name} ${nodeDatum.lastName} ليس لديه أطفال.`);
         }
         else{
-          toast.warning(`الرجاء الذهاب الى زوج ${nodeDatum.name} ${nodeDatum.lastName} من أجل رؤية أطفالها.`);
+          if (!Array.isArray(nodeDatum.spouseId) || nodeDatum.spouseId.length === 0){
+            toast.warning(`${nodeDatum.name} ${nodeDatum.lastName} ليس لديها أطفال.`);
+          }
+          else{
+            toast.warning(`الرجاء الذهاب الى زوج ${nodeDatum.name} ${nodeDatum.lastName} من أجل رؤية أطفالها.`);
+          }
         }
       }
-    }
 
-    // Recursive function to collapse all descendants
-    const recursivelyCollapse = (node) => ({
-      ...node,
-      _lazyLoaded: false,
-      children: [],
-      _realChildren: (node._realChildren || []).map(recursivelyCollapse),
-    });
+      const recursivelyCollapse = (node) => ({
+        ...node,
+        _lazyLoaded: false,
+        children: [],
+        _realChildren: (node._realChildren || []).map(recursivelyCollapse),
+      });
 
-    const updateLazyTree = (node) => {
-      if (node.id === nodeDatum.id) {
-        const expanded = !node._lazyLoaded;
-        console.log(`Toggle node ${node.id} to ${expanded ? 'expanded' : 'collapsed'}`);
-        if (expanded) {
-          setTreeCount(treeCount + node._realChildren.length);
+      const updateLazyTree = (node) => {
+        if (node.id === nodeDatum.id) {
+          const expanded = !node._lazyLoaded;
+          console.log(`Toggle node ${node.id} to ${expanded ? 'expanded' : 'collapsed'}`);
+          if (expanded) {
+            return {
+              ...node,
+              children: node._realChildren,
+              _lazyLoaded: true,
+            };
+          } else {
+            // Collapse the node and all its descendants
+            return recursivelyCollapse(node);
+          }
+        } else if (node.children) {
           return {
             ...node,
-            children: node._realChildren,
-            _lazyLoaded: true,
+            children: node.children.map(updateLazyTree),
           };
         } else {
-          // Collapse the node and all its descendants
-          return recursivelyCollapse(node);
+          return node;
         }
-      } else if (node.children) {
-        return {
-          ...node,
-          children: node.children.map(updateLazyTree),
-        };
-      } else {
-        return node;
-      }
-    };
+      };
 
-    const updatedTree = updateLazyTree(familyTree);
-    setFamilyTree(updatedTree); // triggers re-render
-  } else {
-    handlePersonClickPopup(nodeDatum);
-  }
-};
+      const updatedTree = updateLazyTree(familyTree);
+      setFamilyTree(updatedTree); // triggers re-render
+    } else {
+      handlePersonClickPopup(nodeDatum);
+    }
+  };
 
-
-  const handlePersonTreeDisplay = async () => {
+  const handlePersonTreeDisplay = async (rootID) => {
+    const personID = rootID;
     setFamilyTree(null);
-    console.log("Displaying tree mode for :", personID);
-    await loadFamilyTree(personID, treeMode === "lazy");
-    setTimeout(() => {
-      goToPersonById();
-    }, 1000);
+    const cached = getCachedFamilyTree(personID);
+
+    if (cached) {
+      setFamilyTree(cached);
+      setTimeout(() => {
+        goToPersonById(personID);
+      }, 100);
+    } else {
+      const treeData = await loadFamilyTree(personID, treeMode === "lazy");
+
+      if (treeData) {
+        setCachedFamilyTree(personID, treeData);
+        setFamilyTree(treeData);
+        setTimeout(() => {
+          goToPersonById(personID);
+        }, 100);
+      } else {
+        console.warn("Failed to load tree data");
+      }
+    }
   };
 
   const loadFamilyTree = async (rootID, isLazy) => {
@@ -1015,20 +974,20 @@ ORDER BY person.gender DESC
       let people = [];
 
       people = await fetchFamilyTree(rootID);
-      console.log(nodePositions);
       if (!Array.isArray(people) || people.length === 0) {
         console.warn("Empty or invalid people data");
         return;
       }
 
       const childrenMap = buildChildrenMap(people);
+      console.log(childrenMap);
       setChildrenMap(childrenMap);
       if (isLazy) {
         const rootPerson = people.find(p => p.id === rootID);
         const rootLazyNode = buildLazyNode(rootPerson, childrenMap);
         setFamilyTree(rootLazyNode);
         setShowTree(true);
-        return;
+        return rootLazyNode;
       }
       const rootPersonFlat = people.find(p => p.id === rootID);
       if (!rootPersonFlat) {
@@ -1041,24 +1000,28 @@ ORDER BY person.gender DESC
       };
       
       const fullTree = buildTreeSafe(rootWrapped, childrenMap, new Set());
-      setFamilyTree(fullTree);
+      console.log(fullTree);
       const treeCount = countTreeNodes(fullTree);
       const maxDepth = getTreeDepth(fullTree);
       setTreeCount(treeCount);
       setTreeDepth(maxDepth);
       setShowTree(true);
 
+      return fullTree;
     } catch (error) {
       console.error("Error loading family tree:", error);
     } finally {
       setLoading(false);
+      
     }
+
+    
   };
 
   const startHoldTimer = (person) => {
     holdTimer = setTimeout(() => {
-      handlePersonClickPopup(person); // your popup info function
-    }, 500); // 500ms hold = long press
+      handlePersonClickPopup(person);
+    }, 500);
   };
 
   const cancelHoldTimer = () => {
@@ -1076,6 +1039,48 @@ ORDER BY person.gender DESC
     });
   };
 
+  const clearFamilyTreeCache = () => {
+    const confirmed = window.confirm(
+      "⚠️ هل أنت متأكد أنك تريد إعادة تعيين كاش شجرة العائلة؟\n\n" +
+      "هذا الإجراء سيحذف البيانات المخزنة مؤقتاً وسيتم تحميل الشجرة من جديد عند عرضها.\n" +
+      "قد يستغرق ذلك وقتًا أطول حسب سرعة الإنترنت."
+    );
+
+    if (!confirmed) return;
+
+    alert("✅ تم مسح الكاش بنجاح. سيتم تحميل الشجرة من جديد عند الطلب.");
+  };
+
+  const fetchFamilyTreeWithCache = async (rootID, isLazy) => {
+    console.log(`fetchFamilyTreeWithCache called with rootID: ${rootID}, isLazy: ${isLazy}`);
+
+    const cachedTree = getCachedFamilyTree(rootID, isLazy);
+    if (cachedTree) {
+      console.log("Using cached family tree for ID:", rootID, "Lazy mode:", isLazy);
+      return cachedTree;
+    }
+
+    console.log("No cached data found or cache invalidated, calling loadFamilyTree...");
+    const tree = await loadFamilyTree(rootID, isLazy);
+
+    console.log("Loaded tree:", tree);
+
+    if (!tree) {
+      console.warn("loadFamilyTree returned null or undefined tree.");
+      return null;
+    }
+
+    if (Array.isArray(tree) && tree.length === 0) {
+      console.warn("Loaded tree is an empty array.");
+      return tree;
+    }
+
+    setCachedFamilyTree(rootID, tree, isLazy);
+    console.log("Cached the loaded tree.");
+
+    return tree;
+  };
+
   return (
     <div className="treePage">
       <header>
@@ -1087,13 +1092,14 @@ ORDER BY person.gender DESC
               يمكنك اختيار مشاهدة الشجرة كاملة  أو بالجيل عبر النقر على الشخص لمعرفة أبناءه.
             </p>
           </div>
+          
       </header>
       <div className="screen">
-          
     <aside className="panel panel--controls">
       
       <div className="filterChoice">
         <div className="card">
+          
           <h3>تصفح أحد الفروع الرئيسية</h3>
           <p className="info-text">
             اختر أحد الفروع الرئيسية لعائلة بوبكر لعرض النسب الكامل الخاص به.
@@ -1125,13 +1131,6 @@ ORDER BY person.gender DESC
                   value={selectedBranch}
                   onChange={(e) => {
                     setSelectedBranch(e.target.value);
-                    switch (e.target.value){ 
-                      case "203": setTitle("شجرة عرش أولاد بوبكر"); break
-                      case "202": setTitle("شجرة فرع فرحات"); break
-                      case "176": setTitle("شجرة فرع إمحمّد"); break
-                      case "224": setTitle("شجرة فرع عمر"); break
-                      case "223": setTitle("شجرة فرع سالم"); break
-                    }
                   }}
                 > 
                   <option value="">-- اختر فرعًا --</option>
@@ -1139,12 +1138,7 @@ ORDER BY person.gender DESC
                   <option value="202">فرع فرحات</option>
                   <option value="176">فرع إمحمّد</option>
                   <option value="224">فرع عمر</option>
-                  <optgroup label='فرع سالم بن بوبكر'>
-                    <option value="223">فرع سالم الأول</option>
-                    <option value="390">فرع علي بن سالم</option>
-                    <option value="391">فرع احمد بن سالم</option>
-                  </optgroup>
-                  
+                  <option value="223">فرع سالم</option>
                 </select>
 
                 {selectedBranch === '223' && (
@@ -1154,13 +1148,6 @@ ORDER BY person.gender DESC
                       className="branch-selector"
                       onChange={(e) =>{ 
                         setSelectedSubtree(e.target.value);
-                        switch (e.target.value){
-                          case "390": setTitle("شجرة فرع علي بن سالم"); break
-                          case "391": setTitle("شجرة فرع احمد بن سالم"); break
-                          case "392": setTitle("شجرة فرع بوبكر بن سالم"); break
-                          case "389": setTitle("شجرة فرع خليفة بن سالم"); break
-                          case "393": setTitle("شجرة فرع سالم بن سالم (عبد الله بن سالم)"); break
-                        } 
                       }}
                       value={selectedSubtree}
                     >
@@ -1181,11 +1168,6 @@ ORDER BY person.gender DESC
                       className="branch-selector"
                       onChange={(e) =>{ 
                         setSelectedSubtree(e.target.value);
-                        switch (e.target.value){
-                          case "175": setTitle("شجرة فرع بوبكر بن إمحِمّدْ"); break
-                          case "353": setTitle("شجرة فرع حسن بن إمحِمّدْ"); break
-                          case "174": setTitle("شجرة فرع ابراهيم بن إمحِمّدْ"); break
-                        }
                       }}
                     >
                       <option value="">-- اختر فرعًا ثانويًا --</option>
@@ -1203,11 +1185,6 @@ ORDER BY person.gender DESC
                       className="branch-selector"
                       onChange={(e) =>{ 
                         setSelectedSubtree(e.target.value);
-                        switch (e.target.value){
-                          case "316": setTitle("شجرة فرع منصور بن فرحات"); break
-                          case "373": setTitle("شجرة فرع مبارك بن فرحات"); break
-                          case "201": setTitle("شجرة فرع إمحِمّدْ بن فرحات"); break
-                        }
                       }}
                     >
                       <option value="">-- اختر فرعًا ثانويًا --</option>
@@ -1226,27 +1203,9 @@ ORDER BY person.gender DESC
                   value={selectedBranch}
                   onChange={(e) => {
                     setSelectedBranch(e.target.value);
-                    switch (e.target.value){
-                      case "137": setTitle("شجرة عائلة التائب "); break;
-                      case "443": setTitle("شجرة عائلة اللقماني"); break;
-                      case "303": setTitle("شجرة عائلة مصدق"); break;
-                      case "395": setTitle("شجرة عائلة الرحموني"); break;
-                      case "444": setTitle("شجرة عائلة السقراطي"); break;
-                      case "204": setTitle("شجرة عائلة الفرجاني"); break;
-                      case "469": setTitle("شجرة عائلة المحسني"); break;
-                      case "491": setTitle("شجرة عائلة السالمي"); break;
-                      case "860": setTitle("شجرة عائلة الفرابي"); break;
-                      case "397": setTitle("شجرة عائلة الأمجد"); break;
-                      case "384": setTitle("شجرة عائلة الشاكري"); break;
-                      case "821": setTitle("شجرة عائلة الشامخي"); break;
-                      case "521": setTitle("شجرة عائلة الجامعي"); break;
-                      case "847": setTitle("شجرة عائلة العزابي"); break;
-
-                    }
-                  
                   }}
                 >
-                  <option value="">-- اختر عائلة --</option>
+                  <option value="">-- اختر من بين 19 عائلة --</option>
                   <option value="137">فرع التائب</option>
                   <option value="443">فرع اللقماني</option>
                   <option value="303">فرع مصدق</option>
@@ -1254,6 +1213,7 @@ ORDER BY person.gender DESC
                   <option value="444">فرع السقراطي</option>
                   <option value="204">فرع الفرجاني</option>
                   <option value="469">فرع المحسني</option>
+                  <option value="398">فرع المنذري</option>
                   <option value="491">فرع السالمي</option>
                   <option value="860">فرع الفرابي</option>
                   <option value="397">فرع الأمجد</option>
@@ -1261,6 +1221,12 @@ ORDER BY person.gender DESC
                   <option value="821">فرع الشامخي</option>
                   <option value="521">فرع الجامعي</option>
                   <option value="847">فرع العزابي</option>
+                  <option value="200">فرع الفرجاني + الغمراسني</option>
+                  <option value="719">فرع الغمراسني / الرحموني</option>
+                  <option value="374">فرع المطيع</option>
+                  <option value="375">قرع الشطي</option>
+                  <option value="702">فرع الماجدي</option>
+                  <option value="332">فرع العازم</option>
                 </select>
           )}
           <select
@@ -1273,18 +1239,19 @@ ORDER BY person.gender DESC
             <option value="lazy">تحميل الشجرة عند النقر على الشخص</option>
             <option value="full">تحميل الشجرة كاملة</option>
           </select> <br/>
-          <button className='searchButton' onClick={() => {
-            setTreeFetchMode("Lineage");
+          
+          <button className='searchButton' onClick={async () => {
             if (!selectedBranch && !selectedSubtree){
-              toast.warning("الرجاء إختيار فرع");
+              alert("الرجاء إختيار فرع");
             }
             else{
               handleBranchSelect(selectedSubtree || selectedBranch);
               setSelectedBranch('');
               scrollToTree();
               toggleFullscreen();
+              setPersonID(selectedSubtree || selectedBranch);
             }
-            
+            setFocusTrigger(prev => prev + 1);
           }}
           >عرض الشجرة
           </button>
@@ -1304,7 +1271,6 @@ ORDER BY person.gender DESC
               scrollToTree();
               setFamilyTree(null);
               setLookoutMode("Tree");
-              setTreeFetchMode("Lineage");
               toggleFullscreen();
               await handleSearch();
             }}
@@ -1313,6 +1279,9 @@ ORDER BY person.gender DESC
           </button>
         </div>
       </div>
+      <button id="resetCache" onClick={clearFamilyTreeCache}>
+        إعادة تعيين ذاكرة التخزين المؤقت لشجرة العائلة
+      </button>
     </aside>
          
     <main className="panel panel--tree" ref={treeRef}>
@@ -1352,7 +1321,7 @@ ORDER BY person.gender DESC
                 </thead>
                 <tbody>
                   {personDetails.multipleMatches.map((person, index) => (
-                    <tr key={index}>
+                    <tr key={person.personID}>
                       <td>{person.personID}</td>
                       <td>{utils.translateName(person.personName)}</td>
                       <td>{person.fatherName ? utils.translateName(person.fatherName) : ''}</td>
@@ -1364,11 +1333,13 @@ ORDER BY person.gender DESC
                           className="choiceButton"
                           onClick={async () => {
                             setPersonDetails(null);
+                            setPersonID(person.personID);
+                            console.log(personID);
+
                             if (lookoutMode === "Tree") {
                               handlePersonTreeDisplay(person.personID);
                             } else {
-                              setPersonID(person.personID);
-                              await goToPersonById();
+                              await goToPersonById(person.personID);
                             }
                           }}
                         >
@@ -1396,6 +1367,8 @@ ORDER BY person.gender DESC
       
           <FamilyTreeComponent
           familyTree={familyTree}
+          popupMode={popupMode}
+          setPopupMode={setPopupMode}
           setFamilyTree={setFamilyTree}
           translate={translate}
           setTranslate={setTranslate}
@@ -1440,6 +1413,7 @@ ORDER BY person.gender DESC
           setPersonDetails={setPersonDetails}
           personDetails={personDetails}
           handlePersonTreeDisplay={handlePersonClick}
+          treeMode={treeMode}
         />
       ) : 
       <p id="noTreeText">
@@ -1449,24 +1423,24 @@ ORDER BY person.gender DESC
 
       {showTree && familyTree && !loading && 
         <div id="keys">
-          <div class="key-box">
-            <span class="key-color special-border male" id="k1"></span>
-            <span class="key-label">ذكر</span>
+          <div className="key-box">
+            <span className="key-color special-border male" id="k1"></span>
+            <span className="key-label">ذكر</span>
           </div>
-          <div class="key-box">
-            <span class="key-color special-border female" id="k2"></span>
-            <span class="key-label">أنثى</span>
+          <div className="key-box">
+            <span className="key-color special-border female" id="k2"></span>
+            <span className="key-label">أنثى</span>
           </div>
-          <div class="key-box">∅
-            <span class="key-label">ليس لديه عقب</span>
+          <div className="key-box">∅
+            <span className="key-label">ليس لديه عقب</span>
           </div>
-          <div class="key-box">
-            <span class="key-color" id="k4"></span>
-            <span class="key-label">الشخص المبحوث عليه</span>
+          <div className="key-box">
+            <span className="key-color" id="k4"></span>
+            <span className="key-label">الشخص المبحوث عليه</span>
           </div>
-          <div class="key-box">
-            <span class="key-color" id="k5"></span>
-            <span class="key-label">شخص متوفى</span>
+          <div className="key-box">
+            <span className="key-color" id="k5"></span>
+            <span className="key-label">شخص متوفى</span>
           </div>
         </div>
       }

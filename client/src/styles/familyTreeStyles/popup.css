@@ -1,0 +1,337 @@
+@import url('../app.css');
+
+.popup {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  left: 20%;
+  bottom: 5%;
+  width: 60%;
+  height: 90%;
+  padding: 4px;
+  text-align: center;
+  background-color: var(--color-bg-secondary);
+  border: 3px outset var(--border-base);
+  border-radius: 12px;
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  z-index: 1200;
+}
+
+/* Popup Header Buttons */
+.popupHeader .HeaderButton {
+  font-family: var(--main-font);
+  font-weight: bold;
+  padding: 4px 8px;
+  width: 40%;
+  border-radius: 8px;
+  background-color: var(--color-accent-primary);
+  color: var(--color-bg-primary);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+.popupHeader .HeaderButton.selected {
+  background-color: var(--color-bg-primary);
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+
+/* Layout Sections */
+.popup section {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 90%;
+}
+.popup main {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+}
+.popup aside {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+/* Internal Controls */
+.HeaderButtons {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: transparent !important;
+}
+.HeaderButtons button {
+  font-size: 14px;
+  width: 40%;
+}
+
+/* Details Panels */
+.personDetails,
+.spouseDetails {
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+.person-details-vertical-table th,
+.person-details-vertical-table td,
+.person-marriage-vertical-table th,
+.person-marriage-vertical-table td {
+  font-size: 12px;
+  padding: 4px;
+}
+.person-marriage-vertical-table {
+  width: 100%;
+}
+.spouseDetails {
+  display: flex;
+  flex-direction: column;
+}
+.spouseButtons {
+  width: 100%;
+}
+.spouseButtons h2 {
+  font-size: 16px;
+}
+.MultipleSpouses {
+  display: flex;
+}
+.MultipleSpouses button {
+  font-size: 11px;
+  width: 80%;
+  margin: 12px auto;
+  padding: 2px 4px;
+}
+button{
+  border: none;
+}
+/* Small Tree Display In Popup */
+#smallTreeDisplay {
+  width: 100%;
+  height: 90%;
+  background: url('../../media/bg2-low.jpg');
+  background-position: center;
+  border: 2px outset var(--border-success);
+  overflow: visible;
+}
+
+/* Popup Action Buttons */
+#FocusButton,
+#CloseButtonPopup {
+  position: absolute;
+}
+#CloseButtonPopup {
+  top: 0;
+  right: 0;
+  font-size: 26px;
+  background: transparent;
+  color: #333;
+}
+#FocusButton {
+  top: auto;
+  right: 0;
+  width: 20%;
+  font-size: 18px;
+  color: var(--border-success);
+  font-family: "Cairo";
+}
+
+@media (min-width: 1440px) {
+  .HeaderButton {
+    font-size: 16px;
+    width: 40%;
+  }
+}
+@media (max-width: 320px) {
+  .popup {
+    left: 2.5%;
+    width: 95%;
+    flex-direction: column;
+  }
+  .popupHeader {
+    display: flex;
+    flex-direction: row;
+    margin-top: 16px;
+  }
+  .HeaderButton {
+    font-size: 12px;
+    width: 40%;
+  }
+  .popup aside{
+    display: flex;
+    flex-direction: column;
+  }
+  .popup section {
+    flex-direction: column;
+    height: auto;
+  }
+  .personDetails,
+  .spouseDetails {
+    width: 100%;
+  }
+  .MultipleSpouses button {
+    width: 80%;
+    font-size: 11px;
+  }
+  .person-details-vertical-table th,
+  .person-details-vertical-table td,
+  .person-marriage-vertical-table th,
+  .person-marriage-vertical-table td
+  {
+    font-size: 10px;
+    padding: 1px;
+  }
+  .personDetailsTitle{
+    font-size: 12px;
+  }
+}
+/* ================================
+   Mobile (≤480px)
+   ================================ */
+@media (max-width: 480px) {
+  .popup {
+    left: 2.5%;
+    width: 95%;
+    flex-direction: column;
+  }
+  .popupHeader {
+    display: flex;
+    flex-direction: row;
+    margin-top: 16px;
+  }
+  .HeaderButton {
+    font-size: 12px;
+    width: 40%;
+  }
+  .popup aside{
+    display: flex;
+    flex-direction: column;
+  }
+  .popup section {
+    flex-direction: column;
+    height: 100%;
+  }
+  .personDetails,
+  .spouseDetails {
+    width: 100%;
+  }
+  .MultipleSpouses button {
+    width: 80%;
+    font-size: 12px;
+  }
+  .person-details-vertical-table th,
+  .person-details-vertical-table td,
+  .person-marriage-vertical-table th,
+  .person-marriage-vertical-table td
+  {
+    font-size: 12px;
+    padding: 2px;
+  }
+  .personDetailsTitle{
+    font-size: 14px;
+  }
+  .popup main{
+    height: 100%;
+  }
+  #smallTreeDisplay{
+    width: 100%;
+    height: 90%;
+  }
+  #FocusButton{
+    font-size: 12px;
+    width: 50%;
+    right: 2%;
+  }
+  #CloseButtonPopup{
+    border: none;
+  }
+  #treeMenuToggle{
+    width: 20%;
+    height: 50%;
+    display: flex;
+    flex-direction: column;
+    border: none;
+    text-align: right;
+    && button {
+      border: none;
+      gap: 0;
+      width: 100%;
+    }
+  }
+  .InfoHeader{
+    width: 100%;
+    gap: 0;
+    
+    text-align: right;
+  }
+}
+
+/* ================================
+   Tablet Portrait (481–1024px, portrait)
+   ================================ */
+@media (min-width: 481px) and (max-width: 1024px) and (orientation: portrait) {
+  .popup {
+    left: 2.5%;
+    width: 95%;
+    height: 95%;
+  }
+  .personDetails,
+  .spouseDetails {
+    width: 50%;
+  }
+  .personDetailsTitle{
+    font-size: 12px;
+  }
+  .HeaderButton {
+    width: 75%;
+    font-size: 11px;
+  }
+}
+
+/* ================================
+   Tablet & Small Desktop Landscape (769–1440px, landscape)
+   ================================ */
+@media (min-width: 480px) and (max-width: 1440px) and (orientation: landscape) {
+  .popup {
+    left: 2.5%;
+    width: 95%;
+    height: 95%;
+    flex-direction: column;
+  }
+  .HeaderButton {
+    width: 75%;
+    font-size: 11px;
+  }
+  .personDetails,
+  .spouseDetails {
+    width: 50%;
+  }
+  .popup aside{
+    flex: row;
+  }
+  .personDetailsTitle{
+    font-size: 12px;
+  }
+  .InfoHeader{
+    gap: 1px;
+    text-align: right;
+    margin: 0;
+    padding: 0;
+    width: 20%;
+    && h2{
+      font-size: 12px;
+    }
+  }
+}
+
+@media (orientation: landscape){
+    .popup section{
+        display: flex;
+        flex: column;
+    }
+    .popup{
+        width: 98%;
+        left: 1%
+    }
+}

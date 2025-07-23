@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './styles/ComingSoonOfficial.css';
 
-const LAUNCH_DATE = new Date('2025-08-01T18:00:00');
+const LAUNCH_DATE = new Date('2027-01-01T18:00:00');
 
 const ComingSoonOfficial = () => {
   const navigate = useNavigate();
@@ -70,8 +70,8 @@ const ComingSoonOfficial = () => {
         <div className="teaser-line">
           <em>{teaser}</em>
         </div>
-        <h2>الاطلاق المتوقع في 01 أوت 2025 ، 18:00</h2>
-        <h2>الوقت المتبقي حتى إطلاق الموقع:</h2>
+        {/* <h2>الاطلاق المتوقع في 01 أوت 2025 ، 18:00</h2>
+        <h2>الوقت المتبقي حتى إطلاق الموقع:</h2> */}
         <div className="countdown">
           <div><span>{timeLeft.d}</span><small>{timeLeft.d > 11 ? "يوما": "ايام"}</small></div>
           <div><span>{timeLeft.h}</span><small>{timeLeft.h > 11 ? "ساعة": "ساعات"}</small></div>

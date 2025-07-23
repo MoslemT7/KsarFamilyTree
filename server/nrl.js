@@ -20,7 +20,7 @@ const rl = readline.createInterface({
     });
 
 const createParentChildRelationship = async (
-  sessionOrTx, // pass session or transaction here
+  sessionOrTx,
   parentFullName,
   childFullName,
   relationshipLabel
@@ -127,7 +127,6 @@ const createPerson = async ({
   }
 };
 
-
 const deletePerson = async (ID) => {
   try {
     const result = await session.run(
@@ -163,14 +162,13 @@ const selectPerson = async (ID) => {
 
     if (result.records.length > 0) {
       const record = result.records[0];
-      // Get values safely, null if missing
       const personData = {
         name: record.get('name') || null,
         lastName: record.get('lastName') || null,
         YoB: record.get('YoB') || null,
         YoD: record.get('YoD') || null,
         gender: record.get('gender') || null,
-        isAlive: record.get('isAlive') ?? null, // can be boolean false
+        isAlive: record.get('isAlive') ?? null,
       };
 
       console.log('✅ Person data:', personData);

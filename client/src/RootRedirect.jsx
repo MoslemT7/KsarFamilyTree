@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import App from './App';
 import ComingSoonOfficial from './ComingSoonPhaseOne';
 
-const LAUNCH_DATE = new Date('2025-08-01T18:00:00');
+const LAUNCH_DATE = new Date('2027-01-01T18:00:00');
 
 const RootRedirect = () => {
   const [showApp, setShowApp] = useState(false);

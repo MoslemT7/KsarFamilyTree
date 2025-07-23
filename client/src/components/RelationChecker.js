@@ -99,7 +99,7 @@ const RelationPage = () => {
     setHistory(prev => [...prev, newEntry]);
   }, [relationship]);
 
-    useEffect(() => {
+  useEffect(() => {
     const el = RelationRef.current;
     if (!el) return;
 
@@ -125,7 +125,7 @@ const RelationPage = () => {
 
       if (screenWidth < 400) {
         nodeSize = { x: 45, y: 90 };
-        separation = { siblings: 5, nonSiblings: 4.5 };
+        separation = { siblings: 4, nonSiblings: 4 };
         fontSize = 16;
       } else if (screenWidth < 500) {
         nodeSize = { x: 45, y: 100 };
@@ -149,7 +149,7 @@ const RelationPage = () => {
         fontSize = 22;
       }
 
-      const translateX = screenWidth > 1024 ? containerWidth / 2 - 200 : containerWidth / 2 - 20;
+      const translateX = screenWidth > 1024 ? containerWidth / 2 - 200 : containerWidth / 2 - 10;
 
       setConfig({
         translate: { x: translateX, y: yTranslate },
@@ -2425,7 +2425,7 @@ RETURN
                     draggable={false}
                     renderCustomNodeElement={({ nodeDatum }) => {
                       const lines = splitTextLines(utils.translateNodeName(nodeDatum.name), 15);
-                      const lineHeight = 18; // px
+                      const lineHeight = 18;
                       const paddingY = 10;
 
                       const rectHeight = lines.length === 1 ? 40 : lines.length * lineHeight + paddingY * 2;
@@ -2473,12 +2473,12 @@ RETURN
                                   : '#333',
                               textAnchor: 'middle',
                               dominantBaseline: 'middle',
-                              fontWeight: 800,
-                              letterSpacing: '1.6px',
+                              fontWeight: 900,
+                              letterSpacing: 1.5,
                               strokeWidth:
                                 nodeDatum.id === relationship.person1ID || nodeDatum.id === relationship.person2ID
                                   ? '0px'
-                                  : '0.9px',
+                                  : '1px',
                               pointerEvents: 'none',
                             }}
                           >
